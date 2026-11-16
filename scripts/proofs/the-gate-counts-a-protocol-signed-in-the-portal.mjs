@@ -94,14 +94,27 @@ async function roofEveryTime(label) {
   check(`${label}: the gate's protocols condition is met, so roof is not held behind the other lines`, protocols.unmet() === null, protocols.unmet() ?? "");
 }
 
-/* a. Unsigned. */
+/*
+ * a. Unsigned. Since Robert's ruling of 20:08 Central 2026-11-15 (issue #1,
+ * 6905345382) an unsigned protocol no longer closes its line: the door goes on
+ * to ask training, and nobody trained still shuts it, now on training.
+ */
 state.signed = {};
 state.trained = {};
 for (const slug of [FC, PL]) {
   const s = await lineIsSellable(slug, null);
-  check(`a: ${slug} unsigned keeps its own door shut`, s.ok === false && /has not been signed/.test(s.why), s.ok ? "it opened" : s.why);
+  check(`a: ${slug} unsigned and untrained keeps its own door shut, on training rather than the signature`, s.ok === false && /Nobody is yet trained/.test(s.why), s.ok ? "it opened" : s.why);
 }
 await roofEveryTime("a");
+
+/* a2. Unsigned and trained: the 20:08 ruling's case. The transcription counts as in force for selling. */
+state.signed = {};
+state.trained = { [FC]: true, [PL]: true };
+for (const slug of [FC, PL]) {
+  const s = await lineIsSellable(slug, null);
+  check(`a2: ${slug} unsigned but trained opens its door`, s.ok === true, s.ok ? "" : s.why);
+}
+await roofEveryTime("a2");
 
 /* b. Signed, nobody trained. */
 state.signed = {

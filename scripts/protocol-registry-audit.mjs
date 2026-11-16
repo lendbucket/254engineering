@@ -953,12 +953,13 @@ if (pdftotext.error || pdftotext.status !== 0) {
    * comparison of the paper-signed 254-RC-001 against its fetched PDF.
    */
   const { SIGNABLE_PROTOCOLS, HELD_OUT_OF_FORCE } = await import("../src/content/protocols/signable.ts");
-  const { OWN_PROTOCOL_REQUIRED } = await import("../src/config/own-protocol.ts");
+  const { OWN_PROTOCOL_REQUIRED, SCOPE_NOT_STATED_BY_ITS_PROTOCOL } = await import("../src/config/own-protocol.ts");
   const { inForceFor, inForceSet } = inForceResolver({
     PROTOCOL_ENTRIES,
     SIGNABLE_PROTOCOLS,
     HELD_OUT_OF_FORCE,
     OWN_PROTOCOL_REQUIRED,
+    SCOPE_NOT_STATED_BY_ITS_PROTOCOL,
     paperText: signedText,
   });
   const { wrong, quoted, pending, itemsCompared, unread } = checkReceives(entries, inForceFor, PENDING);

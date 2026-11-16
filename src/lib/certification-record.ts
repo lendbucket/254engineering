@@ -6,6 +6,8 @@ import { verifiedEngineers } from "@/config/credentials";
 import { licenceIsCurrentToday } from "./launch";
 import { readEvery, readEveryIn } from "./bounded-read";
 import { mayOnboardRole, profileRole } from "./onboarding-scope";
+import { SELLABLE_TEMPLATE_STATUSES, sellableTemplate } from "./line-gate";
+import { SIGNABLE_PROTOCOLS } from "@/content/protocols/signable";
 
 /**
  * ===========================================================================
@@ -300,20 +302,46 @@ export async function certificationsFor(
   }));
 }
 
-/** The service lines a training can be recorded for: each with its published protocol. */
+/**
+ * The service lines a training can be recorded for, each with the protocol it
+ * is sold under. Published when the engineer has signed; until then, under
+ * Robert's ruling of 20:08 Central 2026-11-15 (6905345382), the transcription's
+ * own row for the version in force in code, which is the row the money door
+ * reads (sellableTemplate in line-gate.ts). Recording still takes an
+ * administrator, and only the engineer approves it.
+ */
 export async function trainableLines(): Promise<{ serviceSlug: string; templateId: string; documentNumber: string; version: string }[]> {
   const db = supabaseAdmin();
   if (!db) return [];
   const { data } = await db
     .from("eng_protocol_templates")
-    .select("id, service_slug, document_number, version_label")
-    .eq("status", "published");
-  return (data ?? []).map((t) => ({
-    serviceSlug: t.service_slug as string,
-    templateId: t.id as string,
-    documentNumber: (t.document_number as string | null) ?? "",
-    version: (t.version_label as string | null) ?? "",
-  }));
+    .select("id, service_slug, document_number, version_label, status")
+    .in("status", [...SELLABLE_TEMPLATE_STATUSES]);
+  const rows = (data ?? []) as { id: string; service_slug: string; document_number: string | null; version_label: string | null; status: string }[];
+  /* A published row stands as before. An unsigned row counts only when it is the version in force in code. */
+  const inCode = new Set(SIGNABLE_PROTOCOLS.map((p) => `${p.documentNumber}@${p.version}`));
+  const byDoc = new Map<string, typeof rows>();
+  for (const r of rows) {
+    const key = `${r.document_number}@${r.version_label}`;
+    if (r.status !== "published" && !inCode.has(key)) continue;
+    byDoc.set(key, [...(byDoc.get(key) ?? []), r]);
+  }
+  /*
+   * Published rows first, so recordTraining's find by service slug resolves to
+   * a signed protocol exactly as it did before this ruling. WPI-8 runs under
+   * two protocols while a certification is held per line; that predates the
+   * ruling and is reported, not changed here.
+   */
+  return [...byDoc.values()]
+    .map((group) => sellableTemplate(group))
+    .filter((t): t is (typeof rows)[number] => t !== null)
+    .sort((a, b) => Number(b.status === "published") - Number(a.status === "published") || String(a.document_number).localeCompare(String(b.document_number)))
+    .map((t) => ({
+      serviceSlug: t.service_slug,
+      templateId: t.id,
+      documentNumber: t.document_number ?? "",
+      version: t.version_label ?? "",
+    }));
 }
 
 /** An administrator records supervised training. It counts for nothing until the engineer approves it. */

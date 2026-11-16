@@ -123,7 +123,13 @@ const answerAll = (entry, pick = () => 0) =>
  * than an import of OWN_PROTOCOL_REQUIRED: section 3 asserts the config still
  * names exactly these, so moving one costs two edits made on purpose.
  */
-const HELD_FOR_OWN_PROTOCOL = ["structural-letters/real-estate"];
+/*
+ * EMPTY since Robert's ruling of 20:08 Central 2026-11-15 (issue #1,
+ * 6905345382), which put the real-estate structural letter on sale under
+ * 254-PL-001. It held ["structural-letters/real-estate"]. The checks below
+ * still compare it with the config, so a new hold is two edits on purpose.
+ */
+const HELD_FOR_OWN_PROTOCOL = [];
 
 // ===========================================================================
 // 1. CATALOG INTEGRITY
