@@ -176,19 +176,33 @@ check(
 
 /* The disclosure. Robert, 2026-11-01, Q1: the privacy page says it, in his approved words. */
 const privacy = readFileSync("src/app/(site)/privacy/page.tsx", "utf8").replace(/\s+/g, " ");
-/* Robert's approved paragraph of 2026-11-14 (his answer 3 to 6871344363), carried exactly. */
+/*
+ * Robert's approved paragraphs, carried exactly: S4 of 6909684286, approved by his
+ * answer 1 of 16:34 Central 2026-11-16 (6931421644), which replaced his approved
+ * paragraph of 2026-11-14 once /start sent Google Ads a hashed email and set a
+ * click cookie. The old sentence promising "no name, email ..." must be gone.
+ */
 check(
-  "the privacy page discloses Google Analytics 4 and the two conversions, in his approved words",
+  "the privacy page discloses Google Analytics 4, the finder's events and the server-side purchase, in his approved words",
   privacy.includes(
-    "Public pages use Google Analytics 4 to count page views, two steps of an order (starting one, and paying for one, counted once per order), and taps on the firm&apos;s telephone number.",
+    "Public pages use Google Analytics 4 to count page views, the steps of the price finder and the price it shows, starting an order, paying for one (counted once per order, and reported by the firm&apos;s own server when the payment is recorded), taps on the firm&apos;s telephone number, and requests for a callback, an emailed price or a reply.",
   ) &&
-    privacy.includes(
-      "The count of paid orders and telephone taps is shared with Google Ads to measure whether advertising works, with no name, email, address, price or order reference in it.",
-    ) &&
     privacy.includes("Google signals and ad personalization are off, the address sent leaves out order references and signed links, and no form contents are sent."),
 );
+check(
+  "and the ad click cookie and the hashed email and phone, in his approved words",
+  privacy.includes("kept for 90 days in a first party cookie named e254_ad_click") &&
+    privacy.includes("the firm sends your email address and phone number in hashed form") &&
+    privacy.includes("Google calls this enhanced conversions. Nothing else you typed is sent."),
+);
+check(
+  "and no sentence it replaced survives",
+  !privacy.includes("with no name, email, address, price or order reference in it") &&
+    !privacy.includes("This site sets no advertising cookies") &&
+    !privacy.includes("There is no account system"),
+);
 check("and says staff and account screens do not load it", privacy.includes("Staff and account screens do not load it."));
-check("and its effective date moved with it, to the conversions' merge day", privacy.includes('const EFFECTIVE = "14 November 2026"'));
+check("and its effective date moved with it, to /start's merge day", privacy.includes('const EFFECTIVE = "16 November 2026"'));
 
 console.log(wrong === 0 ? "PASS: GA4 loads after idle on public pages only, and sends no token, reference or personal field." : `FAIL: ${wrong} check(s).`);
 process.exitCode = wrong === 0 ? 0 : 1;

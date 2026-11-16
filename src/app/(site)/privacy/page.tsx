@@ -27,7 +27,8 @@ const crumbs = [
  * for. Change it by hand when the document changes.
  */
 // Moved with the conversions paragraph, set to its merge day (Robert's answer 3 to 6871344363).
-const EFFECTIVE = "14 November 2026";
+/* Moved with the Google Ads paragraphs and the password sentence, /start's merge day (Robert, 6931421644). */
+const EFFECTIVE = "16 November 2026";
 
 export default function PrivacyPage() {
   return (
@@ -75,21 +76,46 @@ export default function PrivacyPage() {
                 browser&apos;s user agent string are stored alongside it. That is used to understand
                 which pages produce enquiries and to identify automated submissions.
               </p>
+              {/*
+                The Google Ads privacy paragraph, S4 of 6909684286, approved as written by
+                Robert's answer 1 of 16:34 Central 2026-11-16 (6931421644). It replaces the
+                Google Analytics paragraph and the "What is not collected" paragraph, which
+                /start made untrue: they said the Google Ads report carried no email and that
+                the site set no advertising cookies.
+              */}
               <p>
-                Google Analytics. Public pages use Google Analytics 4 to count page views, two steps
-                of an order (starting one, and paying for one, counted once per order), and taps on
-                the firm&apos;s telephone number. It sets first party cookies to tell one visit from
-                the next. The count of paid orders and telephone taps is shared with Google Ads to
-                measure whether advertising works, with no name, email, address, price or order
-                reference in it. Google signals and ad personalization are off, the address sent
-                leaves out order references and signed links, and no form contents are sent. Staff
-                and account screens do not load it.
+                <strong>Google Analytics.</strong> Public pages use Google Analytics 4 to count page
+                views, the steps of the price finder and the price it shows, starting an order, paying
+                for one (counted once per order, and reported by the firm&apos;s own server when the
+                payment is recorded), taps on the firm&apos;s telephone number, and requests for a
+                callback, an emailed price or a reply. It sets first party cookies to tell one visit
+                from the next. Google signals and ad personalization are off, the address sent leaves
+                out order references and signed links, and no form contents are sent. Staff and
+                account screens do not load it.
               </p>
               <p>
-                <strong>What is not collected.</strong> This site sets no advertising cookies, runs
-                no third party advertising or social media tracking pixels, and does not build
-                behavioral profiles of visitors. There is no account system, so no passwords are
-                stored. Payment details are never collected through this website.
+                <strong>Visits from a Google ad.</strong> When you arrive from a Google ad, the click
+                identifier Google adds to the link and the campaign tags are kept for 90 days in a
+                first party cookie named e254_ad_click, and stored with any request or order you make
+                in that time. When that order is paid, or you ask for a callback, an emailed price or a
+                reply, the firm tells Google Ads that the click led to it, with the amount paid for an
+                order. With that report the firm sends your email address and phone number in hashed
+                form, which lets Google match them to its own records without receiving them in
+                readable form. Google calls this enhanced conversions. Nothing else you typed is sent.
+                On the advertising landing page, Google may show its own forwarding number in place of
+                the firm&apos;s, so a call from an ad can be counted. The call still reaches the
+                office, and Google records its length and the caller&apos;s area code.
+              </p>
+              <p>
+                {/* Robert's answer 7 (6931421644) drops the old "no account system" sentence; this one is posted for his approval. */}
+                <strong>Account passwords.</strong> If you have an account with the firm, your
+                password is never stored as you typed it: it is kept only in a scrambled, one-way form
+                that cannot be turned back into the password, so nobody at the firm can read it.
+              </p>
+              <p>
+                <strong>What is not collected.</strong> This site runs no advertising or social media
+                tracking other than the Google tags described above, and does not build behavioral
+                profiles of visitors. Payment details are never collected through this website.
               </p>
 
               <h2>How it is used</h2>
