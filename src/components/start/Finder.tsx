@@ -342,7 +342,7 @@ export function Finder({
                 }}
               >
                 <p className="text-[15px] font-semibold text-slate">
-                  {lead === "call" ? (openNow === false ? "We will call you after we open at 8 AM Central." : "We will call you back during opening hours.") : "We will email you this price and the order link."}
+                  {lead === "call" ? (openNow === false ? "We will call you after we open at 8 AM Central." : "We will call you back during opening hours.") : "We will email you this price and the order link, then two short reminders over five days unless you order first. Each has a link to stop them."}
                 </p>
                 {lead === "call" ? (
                   <>
