@@ -318,6 +318,22 @@ export const topics: Topic[] = [
       },
     },
   },
+  {
+    topic: "helical piers",
+    cluster: "proximity",
+    evidence: "2026-11-14, Ahrefs pull approved by Robert: 'helical piers' 4,200/mo, KD 0. Page 9, approved as proposed in his answer 33 of 2026-11-15 (proposal 6889408888), no code figures.",
+    angles: {
+      "254": {
+        angle: "When a helical pier is the right repair: what the ASCE Texas Section guidelines 7.4.3.1 ask of any underpinning, the slab carried on piers and the board's January 2018 response to the Drebelbis request, how capacity is shown without quoting a factor (AC358 and the IBC not read), what a pier repair will not do, and independence from the company installing it. Distinct from /insights/foundation-engineer-vs-repair-company, which follows roles across a repair.",
+        path: "/structural-engineer/helical-piers",
+        status: "live",
+      },
+      sealed: {
+        angle: "None planned.",
+        status: "none",
+      },
+    },
+  },
   /*
    * THE BUYERS, AGENTS AND LENDERS SECTION ON THIS SITE, 2026-10-16.
    *

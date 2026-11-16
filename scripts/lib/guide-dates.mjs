@@ -36,7 +36,8 @@ export const GUIDES = [
     ],
   },
   { path: "/structural-engineer/cost", sources: [{ file: "src/app/(site)/structural-engineer/cost/page.tsx" }] },
-  ...["when-you-need-one", "inspection", "how-to-choose"].map((slug) => ({
+  /* pier-and-beam and helical-piers are pages 8 and 9, Robert's Q41 of 2026-11-15 (6903338587): fourteen guide pages become sixteen. */
+  ...["when-you-need-one", "inspection", "how-to-choose", "pier-and-beam", "helical-piers"].map((slug) => ({
     path: `/structural-engineer/${slug}`,
     sources: [{ file: SE, slug }],
   })),
