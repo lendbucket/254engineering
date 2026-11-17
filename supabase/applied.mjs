@@ -4990,7 +4990,17 @@ export const APPLIED = [
     file: "0137_an_ad_click_follows_the_lead_to_the_order.sql", appliedBy: "apply_migration",
     fingerprint: "14bdcbc9c50eb3706f17af611dc44735",
     behaviour: "eff2849030a0826317ce033da705b5b3",
-    production: null,
+    /*
+     * Production: applied 2026-11-16 22:35 UTC through apply_migration by the
+     * chat counterpart, in a sitting under Robert's answer 1 of 16:34 Central
+     * 2026-11-16 (6931421644), from feat/ads-start at abbe16b; schema_migrations
+     * version 20261116223503, stored hash ffac8166 equal to the file's stored
+     * form; shape 9844f7bb at 1678 columns and 129 tables before, 14bdcbc9 at
+     * 1729 columns and 130 tables after, grants 203 unchanged, eng_ad_conversions
+     * with row level security on, no API grant, the unique index present and 0
+     * rows, 0 leads off follow_up_step 0 (issue #1, 6931443522).
+     */
+    production: "2026-11-16",
     proves: { table: "eng_ad_conversions" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-15 on the chain to 0137, with 0136 reproducing " +
@@ -5004,8 +5014,8 @@ export const APPLIED = [
       "for server side conversions and the offline upload, the price email sequence, the callback queue and the one " +
       "unpaid order reminder. ON DEVELOPMENT SINCE 2026-11-15 (issue #1, 6902704874, after request 6902616118: version " +
       "20261115225053, shape 14bdcbc9 at 1729 columns, 130 tables, grants 203 unchanged, row level security on " +
-      "eng_ad_conversions with no API grant, the unique index present, as predicted). PENDING ON PRODUCTION: only in a " +
-      "sitting with Robert. Additive: nullable columns, checks that every existing " +
+      "eng_ad_conversions with no API grant, the unique index present, as predicted). ON PRODUCTION SINCE 2026-11-16 " +
+      "(6931443522, version 20261116223503, as predicted). Additive: nullable columns, checks that every existing " +
       "row satisfies, indexes, and one table with row level security on and no grant.",
   },
 ];
