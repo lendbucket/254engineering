@@ -3544,6 +3544,21 @@ before anything rendered it.
 
 ## `compliance-audit` COMPUTES TODAY IN UTC, SO AN ACKNOWLEDGEMENT EXPIRES EARLY IN CENTRAL
 
+**BUILT 2026-11-17 ON `fix/compliance-audit-firm-calendar`**, working this file
+in order on Robert's order of that morning. The decision this entry said had to
+come first was already made: the operator ruled the firm's calendar is
+America/Chicago, and the product has decided every expiry against
+`todayInFirmCalendar()` since 2026-09-24 (`src/lib/launch.ts`). So the audit
+follows the product. **It was three comparisons, not the one this entry
+named:** an engineer's licence lapsing, the roster acknowledgement, and an
+active registration each read a UTC date. All three now read one `FIRM_TODAY`
+taken at the top of the audit, and the parked-work check, already on the firm's
+calendar, reads the same value. Proof
+`compliance-audit-keeps-the-firms-calendar.mjs` pins the reading recorded below
+(19:19 Central on 2026-09-22 is 2026-09-23 in UTC), injection-verified twice.
+
+### As first written
+
 Operator ruling, 2026-09-22. **Recorded, not built. It errs shut, which is why
 it is not urgent, and it is still wrong.**
 

@@ -39,6 +39,21 @@ import { readSource } from "./lib/read-source.mjs";
 import { ackNotices, ACK_NOTICE_DAYS } from "./lib/ack-notice.mjs";
 
 /*
+ * ONE CLOCK FOR EVERY "TODAY" IN THIS AUDIT: THE FIRM'S.
+ *
+ * Operator ruling of 2026-09-22: the firm's calendar is America/Chicago. The
+ * product decides every expiry against todayInFirmCalendar() (src/lib/launch.ts,
+ * since 2026-09-24), and this audit compared three of them against a UTC date,
+ * so from 19:00 Central to midnight it believed it was already tomorrow: an
+ * acknowledgement lost the last hours of the day it was given, and a licence or
+ * registration expiring today read as lapsed here while the product still held
+ * it current. BACKLOG, "compliance-audit computes today in UTC", fixed
+ * 2026-11-17 for all three, not only the roster one it named.
+ */
+const { todayInFirmCalendar } = await import("../src/lib/firm-calendar.ts");
+const FIRM_TODAY = todayInFirmCalendar();
+
+/*
  * Comments stripped before any source is matched.
  *
  * The first run of this file failed on "takes it from the register rather than
@@ -356,7 +371,7 @@ const {
    */
   const unrecorded = verifiedEngineers.filter((e) => e.expires === null).map((e) => e.name);
   const lapsed = verifiedEngineers
-    .filter((e) => typeof e.expires === "string" && e.expires < new Date().toISOString().slice(0, 10))
+    .filter((e) => typeof e.expires === "string" && e.expires < FIRM_TODAY)
     .map((e) => `${e.name} expired ${e.expires}`);
 
   rec(
@@ -450,7 +465,7 @@ const {
    * acknowledging a difference nobody is actually expecting to close.
    */
   {
-    const TODAY = new Date().toISOString().slice(0, 10);
+    const TODAY = FIRM_TODAY;
     const missing = verifiedEngineers.filter((e) => !e.employersOnRoster.includes(ISSUED_TO));
     const covered = missing.filter(
       (e) => e.rosterNameLag && e.rosterNameLag.expectedName === ISSUED_TO && e.rosterNameLag.expires >= TODAY,
@@ -521,20 +536,16 @@ const {
    * calendar is America/Chicago. `todayInFirmCalendar()` carries that, and this
    * check uses it.
    *
-   * AND THE ROSTER CHECK ABOVE STILL USES UTC, WHICH IS DELIBERATE AND
-   * RECORDED. Two clocks in one audit is exactly the two-homes shape this file
-   * keeps finding, and fixing the roster one was ruled out of this pass because
-   * it errs shut and changing an expiry that is live this week is not a thing
-   * to do in passing. It is in BACKLOG.md, and `todayInFirmCalendar()` is where
-   * it lands, so that repair is one call site rather than a hunt. Said out loud
-   * here so the next reader meets the difference rather than discovering it.
+   * THE ROSTER CHECK ABOVE USED UTC UNTIL 2026-11-17, deliberately and
+   * recorded, because it erred shut and an expiry live that week was not a
+   * thing to change in passing. It reads FIRM_TODAY now, like this one and like
+   * the registration and licence checks, so this audit has one clock.
    */
   {
     const { parkedWork, expiredParks, livingParks, retiredParks, isParkRetired } = await import(
       "../src/config/parked-work.ts"
     );
-    const { todayInFirmCalendar } = await import("../src/lib/firm-calendar.ts");
-    const firmToday = todayInFirmCalendar();
+    const firmToday = FIRM_TODAY;
 
     /*
      * VACUITY GUARD FIRST. With no parked work this whole block passes over an
@@ -2217,7 +2228,7 @@ const RULED_CONDITIONS = [
   const { readdirSync, statSync } = await import("node:fs");
   const { registrationStatement, notYetAcceptingEngagements } = await import("../src/lib/launch.ts");
   const hasActive = verifiedFirmRegistrations.some(
-    (r) => r.status === "active" && r.expires >= new Date().toISOString().slice(0, 10),
+    (r) => r.status === "active" && r.expires >= FIRM_TODAY,
   );
 
   /* The ruled sentences, written out, because an audit does not import its expectation. */
