@@ -1817,7 +1817,22 @@ teardown commit) kept whole on `wip/staff-walk-harness` at `4607a2b` and
 removed from the release branch. Its ledger entry is written at the sitting
 either way.
 
-## TWO DEFECTS THE STAFF WALK FOUND, 2026-10-03, AND NEITHER IS FIXED
+## TWO DEFECTS THE STAFF WALK FOUND, 2026-10-03: THE LIST IS BOUNDED, ONE QUESTION ON CLIENTS IS OPEN
+
+**RE-CHECKED AGAINST MAIN `0daa9c0` ON 2026-11-17**, working this file in order
+on Robert's order of that morning. The heading said neither was fixed:
+
+- **Defect 2 is fixed.** `/portal/clients` reads one bounded page of
+  `CLIENT_PAGE_SIZE` with an exact count beside it and a pager (`b13c36bf`,
+  office ready, 2026-10-24).
+- **Defect 1's double click is fixed** (2026-10-07, below). **Still open, for a
+  ruling:** whether a second client at the same address is an error, the same
+  client, or a legitimate second client. Until that is ruled, two requests in
+  the same instant can still both insert, because the guard is a read before
+  the insert and a constraint needs the ruling. Put to Robert in the evening
+  report of 2026-11-17.
+
+### As first written
 
 Operator ruling, 2026-10-03: added to the fix list, not fixed now. Both were
 found by driving the product's own routes rather than by reading them, which is
