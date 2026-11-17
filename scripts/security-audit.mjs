@@ -377,6 +377,8 @@ const ADMIN_APIS = [
   // Moves a customer's money back. Closed to a signed out client, and admin
   // only behind that.
   "/api/portal/orders/refund",
+  /* Setting travel on an online order waiting for it, the administrator alone (Robert's answer 12, 2026-11-16). */
+  "/api/portal/orders/travel",
   // Attaches a paid order to an account, which decides who can sign in and
   // see it, and finishes the payment's release (ruling 2026-10-13).
   "/api/portal/orders/attach-account",

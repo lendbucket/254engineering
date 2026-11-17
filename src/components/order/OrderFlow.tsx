@@ -89,7 +89,7 @@ export function OrderFlow({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [disqualified, setDisqualified] = useState<string | null>(null);
-  const [done, setDone] = useState<{ reference: string; unpaid?: string } | null>(null);
+  const [done, setDone] = useState<{ reference: string; unpaid?: string; travelHeld?: string } | null>(null);
 
   const entry = useMemo(
     () => deliverables.find((d) => d.tier === state.tier) ?? null,
@@ -316,7 +316,7 @@ export function OrderFlow({
       window.location.href = result.checkoutUrl;
       return;
     }
-    setDone({ reference: result.reference, unpaid: result.paymentUnavailable });
+    setDone({ reference: result.reference, unpaid: result.paymentUnavailable, travelHeld: result.travelHeld });
   }
 
   // ------------------------------------------------------------------ done
@@ -346,6 +346,12 @@ export function OrderFlow({
           <p className="mt-6 border-l-2 border-[var(--color-brass)] pl-4 text-[15px] leading-[1.7] text-[var(--color-ink)]">
             Nothing has been charged. The payment page could not be opened, so the firm will send
             you a payment link for this reference. {done.unpaid}
+          </p>
+        ) : null}
+        {/* Outside our technicians' counties: Robert's sentence, the county filled in by the server (answer 12, 2026-11-16). */}
+        {done.travelHeld ? (
+          <p className="mt-6 border-l-2 border-[var(--color-brass)] pl-4 text-[15px] leading-[1.7] text-[var(--color-ink)]">
+            {done.travelHeld}
           </p>
         ) : null}
         {/*
