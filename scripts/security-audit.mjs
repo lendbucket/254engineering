@@ -321,6 +321,8 @@ const ADMIN_APIS = [
   "/api/portal/files",
   "/api/portal/field",
   "/api/portal/inquiries",
+  /* The photo or PDF a /start lead sent, for staff who may read the inbox (Robert's add-on of 2026-11-15). */
+  "/api/portal/lead-attachment",
   "/api/portal/insurance",
   /* Approving a training course, P3 of 2026-11-01: the engineer of record or the owner, from the session. */
   "/api/portal/training",

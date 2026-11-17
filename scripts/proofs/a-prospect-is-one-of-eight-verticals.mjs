@@ -64,6 +64,8 @@ const AFTER_0123 = [
   "0135_a_job_can_carry_travel.sql",
   /* An inquiry has a call log (Batch B, 2026-11-14): three subjects on eng_contact_log; it names no eng_prospects, read by grep. */
   "0136_an_inquiry_has_a_call_log.sql",
+  /* The ad click (Robert's /start add-on, 2026-11-15): lead, order and inquiry columns and eng_ad_conversions; it names no eng_prospects, read by grep. */
+  "0137_an_ad_click_follows_the_lead_to_the_order.sql",
 ];
 const following = at >= 0 ? files.slice(at + 1) : [];
 check(

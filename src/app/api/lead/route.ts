@@ -9,6 +9,7 @@ import { cookies } from "next/headers";
 import { partnerForVisitor, VISITOR_COOKIE } from "@/lib/ops-partners";
 import { withSaveOutcome } from "@/lib/save-outcome";
 import { PUBLIC_FORM_REFUSAL, takeAcknowledgement, takePublicFormAttempt } from "@/lib/public-form-limits";
+import { adClickOfRequest } from "@/lib/ad-click-server";
 
 /**
  * Contact and waitlist intake.
@@ -75,6 +76,8 @@ async function handlePOST(request: Request) {
     userAgent,
     partnerId: partner?.partnerId ?? null,
     partnerCode: partner?.code ?? null,
+    /* The ad click this visitor landed with, from the cookie on the server (0137, src/lib/ad-click.ts). */
+    click: await adClickOfRequest(),
   });
 
   /*

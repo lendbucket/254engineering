@@ -56,6 +56,7 @@ const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
 import "./lib/load-env.mjs";
 import { modeUnderTest, announceMode } from "./lib/rendered-mode.mjs";
 import { AUDIT_BASE_URL } from "./lib/ports.mjs";
+import { adLandingRoutes } from "./lib/surfaces.mjs";
 
 /*
  * =========================================================================
@@ -253,7 +254,8 @@ const routes = [...sm.html.matchAll(/<loc>([^<]+)<\/loc>/g)].map(
 // compliance sensitive page on the site, so it is crawled explicitly.
 // The design brief left the sitemap on 2026-10-25 (a noindex quote form), so it is read by name.
 // The partner badge left the sitemap on 2026-11-02 (Robert, noindex) and carries the registration sentence, so it is read by name.
-const allRoutes = [...routes, "/waitlist", "/design-inquiry", "/partners/badge", "/llms.txt", "/llms-full.txt"];
+/* The ad landing page (/start) is noindex and out of the sitemap, so it is read from its declared surface (2026-11-15). */
+const allRoutes = [...routes, "/waitlist", "/design-inquiry", "/partners/badge", "/llms.txt", "/llms-full.txt", ...adLandingRoutes()];
 
 if (allRoutes.length <= 3) {
   console.error("voice-audit: sitemap contained no URLs; refusing to report a pass on zero routes");

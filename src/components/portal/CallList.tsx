@@ -4,6 +4,7 @@ import { EmptyState, Panel, ButtonLink } from "@/components/portal/surfaces";
 import { telLink } from "@/lib/phone-link";
 import { PROSPECT_TYPE_LABEL } from "@/lib/prospect-import";
 import type { ProspectRow } from "@/lib/ops-prospects";
+import type { CallbackRow } from "@/lib/staff-desk";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 
 /**
@@ -87,6 +88,75 @@ export function CallListPanel({ rows, today }: { rows: ProspectRow[] | null; tod
               action={<ButtonLink href="/portal/prospects">Open the sales list</ButtonLink>}
             />
           }
+        />
+      )}
+    </Panel>
+  );
+}
+
+/** How long a callback has waited, in the words an office uses: "12 minutes", "2 hours 5 minutes", "1 day 3 hours". */
+export function waitedFor(dueAt: string, now: number): string {
+  const minutes = Math.max(0, Math.floor((now - Date.parse(dueAt)) / 60_000));
+  const days = Math.floor(minutes / 1440);
+  const hours = Math.floor((minutes % 1440) / 60);
+  const mins = minutes % 60;
+  const part = (n: number, unit: string) => `${n} ${unit}${n === 1 ? "" : "s"}`;
+  if (days) return hours ? `${part(days, "day")} ${part(hours, "hour")}` : part(days, "day");
+  if (hours) return mins ? `${part(hours, "hour")} ${part(mins, "minute")}` : part(hours, "hour");
+  return part(mins, "minute");
+}
+
+/**
+ * CALLBACKS ASKED FOR ON /start, AT THE TOP OF THE CALL LIST (Robert's add-on
+ * of 2026-11-15, item 15). Oldest due first, each with how long it has waited.
+ * The name opens the lead in the inbox, where "Mark contacted" takes it off
+ * this list.
+ */
+export function CallbacksPanel({ rows, letterNames }: { rows: CallbackRow[] | null; letterNames: Record<string, string> }) {
+  const now = Date.now();
+  const columns: Column<CallbackRow>[] = [
+    {
+      key: "name",
+      header: "Who",
+      cell: (r) => (
+        <Link href={`/portal/inbox?q=${encodeURIComponent(r.phone ?? r.name ?? "")}`} className="font-semibold text-[var(--navy)] underline">
+          {r.name ?? "No name given"}
+        </Link>
+      ),
+    },
+    {
+      key: "phone",
+      header: "Phone",
+      cell: (r) => {
+        const href = telLink(r.phone);
+        return href ? (
+          <a href={href} className="font-semibold text-[var(--navy)] underline">
+            {r.phone}
+          </a>
+        ) : (
+          r.phone ?? "No phone"
+        );
+      },
+    },
+    { key: "letter", header: "Letter", cell: (r) => (r.letter ? (letterNames[r.letter] ?? r.letter) : "Not chosen"), desktopOnly: true },
+    { key: "waited", header: "Waiting", cell: (r) => waitedFor(r.dueAt, now) },
+  ];
+
+  return (
+    <Panel
+      className="mt-6"
+      title="Callbacks waiting"
+      description="People who asked the office to call them back, the longest waiting first. One asked for after 8 PM appears at 8 AM."
+    >
+      {rows === null ? (
+        <EmptyState title="The callbacks could not be read" body="The reason is listed under What could not be counted. Nothing here means nobody is waiting." />
+      ) : (
+        <DataTable
+          caption="Callbacks waiting"
+          rows={rows}
+          total={rows.length}
+          columns={columns}
+          empty={<EmptyState title="Nobody is waiting for a callback" body="A request from the price finder on /start appears here the moment it is due." />}
         />
       )}
     </Panel>

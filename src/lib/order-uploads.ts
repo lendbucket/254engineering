@@ -76,9 +76,12 @@ export async function signOrderUpload(params: {
    * by telephone drafts under "intake" (0078), so neither door can write into
    * the other's keys. A document a customer sends AFTER ordering, from their
    * tokened status page, lands under "status", keyed on the order's id
-   * (addendum item 4), so it can never be mistaken for a draft's.
+   * (addendum item 4), so it can never be mistaken for a draft's. A photo or
+   * PDF sent with the /start "something else, or not sure" form lands under
+   * "leads" (0137), keyed on that form's own draft id, so a lead's file can
+   * never be read as an order's.
    */
-  space?: "orders" | "intake" | "status";
+  space?: "orders" | "intake" | "status" | "leads";
   /** Only a PDF, for a slot that asks for a plan or a document rather than a photograph. */
   pdfOnly?: boolean;
 }): Promise<OrderUpload> {

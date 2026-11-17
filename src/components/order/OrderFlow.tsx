@@ -1,14 +1,17 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { CatalogEntry } from "@data/catalog";
 import {
   blockersOn,
   blockersOnPart,
+  carryOf,
   emptyState,
   intakePartsFor,
+  ORDER_CARRY_KEY,
   stepsFor,
+  withCarry,
   type FlowState,
   type StepId,
 } from "@/lib/order-flow";
@@ -55,11 +58,18 @@ export function OrderFlow({
   deliverables,
   signedIn = false,
   trust,
+  otherLines = [],
 }: {
   serviceSlug: string;
   serviceName: string;
   deliverables: CatalogEntry[];
   trust: TrustFacts;
+  /**
+   * The other letters that can be ordered now, as /order offers them (item 7,
+   * Robert's add-on of 2026-11-15): a customer on the wrong page picks another
+   * before paying, and their details come with them. Empty means no switch.
+   */
+  otherLines?: { slug: string; name: string; href: string }[];
   /**
    * Whether a customer session is open, read by the server page.
    *
@@ -116,6 +126,33 @@ export function OrderFlow({
       : [];
 
   const set = (patch: Partial<FlowState>) => setState((s) => ({ ...s, ...patch }));
+
+  /*
+   * SWITCHING LETTERS KEEPS WHO AND WHERE (item 7). After mount, so the server
+   * render and the first client render agree: the details typed on another
+   * letter's page in this tab are applied once, and from then on every change
+   * to them is kept for the next page. Storage that refuses is no carry, which
+   * is the old behaviour.
+   */
+  const carried = useRef(false);
+  useEffect(() => {
+    if (carried.current) return;
+    carried.current = true;
+    try {
+      const raw = window.sessionStorage.getItem(ORDER_CARRY_KEY);
+      if (raw) setState((s) => withCarry(s, raw));
+    } catch {
+      /* No storage, no carry. */
+    }
+  }, []);
+  useEffect(() => {
+    if (!carried.current) return;
+    try {
+      window.sessionStorage.setItem(ORDER_CARRY_KEY, JSON.stringify(carryOf(state)));
+    } catch {
+      /* No storage, no carry. */
+    }
+  }, [state]);
 
   /*
    * ORDER FLOW V2, 2026-10-07: CONTINUE IS NEVER DISABLED FOR A MISSING ANSWER.
@@ -371,6 +408,23 @@ export function OrderFlow({
 
   return (
     <div>
+      {otherLines.length > 0 ? (
+        <details className="mb-6 border-b border-[var(--color-limestone-line)] pb-3">
+          <summary className="flex min-h-[44px] cursor-pointer items-center text-[14px] font-semibold text-[var(--color-link)]">
+            Need a different letter? Switch before you pay
+          </summary>
+          <ul className="mt-2 grid gap-1">
+            {otherLines.map((l) => (
+              <li key={l.slug}>
+                <Link href={l.href} prefetch={false} className="flex min-h-[44px] items-center text-[15px] text-[var(--color-slate)] underline underline-offset-2">
+                  {l.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[13px] text-[var(--color-ink-quiet)]">Your contact details and the property address come with you.</p>
+        </details>
+      ) : null}
       {/*
         THE PROGRESS RAIL, DERIVED FROM THE STEPS THIS FLOW ACTUALLY HAS.
 

@@ -38,7 +38,21 @@ export type InboxItem = {
   /** When it was answered, where that is recorded. A lead records only that it was contacted, not when. */
   answeredAt: string | null;
   href: string;
+  /** The photo or PDF a /start lead sent, opened through a signed link for staff (0137). */
+  attachmentHref?: string | null;
 };
+
+/*
+ * WHAT A /start LEAD IS, IN THE SUMMARY (Robert's add-on of 2026-11-15, item
+ * 5). The three forms are leads like the contact form, so they are in this
+ * list, and the summary says which one and what price the finder showed.
+ */
+const START_FORM_LABEL: Record<string, string> = {
+  callback: "Asked for a call back from /start",
+  email_price: "Asked for the price by email from /start",
+  start_ask: "Something else, or not sure, from /start",
+};
+const dollars = (cents: unknown) => (typeof cents === "number" ? `$${(cents / 100).toLocaleString("en-US")}` : null);
 
 type UntypedRows = { data: Record<string, unknown>[] | null; count: number | null; error: { message: string } | null };
 
@@ -56,7 +70,7 @@ export async function inbox(actor: Actor | null, opts: { includeAnswered: boolea
   const leads = await readEvery<Record<string, unknown>>((from, to) =>
     db
       .from("eng_leads")
-      .select("id, created_at, form, name, email, phone, company, city, service, message, status")
+      .select("id, created_at, form, name, email, phone, company, city, service, message, status, quoted_cents, attachment_key")
       .neq("status", "converted")
       .order("created_at", { ascending: true })
       .range(from, to),
@@ -74,11 +88,22 @@ export async function inbox(actor: Actor | null, opts: { includeAnswered: boolea
         name: String(l.name ?? l.company ?? "No name given"),
         email: (l.email as string | null) ?? null,
         phone: (l.phone as string | null) ?? null,
-        summary: [l.company, l.service, l.city, l.message].filter(Boolean).join(". ").slice(0, 240),
+        summary: [
+          START_FORM_LABEL[String(l.form)] ?? null,
+          l.company,
+          l.service,
+          START_FORM_LABEL[String(l.form)] && dollars(l.quoted_cents) ? `shown ${dollars(l.quoted_cents)}` : null,
+          l.city,
+          l.message,
+        ]
+          .filter(Boolean)
+          .join(". ")
+          .slice(0, 240),
         respondBy: null,
         answered,
         answeredAt: null,
         href: "/portal/clients",
+        attachmentHref: l.attachment_key ? `/api/portal/lead-attachment?id=${String(l.id)}` : null,
       });
     }
   }

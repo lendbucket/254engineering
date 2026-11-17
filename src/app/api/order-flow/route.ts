@@ -7,6 +7,8 @@ import { isOpen, notYetAcceptingEngagements } from "@/lib/launch";
 import { attributeOrder, VISITOR_COOKIE } from "@/lib/ops-partners";
 import { currentCustomer } from "@/lib/customer-auth";
 import { withSaveOutcome } from "@/lib/save-outcome";
+import { adClickOfRequest } from "@/lib/ad-click-server";
+import { utmColumns } from "@/lib/ad-click";
 
 export const dynamic = "force-dynamic";
 
@@ -89,14 +91,32 @@ async function handlePOST(request: NextRequest) {
   if (body.action !== "submit") return bad("Unknown action.");
   if (!body.draftId) return bad("This form is missing its draft reference. Reload and try again.");
 
+  /*
+   * The ad click is read from the first party cookie, here on the server, and
+   * never from the body (src/lib/ad-click.ts). A utm value the body carries
+   * wins; one it lacks falls back to the cookie's, which is how a visitor who
+   * landed on /start and clicked through keeps the campaign that brought them.
+   */
+  const click = await adClickOfRequest();
+  const utm = utmColumns(click, {
+    utmSource: body.attribution?.utm_source,
+    utmMedium: body.attribution?.utm_medium,
+    utmCampaign: body.attribution?.utm_campaign,
+    utmContent: body.attribution?.utm_content,
+    utmTerm: body.attribution?.utm_term,
+  });
   const attribution = {
-    utmSource: body.attribution?.utm_source ?? null,
-    utmMedium: body.attribution?.utm_medium ?? null,
-    utmCampaign: body.attribution?.utm_campaign ?? null,
-    utmContent: body.attribution?.utm_content ?? null,
-    utmTerm: body.attribution?.utm_term ?? null,
-    landingPath: body.attribution?.landing_path ?? null,
+    utmSource: utm.utm_source,
+    utmMedium: utm.utm_medium,
+    utmCampaign: utm.utm_campaign,
+    utmContent: utm.utm_content,
+    utmTerm: utm.utm_term,
+    landingPath: body.attribution?.landing_path ?? click?.landingPath ?? null,
     referrer: body.attribution?.referrer ?? null,
+    gclid: click?.gclid ?? null,
+    gbraid: click?.gbraid ?? null,
+    wbraid: click?.wbraid ?? null,
+    clickedAt: click?.clickedAt ?? null,
   };
 
   const answers = (body.answers ?? [])

@@ -424,6 +424,15 @@ if (templates.length === 0) {
      * MARKETING_TEMPLATES and nowhere else.
      */
     "src/lib/job-handlers.ts",
+    /*
+     * The fifth: "email me the price" from /start, Robert's add-on of
+     * 2026-11-15, item 14: "none goes to an address on the existing marketing
+     * suppression list". It asks the gate before each of the three sends, and a
+     * suppressed address stops the sequence for good. It sends that one
+     * template, marketing.price_email, and nothing transactional; the job
+     * handler's marketing branch asks again at send time.
+     */
+    "src/lib/price-emails.ts",
   ];
 
   const SUPPRESSION_READERS = [
@@ -431,6 +440,8 @@ if (templates.length === 0) {
     "src/app/(site)/unsubscribe/page.tsx",
     /* The review request, as above: it reads the gate and sends only marketing. */
     "src/lib/review-request.ts",
+    /* The price emails from /start, as above: the gate and unsubscribeUrl, and only marketing.price_email. */
+    "src/lib/price-emails.ts",
     /* The operator screen for the list, and the route behind it. Neither sends
      * anything and neither imports the gate. */
     "src/app/portal/(app)/suppressions/page.tsx",

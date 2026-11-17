@@ -31,6 +31,7 @@ const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
  */
 import "./lib/load-env.mjs";
 import { AUDIT_BASE_URL } from "./lib/ports.mjs";
+import { adLandingRoutes } from "./lib/surfaces.mjs";
 const { launchMode } = await import("../src/lib/launch.ts");
 const MODE = launchMode();
 /*
@@ -116,7 +117,8 @@ const routes = [...sm.html.matchAll(/<loc>([^<]+)<\/loc>/g)].map(
 );
 /* The design brief left the sitemap on 2026-10-25 (a noindex quote form), so it is read by name. */
 /* The partner badge left the sitemap on 2026-11-02 (Robert, noindex), so it is read by name. */
-const allRoutes = [...routes, "/waitlist", "/design-inquiry", "/partners/badge"];
+/* The ad landing page (/start) is noindex and out of the sitemap, so it is read from its declared surface (2026-11-15). */
+const allRoutes = [...routes, "/waitlist", "/design-inquiry", "/partners/badge", ...adLandingRoutes()];
 
 if (allRoutes.length <= 1) {
   console.error("cta-audit: sitemap contained no URLs; refusing to report a pass on zero routes");

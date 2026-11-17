@@ -1,5 +1,6 @@
 import "server-only";
 import { SITE_KEY, supabaseAdmin } from "./supabase";
+import { adClickColumns, utmColumns, type AdClick } from "./ad-click";
 
 /**
  * Writes to the two intake tables.
@@ -22,10 +23,18 @@ import { SITE_KEY, supabaseAdmin } from "./supabase";
  * queue rather than two best efforts.
  */
 
-type WriteResult = { ok: boolean; error?: string };
+type WriteResult = { ok: boolean; error?: string; id?: string };
+
+/*
+ * The three /start forms (Robert's add-on of 2026-11-15, item 5) are leads like
+ * the contact form, told apart by `form`: a callback request, an "email me the
+ * price" request, and "something else, or not sure", which carries a photo or
+ * PDF the way the contact form carries a message.
+ */
+export type LeadForm = "contact" | "waitlist" | "callback" | "email_price" | "start_ask";
 
 export type LeadRow = {
-  form: "contact" | "waitlist";
+  form: LeadForm;
   name?: string;
   email?: string;
   phone?: string;
@@ -42,6 +51,21 @@ export type LeadRow = {
    */
   partnerId?: string | null;
   partnerCode?: string | null;
+  /*
+   * 0137. The ad click and its utm values, from the first party cookie the
+   * route read on the server (src/lib/ad-click.ts), and the finder's quote,
+   * follow up and callback. Every one is optional, so the contact and waitlist
+   * forms write exactly what they always did plus whatever click came with
+   * the visit.
+   */
+  click?: AdClick | null;
+  quotedService?: string | null;
+  quotedCents?: number | null;
+  quotedCoastal?: "yes" | "no" | "unsure" | null;
+  followUpNextAt?: string | null;
+  callbackDueAt?: string | null;
+  /** A storage key this server signed under eng-uploads leads/, never one a browser typed (0137, 4a). */
+  attachmentKey?: string | null;
 };
 
 /**
@@ -91,7 +115,7 @@ export async function insertLead(row: LeadRow): Promise<WriteResult> {
   const db = supabaseAdmin();
   if (!db) return { ok: false, error: "Supabase is not configured" };
 
-  const { error } = await db.from("eng_leads").insert({
+  const { data, error } = await db.from("eng_leads").insert({
     site: SITE_KEY,
     form: row.form,
     name: row.name || null,
@@ -105,9 +129,17 @@ export async function insertLead(row: LeadRow): Promise<WriteResult> {
     user_agent: row.userAgent || null,
     partner_id: row.partnerId || null,
     partner_code: row.partnerCode || null,
-  });
+    ...utmColumns(row.click ?? null),
+    ...adClickColumns(row.click ?? null),
+    quoted_service: row.quotedService ?? null,
+    quoted_cents: row.quotedCents ?? null,
+    quoted_coastal: row.quotedCoastal ?? null,
+    follow_up_next_at: row.followUpNextAt ?? null,
+    callback_due_at: row.callbackDueAt ?? null,
+    attachment_key: row.attachmentKey ?? null,
+  }).select("id").maybeSingle();
 
-  return error ? { ok: false, error: error.message } : { ok: true };
+  return error ? { ok: false, error: error.message } : { ok: true, id: (data?.id as string | undefined) ?? undefined };
 }
 
 /**
@@ -147,6 +179,8 @@ export type DesignInquiryRow = {
   landingPath?: string;
   referrer?: string;
   userAgent?: string;
+  /** The ad click and its utm values, from the cookie on the server (0137). */
+  click?: AdClick | null;
 };
 
 export async function insertDesignInquiry(row: DesignInquiryRow): Promise<WriteResult> {
@@ -179,6 +213,8 @@ export async function insertDesignInquiry(row: DesignInquiryRow): Promise<WriteR
     landing_path: row.landingPath || null,
     referrer: row.referrer || null,
     user_agent: row.userAgent || null,
+    ...utmColumns(row.click ?? null),
+    ...adClickColumns(row.click ?? null),
   });
 
   return error ? { ok: false, error: error.message } : { ok: true };
@@ -213,6 +249,8 @@ export type WindstormInquiryRow = {
   landingPath?: string;
   referrer?: string;
   userAgent?: string | null;
+  /** The ad click and its utm values, from the cookie on the server (0137). */
+  click?: AdClick | null;
 };
 
 export async function insertWindstormInquiry(row: WindstormInquiryRow): Promise<WriteResult> {
@@ -246,6 +284,8 @@ export async function insertWindstormInquiry(row: WindstormInquiryRow): Promise<
     landing_path: row.landingPath || null,
     referrer: row.referrer || null,
     user_agent: row.userAgent || null,
+    ...utmColumns(row.click ?? null),
+    ...adClickColumns(row.click ?? null),
   });
 
   return error ? { ok: false, error: error.message } : { ok: true };

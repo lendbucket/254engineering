@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { ReferralCapture } from "@/components/site/ReferralCapture";
+import { AdClickCapture } from "@/components/site/AdClickCapture";
 import { Analytics } from "@/components/site/Analytics";
 import { business } from "@/config/business";
 import { PhoneNumber } from "@/components/ui/PhoneNumber";
@@ -74,6 +75,8 @@ export default function OrderLayout({ children }: { children: React.ReactNode })
         </div>
       </footer>
       <ReferralCapture />
+      {/* The ad click, kept 90 days, for an ad that opens an order page directly (src/lib/ad-click.ts). */}
+      <AdClickCapture />
       {/* GA4 after idle; refuses a status page opened with its token (src/lib/analytics.ts). */}
       <Analytics host={new URL(business.url).host} />
     </div>

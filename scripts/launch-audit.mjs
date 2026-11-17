@@ -45,6 +45,7 @@ import {
 } from "./lib/regulatory.mjs";
 import { withGateConditionsMet, withTradingBlocked, FIXTURE_FIRM_NUMBER, FIXTURE_ENV } from "./lib/gate-fixture.mjs";
 import { PORTS } from "./lib/ports.mjs";
+import { adLandingRoutes } from "./lib/surfaces.mjs";
 
 const PRELAUNCH_PORT = Number(process.env.LAUNCH_AUDIT_PORT ?? PORTS.launchPrelaunch);
 const LIVE_PORT = Number(process.env.LAUNCH_AUDIT_LIVE_PORT ?? PORTS.launchLive);
@@ -56,6 +57,8 @@ const TEST_FIRM_NUMBER = FIXTURE_FIRM_NUMBER;
 const ROUTES = [
   "/",
   "/about",
+  /* The ad landing page and its letter variant, read from the declared ads surface: it is out of the sitemap (2026-11-15). */
+  ...adLandingRoutes(),
   /*
    * The chooser, added 2026-10-03 with the assertions about it below. Without
    * this line `pre.get("/order")` is undefined and all three of those checks
