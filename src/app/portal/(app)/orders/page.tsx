@@ -7,6 +7,8 @@ import { money } from "@/lib/ops-money";
 import { Chip, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
 import { OrdersClient } from "./OrdersClient";
 import { AttachAccountClient } from "./AttachAccountClient";
+import { TravelHoldsClient } from "./TravelHoldsClient";
+import { ordersWaitingForTravel } from "@/lib/order-travel";
 import { ordersAwaitingAccount, refundsFailedAfterRefunded } from "@/lib/ops-payments";
 
 /* The named state, ruled 2026-10-13. One home, so the screen and the proof read the same words. */
@@ -53,6 +55,12 @@ export default async function OrdersPage() {
   const awaitingAccount = await ordersAwaitingAccount();
   /* Marked refunded, and the refund then failed or was canceled at Stripe (ruling 2026-10-13). */
   const refundFailed = await refundsFailedAfterRefunded();
+  /* Online orders outside our technicians' counties, waiting for the office to set travel (Robert's answer 12, 2026-11-16). */
+  const travelHolds = await ordersWaitingForTravel();
+  const waitedFor = (iso: string) => {
+    const hours = Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / 3_600_000));
+    return hours < 1 ? "under an hour" : `${hours} hour${hours === 1 ? "" : "s"}`;
+  };
 
   return (
     <>
@@ -61,6 +69,35 @@ export default async function OrdersPage() {
         title="Orders needing attention"
         lede={`An order waiting on payment for more than ${CHECKOUT_SESSION_HOURS} hours has outlived its checkout session. It is either an abandonment nobody closed or a payment nobody recorded, and only the payment provider can say which.`}
       />
+
+      {travelHolds === null ? (
+        <div className="mb-4">
+          <Panel title="Waiting for travel" description="The online orders waiting for travel could not be read, so this is not a zero.">
+            <p className="text-[13.5px] text-[var(--secondary)]">Try again in a minute. If it persists, tell an administrator.</p>
+          </Panel>
+        </div>
+      ) : travelHolds.length > 0 ? (
+        <div className="mb-4">
+          <Panel
+            title="Waiting for travel"
+            description="Online orders for a county outside our technicians' coverage. Each waits before checkout with everything the customer sent. Set travel and the payment link, letter plus travel, goes to the customer by itself."
+          >
+            <TravelHoldsClient
+              canSet={can(actor, "pricing.override_at_intake")}
+              rows={travelHolds.map((t) => ({
+                id: t.id,
+                reference: t.reference,
+                county: t.county,
+                propertyAddress: t.propertyAddress,
+                deliverable: t.deliverable,
+                customerName: t.customerName,
+                letter: money(t.letterCents),
+                waiting: waitedFor(t.heldAt),
+              }))}
+            />
+          </Panel>
+        </div>
+      ) : null}
 
       {refundFailed === null ? (
         <div className="mb-4">
