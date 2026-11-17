@@ -113,7 +113,26 @@ v10-layout-audit read the seed too and measure its three views, so five browser
 audits now open the franchise screens with a franchise on them. Nothing on this
 entry is left open; it stays as the record of how the gap was closed.
 
-## THE STORE APP'S DEVICE SESSION: BEFORE THE FIRST STORE SUBMISSION
+## THE STORE APP'S DEVICE SESSION: BUILT AS 0125, ON PRODUCTION SINCE 2026-11-12
+
+**THIS ENTRY WAS STALE, FOUND 2026-11-17** while working this file in order
+(Robert's order of that morning). Every requirement below is met on main:
+
+- the token is kept in the phone's keystore through the SecureStorage plugin,
+  wired in `src/lib/native-shell.ts`, and traded for a portal session at
+  launch through `/api/portal/device-token/exchange`;
+- sign out stamps the row revoked and the keystore forgets it, and a moved
+  session epoch refuses the token and stamps it, so a phone cannot outlive the
+  rules a browser obeys;
+- migration 0125 (`1da2c878`, 2026-11-10), with proof
+  `a-phone-token-dies-with-its-epoch-and-its-sign-out.mjs`.
+
+Robert ruled its figures on 2026-11-10 (6767214731, questions 1 and 5): thirty
+days, and field technicians only. 0125 is recorded as on production since
+2026-11-12 in `supabase/applied.mjs`. Nothing on this entry is left open; it
+stays as the record, and the store submission is not waiting on it.
+
+### As first written
 
 Robert's T8 answer 1 of 2026-11-08 (issue #1, 6725977818). The debug build of
 the store app keeps the portal's sign-in cookie inside its own web view, and
