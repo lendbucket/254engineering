@@ -175,6 +175,17 @@ export type IntakeAttribution = {
   utmTerm?: string | null;
   landingPath?: string | null;
   referrer?: string | null;
+  /*
+   * The ad click (0137, Robert's item 9). Set by a route from the first party
+   * cookie it read on the server, never from a request body: a click ID goes
+   * back to Google as a conversion. src/lib/ad-click.ts says why.
+   */
+  gclid?: string | null;
+  gbraid?: string | null;
+  wbraid?: string | null;
+  clickedAt?: string | null;
+  /** The lead this order came from, when an office user or the finder names one (0137). */
+  leadId?: string | null;
 };
 
 export type PlaceOrderInput = {
@@ -472,6 +483,11 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       utm_term: input.attribution?.utmTerm ?? null,
       landing_path: input.attribution?.landingPath ?? null,
       referrer: input.attribution?.referrer ?? null,
+      gclid: input.attribution?.gclid ?? null,
+      gbraid: input.attribution?.gbraid ?? null,
+      wbraid: input.attribution?.wbraid ?? null,
+      clicked_at: input.attribution?.clickedAt ?? null,
+      lead_id: input.attribution?.leadId ?? null,
       placed_at: DB_NOW,
       client_request_id: input.clientRequestId,
     })

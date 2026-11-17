@@ -3,9 +3,10 @@ import { supabaseAdmin } from "./supabase";
 import { writeAudit, writeAuditOrRefuse } from "./ops-audit";
 import type { Actor } from "./ops-authz";
 import { mayOnboardRole } from "./onboarding-scope";
-import { setItemDecision } from "./onboarding";
+import { regenerateInvite, setItemDecision } from "./onboarding";
 import { queueEmail } from "./ops-jobs";
 import { onboardingItemDecision } from "./email-templates";
+import { business } from "@/config/business";
 import { decisionProblem, type DecisionItem } from "./onboarding-decision-rules";
 
 /**
@@ -94,6 +95,30 @@ export async function decideOnboardingItem(
     return { ok: false, error: `"${label}" was not ${decision}: ${written.error}` };
   }
 
+  /*
+   * A REJECTION CARRIES THE PERSON'S OWN LINK, ISSUED FRESH. Robert's Q47,
+   * 17:41 Central 2026-11-15 (6903338587). regenerateInvite overwrites the
+   * stored hash, so the link they held stops working and this one replaces it,
+   * which is written to the audit trail. A link that could not be issued sends
+   * the email without one, saying how to get one, as before.
+   */
+  let inviteUrl: string | null = null;
+  if (decision === "rejected") {
+    const issued = await regenerateInvite(onboardingId);
+    if (issued.ok) {
+      const base = (process.env.NEXT_PUBLIC_SITE_URL || business.url).replace(/\/$/, "");
+      inviteUrl = `${base}/onboarding/${encodeURIComponent(issued.data.token)}`;
+      await writeAudit({
+        actor,
+        action: "onboarding.invite_reissued",
+        entityType: "onboarding",
+        entityId: onboardingId,
+        summary: `A fresh onboarding link was issued with the rejection of "${label}", replacing the one ${onboarding.person_name} held.`,
+        ...context,
+      });
+    }
+  }
+
   const queued = await queueEmail(
     onboardingItemDecision({
       personName: onboarding.person_name as string,
@@ -101,6 +126,7 @@ export async function decideOnboardingItem(
       itemLabel: label,
       decision: decision as "accepted" | "rejected",
       reason: decision === "rejected" ? reason.trim() : null,
+      inviteUrl,
     }),
   );
   return queued.ok ? { ok: true, emailed: true } : { ok: true, emailed: false, emailError: queued.error };

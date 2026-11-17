@@ -1,4 +1,5 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, after, type NextRequest } from "next/server";
+import { recordPaidOrderConversions } from "@/lib/ad-conversions";
 import {
   paymentProvider,
   markPaid,
@@ -234,6 +235,19 @@ async function handle(request: NextRequest): Promise<Response> {
        */
       console.error(`[stripe] could not record payment for ${parsed.orderId}: ${result.error}`);
       return NextResponse.json({ ok: false }, { status: 500 });
+    }
+
+    /*
+     * THE PAID ORDER'S CONVERSIONS, FROM THE SERVER (Robert's /start add-on,
+     * items 10 to 12): GA4 always, Google Ads when an ad click is on the order
+     * or on the lead it came from. Recorded once, when the payment is first
+     * recorded, after the answer to Stripe, so they can neither delay nor
+     * change it. src/lib/ad-conversions.ts. A batch or a statement is an
+     * account's order, not an ad visitor's, and records none.
+     */
+    if (!result.alreadyRecorded) {
+      const orderId = parsed.orderId;
+      after(() => recordPaidOrderConversions(orderId));
     }
 
     return NextResponse.json({ ok: true, handled: true, duplicate: result.alreadyRecorded });

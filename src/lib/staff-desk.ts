@@ -41,7 +41,16 @@ export type DeskDashboard = {
   /** Today's call list: the actor's own prospects and unowned ones, oldest follow-up first. Null when unreadable. */
   callList: ProspectRow[] | null;
   today: string | null;
+  /**
+   * CALLBACKS ASKED FOR ON /start, ABOVE THE CALL LIST (Robert's add-on of
+   * 2026-11-15, item 15): every callback still new and due now, oldest due
+   * first, with how long it has waited. One asked after 8 PM Central is due at
+   * 8 AM and appears then. Null when unreadable or not the actor's to read.
+   */
+  callbacks: CallbackRow[] | null;
 };
+
+export type CallbackRow = { id: string; name: string | null; phone: string | null; letter: string | null; dueAt: string };
 
 export async function deskDashboard(actor: Actor): Promise<DeskDashboard> {
   const notComputable: string[] = [];
@@ -55,7 +64,32 @@ export async function deskDashboard(actor: Actor): Promise<DeskDashboard> {
       notComputable: ["The database is not configured, so nothing on this screen could be counted."],
       callList: null,
       today: null,
+      callbacks: null,
     };
+  }
+
+  /* The callbacks due now, for anybody who may read the inbox they arrive in. */
+  let callbacks: CallbackRow[] | null = null;
+  if (can(actor, "inbox.read")) {
+    const { data, error } = await db
+      .from("eng_leads")
+      .select("id, name, phone, quoted_service, callback_due_at")
+      .eq("form", "callback")
+      .eq("status", "new")
+      .not("callback_due_at", "is", null)
+      .order("callback_due_at", { ascending: true })
+      .limit(50);
+    /* Oldest due first, so every one due now is in the first fifty; one asked after 8 PM shows from 8 AM. */
+    const nowMs = Date.now();
+    if (error) notComputable.push(`Callbacks could not be read: ${error.message}`);
+    else
+      callbacks = (data ?? []).filter((r) => Date.parse(r.callback_due_at as string) <= nowMs).map((r) => ({
+        id: r.id as string,
+        name: (r.name as string | null) ?? null,
+        phone: (r.phone as string | null) ?? null,
+        letter: (r.quoted_service as string | null) ?? null,
+        dueAt: r.callback_due_at as string,
+      }));
   }
 
   const [box, calls, refunds, waiting, roofers] = await Promise.all([
@@ -208,5 +242,6 @@ export async function deskDashboard(actor: Actor): Promise<DeskDashboard> {
     notComputable,
     callList: calls.ok ? calls.rows : null,
     today: calls.ok ? calls.today : null,
+    callbacks,
   };
 }

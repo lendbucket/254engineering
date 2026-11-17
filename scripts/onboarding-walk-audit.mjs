@@ -171,7 +171,9 @@ async function walk(role) {
 
   const invited = await staff({ action: "invite_from_application", applicationId: application.id, role, deliverBy: "hand" });
   if (!rec(`${word}: the invite returns its link once, by hand`, invited.body?.ok === true && typeof invited.body?.token === "string", invited.body?.error ?? "")) return;
-  const { token, onboardingId } = invited.body;
+  /* `let`: a rejection reissues the link (Robert's Q47), and the walk carries on with the one the person is sent. */
+  let { token } = invited.body;
+  const { onboardingId } = invited.body;
   made.onboardings.push(onboardingId);
 
   /*
@@ -211,6 +213,31 @@ async function walk(role) {
   rec(`${word}: the rejected item reads rejected, with the reason the person is shown`, reopened?.status === "rejected" && /not legible/.test(reopened?.rejected_reason ?? ""), JSON.stringify(reopened));
   const { count: rejectedRows } = await db.from("eng_audit_events").select("id", { count: "exact", head: true }).eq("entity_id", onboardingId).eq("action", "onboarding.item_rejected");
   rec(`${word}: the rejection wrote its audit row`, rejectedRows === 1, `${rejectedRows ?? "unread"} row(s)`);
+
+  /*
+   * THE REJECTION CARRIES A FRESH LINK, AND THE OLD ONE STOPS WORKING. Robert's
+   * Q47 (17:41 Central 2026-11-15, 6903338587). The walk takes the link from the
+   * email queued to the person, the only place it exists in the clear, and
+   * goes on with it, as the person would.
+   */
+  const { data: sent } = await db
+    .from("eng_jobs")
+    .select("payload, created_at")
+    .eq("kind", "email.send")
+    .eq("payload->>to", email)
+    .order("created_at", { ascending: false })
+    .limit(10);
+  const fresh = (sent ?? [])
+    .map((j) => JSON.stringify(j.payload ?? {}).match(/\/onboarding\/([A-Za-z0-9%_-]{16,})/)?.[1])
+    .find((t) => t && decodeURIComponent(t) !== token);
+  if (rec(`${word}: the rejection email carries the person's own link, issued fresh`, Boolean(fresh), fresh ? "" : `${(sent ?? []).length} queued email(s) read, none with a new link`)) {
+    const stale = await person(token, { action: "upload", itemKey: redo.key, filename: "probe.pdf", contentType: "application/pdf", size: PDF.byteLength });
+    rec(`${word}: and the link the person held before no longer opens anything`, stale.body?.ok !== true, `status ${stale.status}`);
+    token = decodeURIComponent(fresh);
+  }
+  const { count: reissued } = await db.from("eng_audit_events").select("id", { count: "exact", head: true }).eq("entity_id", onboardingId).eq("action", "onboarding.invite_reissued");
+  rec(`${word}: the reissue wrote its audit row`, reissued === 1, `${reissued ?? "unread"} row(s)`);
+
   if (!redo.acknowledgeOnly) {
     const again = await upload(token, redo.key);
     rec(`${word}: the person uploads the rejected item again`, again === null, again ?? "");

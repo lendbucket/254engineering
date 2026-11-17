@@ -4986,6 +4986,38 @@ export const APPLIED = [
       "as predicted). ON PRODUCTION SINCE 2026-11-15 (6896689672, version 20261115151442). Additive in effect: three nullable columns and three indexes; every existing row " +
       "satisfies the wider checks, because each new column is null on it.",
   },
+  {
+    file: "0137_an_ad_click_follows_the_lead_to_the_order.sql", appliedBy: "apply_migration",
+    fingerprint: "14bdcbc9c50eb3706f17af611dc44735",
+    behaviour: "eff2849030a0826317ce033da705b5b3",
+    /*
+     * Production: applied 2026-11-16 22:35 UTC through apply_migration by the
+     * chat counterpart, in a sitting under Robert's answer 1 of 16:34 Central
+     * 2026-11-16 (6931421644), from feat/ads-start at abbe16b; schema_migrations
+     * version 20261116223503, stored hash ffac8166 equal to the file's stored
+     * form; shape 9844f7bb at 1678 columns and 129 tables before, 14bdcbc9 at
+     * 1729 columns and 130 tables after, grants 203 unchanged, eng_ad_conversions
+     * with row level security on, no API grant, the unique index present and 0
+     * rows, 0 leads off follow_up_step 0 (issue #1, 6931443522).
+     */
+    production: "2026-11-16",
+    proves: { table: "eng_ad_conversions" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-15 on the chain to 0137, with 0136 reproducing " +
+      "its recorded pair first (9844f7bb at 1678 columns, 9d577b5c at 1696 facts). Shape 1678 to 1729 columns: 13 on " +
+      "eng_leads (the click, the quote, the follow up, the callback, the attachment key), 6 on eng_service_orders (the click, lead_id, the " +
+      "reminder stamp), 9 each on eng_design_inquiries and eng_windstorm_inquiries (utm values and the click), and the " +
+      "14 of eng_ad_conversions; tables 129 to 130. Behaviour 1696 to 1716 facts.",
+    because:
+      "WRITTEN 2026-11-15 ON feat/ads-start, FOR ROBERT'S ADD-ON OF 2026-11-15 (the Google Ads landing page /start, " +
+      "items 9 to 16, and his answers of 12:29 and 13:11 Central): the click IDs on every lead and order, the outbox " +
+      "for server side conversions and the offline upload, the price email sequence, the callback queue and the one " +
+      "unpaid order reminder. ON DEVELOPMENT SINCE 2026-11-15 (issue #1, 6902704874, after request 6902616118: version " +
+      "20261115225053, shape 14bdcbc9 at 1729 columns, 130 tables, grants 203 unchanged, row level security on " +
+      "eng_ad_conversions with no API grant, the unique index present, as predicted). ON PRODUCTION SINCE 2026-11-16 " +
+      "(6931443522, version 20261116223503, as predicted). Additive: nullable columns, checks that every existing " +
+      "row satisfies, indexes, and one table with row level security on and no grant.",
+  },
 ];
 
 /*

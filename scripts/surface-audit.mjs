@@ -124,6 +124,14 @@ const APIS_MEASURED_ELSEWHERE = {
    */
   "windstorm-inquiry": ["scripts/forms-audit.mjs", "the windstorm brief, which validates and refuses until its table exists"],
   lead: ["scripts/forms-audit.mjs", "the marketing intake"],
+  /*
+   * The three /start forms and their upload signature, Robert's add-on of
+   * 2026-11-15. No session. The proof reads the route and asserts what it
+   * refuses and in what order: the honeypot first, the rate limit before any
+   * write, the price recomputed rather than read, the attachment key accepted
+   * only in the shape the route signs, and no success for a write that missed.
+   */
+  start: ["scripts/proofs/the-start-forms-are-leads-the-office-sees.mjs", "the /start forms, refused and recomputed as the lead route is"],
   onboarding: ["scripts/jobs-audit.mjs", "the invite and reminder mail the flow queues"],
   "order-flow": ["scripts/security-audit.mjs", "the one write path a visitor can reach, checked for what it refuses"],
   /*

@@ -36,7 +36,8 @@ import { todayInFirmCalendar } from "./firm-calendar";
  */
 
 /* "roofer" joined on 2026-11-05 with the roofer partner application, under the same limits. */
-export type PublicFormKind = "contact" | "waitlist" | "design" | "windstorm" | "apply" | "roofer";
+/* "start" is the three /start forms (Robert's add-on of 2026-11-15), counted together: one person, one page. */
+export type PublicFormKind = "contact" | "waitlist" | "design" | "windstorm" | "apply" | "roofer" | "start";
 
 export const PUBLIC_FORM_LIMITS = {
   windowSeconds: 60 * 60,

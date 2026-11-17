@@ -225,6 +225,51 @@ export const waitlistSchema = z.object({
  * rendered, and reporting it green.
  */
 
+/*
+ * THE THREE /start FORMS. Robert's add-on of 2026-11-15 for the Google Ads
+ * landing page, item 5. Each is a lead the office sees in the inbox. The letter
+ * and the county answer are the finder's, and the price is NOT taken from the
+ * browser: the route recomputes it from the price book (src/lib/start-finder.ts).
+ */
+const phoneRequired = trimmed(40)
+  .min(1, "Enter a phone number we can call.")
+  .refine((v) => v.replace(/\D/g, "").length >= 10, "That phone number looks short. Ten digits or more, please.");
+const letterKey = z.enum(["roof", "foundation", "wpi8", "solar", "permit", "mh", "repair", "design"], { message: "Choose a letter first." });
+const coastalAnswer = z.enum(["yes", "no", "unsure"]).optional();
+
+export const startCallbackSchema = z.object({
+  form: z.literal("callback"),
+  name: requiredText("your name"),
+  phone: phoneRequired,
+  letter: letterKey,
+  coastal: coastalAnswer,
+  company: honeypot,
+});
+
+export const startEmailPriceSchema = z.object({
+  form: z.literal("email_price"),
+  email,
+  phone,
+  letter: letterKey,
+  coastal: coastalAnswer,
+  company: honeypot,
+});
+
+export const startAskSchema = z.object({
+  form: z.literal("start_ask"),
+  name: requiredText("your name"),
+  phone: phoneRequired,
+  email: trimmed(200)
+    .optional()
+    .refine((v) => !v || /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(v), "That email address does not look right."),
+  city: requiredText("the city or the address", 200),
+  message: requiredText("what they asked for", 4000),
+  /** The draft id the upload was signed under, and the key it returned. The route checks the key is one it could have signed. */
+  draftId: trimmed(80).optional(),
+  attachmentKey: trimmed(300).optional(),
+  company: honeypot,
+});
+
 export type ContactInput = z.infer<typeof contactSchema>;
 export type WaitlistInput = z.infer<typeof waitlistSchema>;
 

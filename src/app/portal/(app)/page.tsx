@@ -8,7 +8,8 @@ import type { PeriodTotals } from "@/lib/ops-money";
 import type { Column } from "@/components/portal/design";
 import { AttentionList, BreakdownList, CountTiles, MoneyTiles, NotComputable } from "@/components/portal/Dashboard";
 import { ButtonLink, EmptyState, PageHead, Panel } from "@/components/portal/surfaces";
-import { CallListPanel } from "@/components/portal/CallList";
+import { CallListPanel, CallbacksPanel } from "@/components/portal/CallList";
+import { LETTER_KEYS, LETTERS } from "@/lib/start-finder";
 
 export const dynamic = "force-dynamic";
 
@@ -144,6 +145,10 @@ export default async function PortalHome() {
 
       <CountTiles tiles={dashboard.tiles} />
 
+      {/* Callbacks asked for on /start sit above the call list, longest waiting first (Robert's add-on of 2026-11-15, item 15). */}
+      {dashboard.role === "desk" ? (
+        <CallbacksPanel rows={dashboard.callbacks} letterNames={Object.fromEntries(LETTER_KEYS.map((k) => [LETTERS[k].slug, LETTERS[k].name]))} />
+      ) : null}
       {dashboard.role === "desk" ? <CallListPanel rows={dashboard.callList} today={dashboard.today} /> : null}
 
       {/*

@@ -143,3 +143,15 @@ export function TrackOnMount({ event, host, params, once }: { event: GaEvent; ho
   }, [event, host, key, once]);
   return null;
 }
+
+/**
+ * Sends one event now, from an action (the /start finder, Robert's add-on of
+ * 2026-11-15, item 10), under the same rules as every other event here: only
+ * from the production host, never on an excluded path, and with no personal
+ * field. Returns false when nothing was sent.
+ */
+export function trackEvent(event: GaEvent, host: string, params?: Record<string, string | number>): boolean {
+  if (typeof window === "undefined" || !ready(host)) return false;
+  window.gtag!("event", event, { ...(params ?? {}), page_location: currentLocation() });
+  return true;
+}

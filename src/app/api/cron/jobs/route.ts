@@ -5,6 +5,9 @@ import { cronStarted, cronFinished, captureError } from "@/lib/ops-observability
 import { sweepVoidedProtocolScopes } from "@/lib/scope-revalidate";
 import { sweepLapsedOffers } from "@/lib/offer-lapse";
 import { sweepUnpaidJobs } from "@/lib/unpaid-followup";
+import { sweepDuePriceEmails } from "@/lib/price-emails";
+import { sweepUnpaidOrderReminders } from "@/lib/unpaid-reminder";
+import { sweepAdConversions } from "@/lib/ad-conversions";
 
 export const dynamic = "force-dynamic";
 
@@ -102,6 +105,16 @@ export async function GET(request: NextRequest) {
    */
   const unpaid = await sweepUnpaidJobs();
 
+  /*
+   * Robert's /start add-on of 2026-11-15: the second and third "email me the
+   * price" emails as they fall due (item 14), the one reminder for a web order
+   * unpaid after 24 hours (item 16), and the conversions owed to GA4 and Google
+   * Ads (items 10 to 12). Each catches its own faults, like the sweeps above.
+   */
+  const priceEmails = await sweepDuePriceEmails();
+  const reminders = await sweepUnpaidOrderReminders();
+  const conversions = await sweepAdConversions();
+
   const health = await queueHealth();
 
   await cronFinished(
@@ -125,7 +138,8 @@ export async function GET(request: NextRequest) {
       `queue: ${health ? `${health.pending} pending, ${health.overdue} overdue, ${health.dead} dead` : "unreadable"} ` +
       `scopes: ${scopes.revalidated.length > 0 ? `revalidated ${scopes.revalidated.join(", ")}` : scopes.note} ` +
       `offers: ${lapses.note} ` +
-      `unpaid: ${unpaid.note}`,
+      `unpaid: ${unpaid.note} ` +
+      `price emails: ${priceEmails.note} reminders: ${reminders.note} conversions: ${conversions.note}`,
   );
 
   return NextResponse.json({
@@ -136,5 +150,8 @@ export async function GET(request: NextRequest) {
     scopes,
     lapses,
     unpaid,
+    priceEmails,
+    reminders,
+    conversions,
   });
 }

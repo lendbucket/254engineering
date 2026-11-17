@@ -241,6 +241,13 @@ export const RETENTION_POLICY: RetentionEntry[] = [
    */
   { table: "eng_account_trade_prices", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   /*
+   * 0137. What the platform sent GA4 and Google Ads, about which lead or order,
+   * and with what answer (Robert's add-on of 2026-11-15, /start). It records
+   * a disclosure of a person's activity to a third party, so it is kept with
+   * the leads and orders it names until counsel rules on all of them.
+   */
+  { table: "eng_ad_conversions", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
+  /*
    * 0099. Where the office's alerts go. Robert's addendum of 2026-10-25, item
    * 8b: a list the owner edits. Removal is stamped, never a delete, so who was
    * told about the firm's faults and from when stays readable.

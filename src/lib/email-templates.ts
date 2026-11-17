@@ -92,6 +92,13 @@ export const MARKETING_TEMPLATES: readonly string[] = [
    * suppression list (src/lib/crm-email.ts).
    */
   "marketing.crm_sequence",
+  /*
+   * "Email me the price" from /start (Robert's add-on of 2026-11-15, item 14):
+   * three emails to somebody who asked for a price and has not ordered. Each
+   * carries the one click unsubscribe, and src/lib/price-emails.ts consults the
+   * suppression list before every send.
+   */
+  "marketing.price_email",
 ];
 
 /** Whether a template id is marketing shaped, and therefore carries an unsubscribe. */
@@ -563,6 +570,13 @@ export function onboardingItemDecision(input: {
   itemLabel: string;
   decision: "accepted" | "rejected";
   reason?: string | null;
+  /**
+   * THE PERSON'S OWN ONBOARDING LINK, ISSUED FRESH FOR A REJECTION. Robert's
+   * Q47, 17:41 Central 2026-11-15 (6903338587). Issuing it voids the link the
+   * person already held, which he ruled for. Null when it could not be issued,
+   * and then the email says how to get one, as it did before.
+   */
+  inviteUrl?: string | null;
 }): RenderedEmail {
   const rejected = input.decision === "rejected";
   return compose(
@@ -579,20 +593,30 @@ export function onboardingItemDecision(input: {
             { kind: "p", text: `${input.personName},` },
             { kind: "p", text: `${input.itemLabel} on your onboarding checklist needs redoing. The reason given:` },
             { kind: "note", text: (input.reason ?? "").trim() || "No reason was recorded." },
-            {
-              kind: "p",
-              text: "Open the onboarding link from your invitation email. This item has reopened there, and the rest of your checklist is as you left it.",
-            },
-            {
-              kind: "p",
-              text: `If that link has expired or you cannot find it, reply to this message or write to ${footerEmail()} and a new link will be issued.`,
-            },
+            ...(input.inviteUrl
+              ? [
+                  {
+                    kind: "p" as const,
+                    text: "Open your onboarding with the button below. This item has reopened there, and the rest of your checklist is as you left it. The link in your earlier invitation no longer works; this one replaces it.",
+                  },
+                ]
+              : [
+                  {
+                    kind: "p" as const,
+                    text: "Open the onboarding link from your invitation email. This item has reopened there, and the rest of your checklist is as you left it.",
+                  },
+                  {
+                    kind: "p" as const,
+                    text: `If that link has expired or you cannot find it, reply to this message or write to ${footerEmail()} and a new link will be issued.`,
+                  },
+                ]),
           ]
         : [
             { kind: "p", text: `${input.personName},` },
             { kind: "p", text: `${input.itemLabel} on your onboarding checklist is accepted. Nothing more is needed for it.` },
             { kind: "p", text: `Questions about anything else on the checklist can go to ${footerEmail()}.` },
           ],
+      ...(rejected && input.inviteUrl ? { button: { label: "Open your onboarding", url: input.inviteUrl } } : {}),
     },
     { to: input.personEmail },
   );
@@ -843,7 +867,14 @@ export function quoteSent(input: {
 export function outstandingInformation(input: {
   customerName: string;
   customerEmail: string;
-  fileNumber: string;
+  /**
+   * THE ORDER REFERENCE ONLY, NEVER THE FILE NUMBER. Robert's Q48, 17:41
+   * Central 2026-11-15 (6903338587): the email named the internal file number
+   * while its link carried the order reference, two references for one job.
+   * Null for a job with no order yet (taken by telephone, not yet paid), which
+   * is then named by its address alone.
+   */
+  orderReference: string | null;
   propertyAddress: string;
   /**
    * What is outstanding, each with when it is needed.
@@ -871,13 +902,15 @@ export function outstandingInformation(input: {
     "human",
     `A few things needed for ${input.propertyAddress}`,
     {
-      preheader: `${input.items.length} item${input.items.length === 1 ? "" : "s"} outstanding on ${input.fileNumber}.`,
+      preheader: `${input.items.length} item${input.items.length === 1 ? "" : "s"} outstanding on ${input.orderReference ? `order ${input.orderReference}` : input.propertyAddress}.`,
       signed: true,
       blocks: [
         { kind: "p", text: `${input.customerName},` },
         {
           kind: "p",
-          text: `The firm has ${input.fileNumber} for ${input.propertyAddress} open and needs a few things before ${input.holdingUp}.`,
+          text: input.orderReference
+            ? `The firm has order ${input.orderReference} for ${input.propertyAddress} open and needs a few things before ${input.holdingUp}.`
+            : `The firm has your job for ${input.propertyAddress} open and needs a few things before ${input.holdingUp}.`,
         },
         { kind: "details", title: "What is outstanding", rows: input.items.map((i) => [i.label, i.when]) },
         {
@@ -1015,6 +1048,53 @@ export function orderConfirmed(input: {
       signed: true,
       blocks,
       button: { label: "Track this order", url: input.statusUrl },
+    },
+    { to: input.customerEmail },
+  );
+}
+
+/**
+ * ONE REMINDER FOR AN ORDER STARTED AND NOT PAID. Robert's add-on of
+ * 2026-11-15, item 16: an order started with an email and not paid within 24
+ * hours gets one reminder, and nothing more. It is about the customer's own
+ * order, so it is order correspondence and carries no unsubscribe; the order
+ * row's unpaid_reminder_sent_at (0137) is what makes it once.
+ */
+export function orderUnpaidReminder(input: {
+  customerName: string;
+  customerEmail: string;
+  reference: string;
+  propertyAddress: string;
+  serviceName: string;
+  /** The order's total, formatted by the caller from the order row. */
+  totalLine: string;
+  /** The order's own status page, where the customer finishes paying. */
+  statusUrl: string;
+}): RenderedEmail {
+  const phone = displayPhone();
+  return compose(
+    "order.unpaid_reminder",
+    "human",
+    `Your order is not paid yet: ${input.reference}`,
+    {
+      preheader: `${input.serviceName} for ${input.propertyAddress}, ${input.totalLine}.`,
+      signed: true,
+      status: { reference: `Order ${input.reference}`, state: "Not paid yet" },
+      button: { label: "Finish your order", url: input.statusUrl },
+      blocks: [
+        { kind: "p", text: `${input.customerName},` },
+        {
+          kind: "p",
+          text: `You started an order for a ${inSentenceCase(input.serviceName)} at ${input.propertyAddress}, and it has not been paid, so the work has not been booked.`,
+        },
+        { kind: "p", text: `The total is ${input.totalLine}. Nothing has been charged.` },
+        {
+          kind: "p",
+          text: phone
+            ? `If something stopped you, reply to this email or call ${phone}, 8 AM to 8 PM Central, every day. This is the only reminder the firm will send about it.`
+            : "If something stopped you, reply to this email. This is the only reminder the firm will send about it.",
+        },
+      ],
     },
     { to: input.customerEmail },
   );
@@ -1245,6 +1325,128 @@ export function reviewRequest(input: {
       unsubscribeUrl: input.unsubscribeUrl,
     },
     { to: input.customerEmail },
+  );
+}
+
+/**
+ * "EMAIL ME THE PRICE", THREE EMAILS. Robert's add-on of 2026-11-15, item 14,
+ * and his answer 1 of 13:11 Central: the price and the order link at once, a
+ * reminder two days later, and a final note on day five. Each stops the moment
+ * that person orders, and none goes to an address on the marketing
+ * suppression list: src/lib/price-emails.ts consults it before every send,
+ * failing closed.
+ *
+ * Marketing, on MARKETING_TEMPLATES, so every one carries the one click
+ * unsubscribe, and the layout's footer carries the office address. Plain words
+ * from the office. The words are Robert's to approve before merge.
+ *
+ * The price is passed in already formatted by the caller from the price book,
+ * never typed here.
+ */
+export function priceEmail(input: {
+  step: 1 | 2 | 3;
+  to: string;
+  letterName: string;
+  /** "$709", or "$784", formatted by the caller from the price book. */
+  priceLine: string;
+  /** Present when the person was not sure about the county: the other figure, said once. */
+  coastalNote: string | null;
+  orderUrl: string;
+  /** The date they asked, as the office would write it, for the last note. */
+  askedOn: string;
+  unsubscribeUrl: string;
+}): RenderedEmail {
+  const phone = displayPhone();
+  const call = phone ? ` or call ${phone}, 8 AM to 8 PM Central, every day` : "";
+  const letter = inSentenceCase(input.letterName);
+  const subjects = {
+    1: `Your price for a ${letter}`,
+    2: `Still need the ${letter}?`,
+    3: `Last note about your ${letter}`,
+  } as const;
+  const opening = {
+    1: `You asked for the price of a ${letter}. It is ${input.priceLine}.`,
+    2: `Two days ago you asked for the price of a ${letter}: ${input.priceLine}. If you still need it, the order link is below, and ordering takes a few minutes.`,
+    3: `This is the last email about the ${letter} you priced on ${input.askedOn}: ${input.priceLine}. The order link stays open whenever you need it, and nothing more will be sent about it.`,
+  } as const;
+  const blocks: { kind: "p"; text: string }[] = [{ kind: "p", text: "Hello," }, { kind: "p", text: opening[input.step] }];
+  if (input.step === 1 && input.coastalNote) blocks.push({ kind: "p", text: input.coastalNote });
+  if (input.step === 1) {
+    blocks.push({
+      kind: "p",
+      text: "You see the full terms before you pay, including what happens if the engineer declines.",
+    });
+  }
+  blocks.push({
+    kind: "p",
+    text: `If something about the letter or the property is unclear, reply to this email${call}, and the office will tell you which letter you need.`,
+  });
+  blocks.push({
+    kind: "p",
+    /* Counted from the step: after the first two follow, after the second one does (found reading the three as a customer would, 2026-11-16). */
+    text:
+      input.step === 3
+        ? "The link at the bottom stops emails like this one."
+        : input.step === 2
+          ? "One more email follows in a few days unless you order first. The link at the bottom stops it."
+          : "Two more emails follow over the next few days unless you order first. The link at the bottom stops them.",
+  });
+  return compose(
+    "marketing.price_email",
+    "human",
+    subjects[input.step],
+    {
+      preheader: opening[input.step],
+      signed: true,
+      button: { label: "Order online", url: input.orderUrl },
+      blocks,
+      unsubscribeUrl: input.unsubscribeUrl,
+    },
+    { to: input.to },
+  );
+}
+
+/** A catalogue name inside a sentence: the first letter lower case, the rest as written ("WPI-8E" stays). */
+function inSentenceCase(name: string): string {
+  return /^[A-Z][a-z]/.test(name) ? name[0].toLowerCase() + name.slice(1) : name;
+}
+
+/**
+ * A CALLBACK REQUEST, TO THE OFFICE, THE MOMENT IT ARRIVES. Robert's add-on of
+ * 2026-11-15, item 15. A request after 8 PM Central is due at 8 AM, and the
+ * alert says when it is due rather than pretending it is now.
+ */
+export function callbackRequested(input: {
+  name: string;
+  phone: string;
+  letterName: string | null;
+  priceLine: string | null;
+  dueLine: string;
+  fromAd: boolean;
+  callListUrl: string;
+}): RenderedEmail {
+  return compose(
+    "lead.callback",
+    "operator",
+    `Call back: ${input.name}${input.letterName ? ` (${input.letterName})` : ""}`,
+    {
+      preheader: `${input.name} asked for a call. ${input.dueLine}`,
+      blocks: [
+        { kind: "p", text: `${input.name} asked the office to call them back. ${input.dueLine}` },
+        {
+          kind: "details",
+          title: "THE REQUEST",
+          rows: rows([
+            ["Name", input.name],
+            ["Phone", input.phone],
+            ["Letter", input.letterName],
+            ["Price shown", input.priceLine],
+            ["From an ad", input.fromAd ? "Yes" : "No"],
+          ]),
+        },
+      ],
+      button: { label: "Open the call list", url: input.callListUrl },
+    },
   );
 }
 
@@ -1871,7 +2073,7 @@ export function rooferApplicationReceived(input: { ownerName: string; email: str
         { kind: "p", text: "Your roofing partner account is open. The button below sets your password; then sign in with it." },
         {
           kind: "p",
-          text: "Your account is being reviewed. A person at the firm approves every partner, which is what keeps the program selective. Finishing your profile, your work, your insurance and two references, speeds the review up.",
+          text: "Your account is being reviewed. A person at the firm approves every partner, which is what keeps the program selective. Finishing your profile, your work, your insurance and two references speeds the review up.",
         },
         {
           kind: "note",
@@ -2848,7 +3050,7 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       reference: "254-O2026-ABCDEF",
       serviceName: "Sample windstorm evaluation",
       propertyAddress: "100 Sample Street, Corpus Christi",
-      placedAt: "3 September 2026 at 11:42",
+      placedAt: "3 September 2026 at 11:42 CT",
       lines: [
         { label: "Sample windstorm evaluation", amount: "$925.00" },
         { label: "Coastal county", amount: null },
@@ -2869,7 +3071,7 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       customerEmail: "sample@example.com",
       reference: "254-O2026-ABCDEF",
       propertyAddress: "100 Sample Street, Corpus Christi",
-      sealedAt: "5 September 2026 at 16:20",
+      sealedAt: "5 September 2026 at 16:20 CT",
       statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
     }),
     orderLetterReplaced({
@@ -2877,7 +3079,7 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       customerEmail: "sample@example.com",
       reference: "254-O2026-ABCDEF",
       propertyAddress: "100 Sample Street, Corpus Christi",
-      sealedAt: "6 September 2026 at 10:05",
+      sealedAt: "6 September 2026 at 10:05 CT",
       statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
     }),
     orderLetterCopy({
@@ -2928,6 +3130,48 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       propertyAddress: "100 Sample Street, Corpus Christi",
       reviewUrl: "https://254engineering.com/review",
       unsubscribeUrl: "https://254engineering.com/unsubscribe?e=sample%40example.com&t=sample",
+    }),
+    /* "Email me the price" from /start, all three steps (Robert's add-on of 2026-11-15, item 14). */
+    ...([1, 2, 3] as const).map((step) =>
+      priceEmail({
+        step,
+        to: "sample@example.com",
+        letterName: "Roof certification letter",
+        priceLine: "$709",
+        coastalNote: step === 1 ? "If the property is in one of the 14 first tier coastal counties, it is $784." : null,
+        orderUrl: "https://254engineering.com/order/start/roof-inspections",
+        askedOn: "November 15",
+        unsubscribeUrl: "https://254engineering.com/unsubscribe?e=sample%40example.com&t=sample",
+      }),
+    ),
+    /* A callback request, to the office (item 15), one in hours and one held for the morning. */
+    callbackRequested({
+      name: "Sample Person",
+      phone: "(361) 555-0100",
+      letterName: "Roof certification letter",
+      priceLine: "$709",
+      dueLine: "Due now.",
+      fromAd: true,
+      callListUrl: "https://254engineering.com/portal",
+    }),
+    callbackRequested({
+      name: "Sample Person",
+      phone: "(361) 555-0100",
+      letterName: null,
+      priceLine: null,
+      dueLine: "Asked after 8 PM Central, so it is due at 8 AM.",
+      fromAd: false,
+      callListUrl: "https://254engineering.com/portal",
+    }),
+    /* The one reminder for an order started and not paid (item 16). */
+    orderUnpaidReminder({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      reference: "254-O2026-ABCDEF",
+      propertyAddress: "100 Sample Street, Corpus Christi",
+      serviceName: "Roof certification letter",
+      totalLine: "$709.00",
+      statusUrl: "https://254engineering.com/order/254-O2026-ABCDEF?token=sample",
     }),
     /*
      * The sales sequence email, every vertical in both variants, rendered by
@@ -3033,7 +3277,7 @@ export function allTemplatesForAudit(): RenderedEmail[] {
     outstandingInformation({
       customerName: "Sample Customer",
       customerEmail: "sample@example.com",
-      fileNumber: "254-2026-0001",
+      orderReference: "254-O2026-000001",
       propertyAddress: "100 Sample Street, Corpus Christi",
       items: [
         { label: "Who should the document be addressed to", when: "Before it can be sealed" },
@@ -3046,7 +3290,7 @@ export function allTemplatesForAudit(): RenderedEmail[] {
     outstandingInformation({
       customerName: "Sample Customer",
       customerEmail: "sample@example.com",
-      fileNumber: "254-2026-0002",
+      orderReference: null,
       propertyAddress: "102 Sample Street, Corpus Christi",
       items: [{ label: "Who should the document be addressed to", when: "Before it can be sealed" }],
       holdingUp: "it can be sealed",
@@ -3191,6 +3435,15 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       itemLabel: "Vehicle insurance card",
       decision: "rejected",
       reason: "The card shown expired last month. Upload the current one.",
+    }),
+    /* Q47: the rejection with the person's fresh link, as it is sent when one could be issued. */
+    onboardingItemDecision({
+      personName: "Sample Technician",
+      personEmail: "sample.technician@254engineering.com",
+      itemLabel: "Vehicle insurance card",
+      decision: "rejected",
+      reason: "The card shown expired last month. Upload the current one.",
+      inviteUrl: "https://254engineering.com/onboarding/sample-token-not-a-real-invite-abcdefghij",
     }),
     leadNotification({
       form: "contact",
