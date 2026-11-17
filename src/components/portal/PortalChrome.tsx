@@ -517,7 +517,15 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && searchHref) {
+                /*
+                 * NOT WHILE A WORD IS STILL BEING COMPOSED. Somebody typing
+                 * through an input method editor (Vietnamese, Chinese, Japanese)
+                 * presses Enter to accept the word they are building, and that
+                 * press must not run the search half way through it. Found by
+                 * Google's legacy-scan, rule ime-safe-enter-submit (issue #1,
+                 * 6936206972); fixed on Robert's word of 2026-11-16.
+                 */
+                if (e.key === "Enter" && !e.nativeEvent.isComposing && searchHref) {
                   e.preventDefault();
                   setOpen(false);
                   router.push(searchHref);

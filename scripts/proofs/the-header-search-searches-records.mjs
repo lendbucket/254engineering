@@ -20,7 +20,8 @@ const chrome = readFileSync("src/components/portal/PortalChrome.tsx", "utf8");
 const search = readFileSync("src/lib/ops-search.ts", "utf8");
 check("the box searches records through /portal/search with the term", /`\/portal\/search\?q=\$\{encodeURIComponent\(term\)\}`/.test(chrome));
 check("only for whoever's menu carries Search, so it widens nothing", /const canSearch = items\.some\(\(i\) => i\.href === "\/portal\/search"\);/.test(chrome) && /canSearch && term\.length >= SEARCH_MIN_LENGTH/.test(chrome));
-check("Enter runs the search", /e\.key === "Enter" && searchHref/.test(chrome));
+/* Since 2026-11-16, not while an input method editor is composing a word (an-enter-key-waits-for-a-composed-word.mjs). */
+check("Enter runs the search, once the word is composed", /e\.key === "Enter" && !e\.nativeEvent\.isComposing && searchHref/.test(chrome));
 check(
   "the box and the server read one minimum, from the client safe rule",
   /import \{ SEARCH_MIN_LENGTH \} from "@\/lib\/search-rules";/.test(chrome) && /import \{ SEARCH_MIN_LENGTH, cleanSearchTerm \} from "\.\/search-rules";/.test(search) && !/export const SEARCH_MIN_LENGTH/.test(search),
