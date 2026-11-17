@@ -3,6 +3,7 @@ import { OPS_COOKIE, readOpsSession, readPendingSession } from "@/lib/ops-sessio
 import { CUSTOMER_COOKIE, readCustomerSession } from "@/lib/customer-session";
 import { PARTNER_COOKIE, readPartnerSession } from "@/lib/partner-session";
 import { LINK_COOKIE_OPTIONS, planLinkRequest } from "@/lib/link-cookie";
+import { PORTAL_PATH_HEADER } from "@/lib/portal-return-path";
 
 /**
  * The portal gate.
@@ -325,7 +326,17 @@ export function proxy(request: NextRequest) {
   if (OPEN_PATHS.has(pathname)) return NextResponse.next();
 
   const claims = readOpsSession(request.cookies.get(OPS_COOKIE)?.value);
-  if (claims) return NextResponse.next();
+  if (claims) {
+    /*
+     * The path this request asked for, for the layout to send back to if the
+     * cookie no longer opens a session (src/lib/portal-return-path.ts). Set,
+     * never appended, so a header the browser sent under the same name is
+     * replaced; the layout and the login screen each validate it again.
+     */
+    const forwarded = new Headers(request.headers);
+    forwarded.set(PORTAL_PATH_HEADER, pathname);
+    return NextResponse.next({ request: { headers: forwarded } });
+  }
 
   /*
    * THE SECOND FACTOR ROUTES, AND THE ONLY PLACE A PENDING SESSION GETS PAST.

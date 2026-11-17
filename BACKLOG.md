@@ -1251,6 +1251,34 @@ error sentence:
 - **The login redirect's `next`**: `(app)/layout.tsx` reads `x-invoke-path`,
   which Next 16 does not set, so it always sends `next=/portal`.
 
+**RE-CHECKED AGAINST MAIN `c730cf6` ON 2026-11-17, ITEM BY ITEM** (Robert's
+order of that morning to work this file in order), because several had been
+fixed since without this entry saying so:
+
+- `/portal/orders`, `/portal/tasks` and `/portal/windstorm-inquiries`: **already
+  fixed.** Orders reads `ordersNeedingAttentionRead`, tasks reads
+  `listTasksPage` and says a failed read, and windstorm inquiries returns
+  `{ ok: false }` and the page renders it.
+- **`/portal/billing`: fixed on `fix/bell-and-return-path`.** The page called
+  `uncreditedReviews()`, the folded form, so a failed read hid the panel of
+  pay nobody credited. It reads `uncreditedReviewsRead()` now and says "The
+  reviews still owed a credit could not be read".
+- **The bell and the login redirect's `next`: fixed on the same branch.** `listNotificationsRead` and `unreadCountRead`
+  feed the bell, which says "Your notifications could not be loaded" rather
+  than "Nothing yet", and shows no number for a count it could not read. The
+  proxy stamps the path it lets through (`src/lib/portal-return-path.ts`), and
+  the layout reads it back through `returnPathFrom`, which keeps only a
+  `/portal` path. Proof `the-bell-and-the-return-path-say-what-happened.mjs`
+  covers all three screens, injection-verified five ways (the bell's folded
+  list, `x-invoke-path` read again, the backslash test, the whole-segment test,
+  billing's folded read); a sixth, removing a `//` guard, left it green because
+  that guard could never fire, so the guard was removed.
+- **Partner and customer session reads**: still open, and **for a ruling**:
+  showing a customer or partner an error where they now see "signed out" is a
+  customer-facing change of words and behaviour.
+- **Partial reads** and the two `.in()` lists past the 150 id cliff: not
+  re-checked in this pass.
+
 ## APPLIED: 0075, A PAYMENT EVENT IS APPLIED ONCE
 
 **Applied to development and then production 2026-10-13 07:0x CT** by the
