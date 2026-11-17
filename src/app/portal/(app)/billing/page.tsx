@@ -10,7 +10,7 @@ import { DataTable } from "@/components/portal/design";
 import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
 import { ButtonLink, Chip, EmptyState, ErrorState, PageHead, Panel, RecordTable } from "@/components/portal/surfaces";
 import { can } from "@/lib/ops-authz";
-import { uncreditedReviews } from "@/lib/ops-engineer";
+import { uncreditedReviewsRead } from "@/lib/ops-engineer";
 import { UncreditedReviews } from "./UncreditedReviews";
 
 export const dynamic = "force-dynamic";
@@ -78,7 +78,12 @@ export default async function BillingPage() {
   const periods = marginByPeriod(files);
   const incomplete = files.filter((f) => marginOf(f).missing.length > 0);
   /* Ruling 2 of 2026-10-10: shown to whoever approves pay, and only when there is something to fix. */
-  const uncredited = can(actor, "ledger.approve") ? await uncreditedReviews() : [];
+  /*
+   * Null is a read that failed, said rather than hidden (the 2026-10-12 ruling;
+   * BACKLOG, "screen reads that still hide a failure"): the folded form made a
+   * failed read look like there was nothing to credit, and the panel vanished.
+   */
+  const uncredited = can(actor, "ledger.approve") ? await uncreditedReviewsRead() : [];
 
   return (
     <>
@@ -99,7 +104,12 @@ export default async function BillingPage() {
         }
       />
 
-      {uncredited.length > 0 ? (
+      {uncredited === null ? (
+        <ErrorState
+          title="The reviews still owed a credit could not be read"
+          body="This is not the same as every review being credited. Nothing here says the engineer is paid up until it loads. Reload the page, and tell an administrator if it stays."
+        />
+      ) : uncredited.length > 0 ? (
         <Panel
           title="Reviews that credited the engineer nothing"
           description="Each was decided and wrote no production credit. Fix what is missing and the credit is written at the tier in the engineer's agreement."

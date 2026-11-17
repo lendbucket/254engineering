@@ -330,15 +330,19 @@ export function NotificationBell({
   unread,
   items,
 }: {
-  unread: number;
-  items: {
-    id: string;
-    title: string;
-    body: string | null;
-    href: string | null;
-    created_at: string;
-    read: boolean;
-  }[];
+  /* Null when the count could not be read: no number is shown, never a zero. */
+  unread: number | null;
+  /* Null when the list could not be read: the panel says so, never "Nothing yet". */
+  items:
+    | {
+        id: string;
+        title: string;
+        body: string | null;
+        href: string | null;
+        created_at: string;
+        read: boolean;
+      }[]
+    | null;
 }) {
   const [open, setOpen] = useState(false);
   const [seen, setSeen] = useState(false);
@@ -386,7 +390,7 @@ export function NotificationBell({
           itself now, bold white beside the bell, and the button's label still
           says how many are unread.
         */}
-        {unread > 0 ? (
+        {unread !== null && unread > 0 ? (
           <span className="absolute top-1 right-0.5 text-[12px] leading-none font-bold text-white">
             {unread > 9 ? "9+" : unread}
           </span>
@@ -412,7 +416,11 @@ export function NotificationBell({
           <p className="portal-label border-b border-[var(--border)] px-4 py-3">
             Notifications
           </p>
-          {items.length === 0 ? (
+          {items === null ? (
+            <p data-read-failed="" className="px-4 py-6 text-[14px] leading-[1.6] text-[var(--secondary)]">
+              Your notifications could not be loaded. This is not the same as having none. Reload the page to try again.
+            </p>
+          ) : items.length === 0 ? (
             <p className="px-4 py-6 text-[14px] leading-[1.6] text-[var(--secondary)]">
               Nothing yet. Job offers, review requests, and deadline reminders arrive here.
             </p>

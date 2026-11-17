@@ -228,14 +228,29 @@ export type NotificationRow = {
 };
 
 export async function listNotifications(profileId: string, limit = 50): Promise<NotificationRow[]> {
+  return (await listNotificationsRead(profileId, limit)) ?? [];
+}
+
+/**
+ * The same list, or null when it could not be read. The operator's ruling of
+ * 2026-10-12 (a failed read never renders as an empty state), applied to the
+ * bell, which the BACKLOG entry "screen reads that still hide a failure" named:
+ * the error was discarded, so a failed read opened a panel saying "Nothing yet"
+ * on every staff screen. The layout reads this one.
+ */
+export async function listNotificationsRead(profileId: string, limit = 50): Promise<NotificationRow[] | null> {
   const db = supabaseAdmin();
-  if (!db) return [];
-  const { data } = await db
+  if (!db) return null;
+  const { data, error } = await db
     .from("eng_notifications")
     .select("id, created_at, kind, title, body, href, read_at, emailed_at, email_error")
     .eq("profile_id", profileId)
     .order("created_at", { ascending: false })
     .limit(limit);
+  if (error) {
+    console.error(`[notify] the notifications could not be read: ${error.message}`);
+    return null;
+  }
   return (data ?? []) as NotificationRow[];
 }
 

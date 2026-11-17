@@ -10,7 +10,8 @@ import { mispointing } from "@/lib/db-guard";
 import { MispointedDeployment } from "@/components/portal/Mispointed";
 import { PortalUnreachable } from "@/components/portal/Unreachable";
 import { isDatabaseUnreachable } from "@/lib/save-outcome";
-import { listNotifications, unreadCount } from "@/lib/ops-notify";
+import { listNotificationsRead, unreadCountRead } from "@/lib/ops-notify";
+import { PORTAL_PATH_HEADER, returnPathFrom } from "@/lib/portal-return-path";
 import { can, holdsLicence, roleLabel, may } from "@/lib/ops-authz";
 import { navFor, mobileTabsFor } from "@/components/portal/nav";
 import {
@@ -92,7 +93,13 @@ export default async function PortalLayout({ children }: { children: React.React
   }
 
   if (!actor) {
-    const path = (await headers()).get("x-invoke-path") ?? "/portal";
+    /*
+     * WHERE THEY WERE GOING, FROM THE PROXY. This read x-invoke-path, which
+     * Next 16 never sets, so a cookie that no longer opened a session always
+     * came back to /portal and lost the page (BACKLOG, "screen reads that
+     * still hide a failure"). The proxy now stamps the path it let through.
+     */
+    const path = returnPathFrom((await headers()).get(PORTAL_PATH_HEADER));
     redirect(`/portal/login?next=${encodeURIComponent(path)}`);
   }
 
@@ -115,16 +122,23 @@ export default async function PortalLayout({ children }: { children: React.React
    * place that knows what a notification is stays the one place. It has read
    * real rows since Phase 0; Phase 5 is when anything started writing them.
    */
-  const notifications = await listNotifications(actor.id, 12);
-  const list = notifications.map((n) => ({
-    id: String(n.id),
-    title: n.title,
-    body: n.body,
-    href: n.href,
-    created_at: n.created_at,
-    read: Boolean(n.read_at),
-  }));
-  const unread = await unreadCount(actor.id);
+  /*
+   * Null is a read that failed, and the bell says so rather than "Nothing yet"
+   * (the 2026-10-12 ruling; BACKLOG, "screen reads that still hide a failure").
+   */
+  const notifications = await listNotificationsRead(actor.id, 12);
+  const list =
+    notifications === null
+      ? null
+      : notifications.map((n) => ({
+          id: String(n.id),
+          title: n.title,
+          body: n.body,
+          href: n.href,
+          created_at: n.created_at,
+          read: Boolean(n.read_at),
+        }));
+  const unread = await unreadCountRead(actor.id);
 
   return (
     <div className="portal-surface portal-app h-dvh overflow-hidden lg:h-auto lg:min-h-dvh lg:overflow-visible">
