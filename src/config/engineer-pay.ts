@@ -136,6 +136,8 @@ export function engineerDesignPayCents(engineeringFeeCents: number): number {
 export const TIER_BY_DELIVERABLE: Record<string, PayTier> = {
   "roof-inspections/standard": 1,
   "structural-letters/standard": 1,
+  /* Robert's answer 6 of 16:34 Central 2026-11-16 (6931421644): tier 1, as the permit letter it is sold under. */
+  "structural-letters/real-estate": 1,
   "solar-structural-letters/standard": 1,
   "foundation-inspections/standard": 1,
   "manufactured-home-foundation-certifications/standard": 1,

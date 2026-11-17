@@ -338,15 +338,19 @@ export const TRADE_FLOORS: Record<string, TradeFloor> = {
     on: ON_MARKUP,
   },
   /*
-   * PENDING, AND HONESTLY SO. The deliverable is Robert's answer 11 of
-   * 2026-11-14 at $709, and no floor was ruled with it: the 150% markup floor
-   * needs its engineer pay tier, which is not in Schedule 2 of his agreement.
-   * A floor typed here before that would be a floor under a cost nobody set.
+   * SET BY ROBERT'S ANSWER 6 OF 16:34 CENTRAL 2026-11-16 (6931421644): the
+   * $702 trade floor of the standard structural letter, which it is sold
+   * under, with engineer pay tier 1 (engineer-pay.ts). It was pending, "a floor
+   * typed here before that would be a floor under a cost nobody set", and the
+   * cost is now set: tier 1, the same as the permit letter.
    */
   "structural-letters/real-estate": {
-    state: "pending",
+    state: "set",
+    floorCents: 70_200,
     because:
-      "Structural letter for a real estate transaction. No trade floor is ruled yet: it waits on the engineer's pay for this letter, which his agreement does not cover yet, and on the operator's ruling.",
+      "Structural letter for a real estate transaction. The standard structural letter's floor, by Robert's answer 6 of 2026-11-16: tier 1 $175, one $85 visit, card processing, the 150% markup of 2026-10-22.",
+    by: BY,
+    on: "2026-11-16",
   },
   "repair-specifications/standard": {
     state: "set",
