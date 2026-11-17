@@ -1363,7 +1363,25 @@ approval of each protocol. The scope statement (no architectural or MEP work)
 is rendered in the operator's ruled wording of 2026-10-14 on `/terms` and
 `/design-inquiry`, on `copy/scope-structural`.
 
-## OPEN, FROM THE WEBHOOK WORK OF 2026-10-13, NOT BUILT
+## FROM THE WEBHOOK WORK OF 2026-10-13: THREE BUILT, ONE WAITS ON BILLING, THREE FOR A RULING
+
+**RE-CHECKED AGAINST MAIN `43fbc10` ON 2026-11-17**, working this file in order
+on Robert's order of that morning. The heading said "not built"; three of the
+seven are:
+
+- **Item 2 is built.** Migration 0076 (`a_refund_update_is_applied_once`)
+  handles Stripe's `charge.refund.updated` through the same ledger, proved by
+  `scripts/proofs/a-refund-update-is-applied-once.mjs` (pending to succeeded,
+  pending to failed).
+- **Item 3 is built**, by the operator's ruling of 2026-10-14: `cancelAndRefund`
+  and `settleDecision` in `src/lib/ops-payments.ts` count a pending refund as
+  already given back, so a second refund cannot look owed.
+- **Item 6 was already marked built** below, on `fix/existing-client-account`.
+- **Item 1 waits** on partner billing being switched on, as ruled.
+- **Items 4, 5 and 7 are still for a ruling**, put to Robert as numbered
+  questions in the evening report of 2026-11-17.
+
+### As first written
 
 Each found while building 0075, outside what the ruling asked for, and left
 for a ruling rather than fixed on the way past.
