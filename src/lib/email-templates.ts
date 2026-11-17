@@ -763,6 +763,65 @@ export function jobPaymentLink(input: {
 }
 
 /**
+ * THE PAYMENT LINK FOR AN ONLINE ORDER THAT WAITED FOR TRAVEL. Robert's add-on
+ * of 2026-11-16 and his answer 12 (6931421644): one payment link for the letter
+ * plus travel, and nothing the customer typed is asked again. Laid out as the
+ * job payment link is, without its "arranged with" line, which is untrue of an
+ * order the customer placed themselves. Sentences sent for his approval with
+ * the board.
+ */
+export function orderTravelPaymentLink(input: {
+  customerName: string;
+  customerEmail: string;
+  reference: string;
+  propertyAddress: string;
+  deliverableName: string;
+  county: string;
+  /** The order before travel: the letter and any coastal line. */
+  letterAmount: string;
+  travelAmount: string;
+  totalAmount: string;
+  payUrl: string;
+}): RenderedEmail {
+  return compose(
+    "order.travel_payment_link",
+    "human",
+    `Your payment link, with travel to ${input.county} County`,
+    {
+      preheader: `Reference ${input.reference}. Travel to ${input.county} County is included. Nothing is charged until you complete the payment page.`,
+      signed: true,
+      blocks: [
+        { kind: "p", text: `${input.customerName},` },
+        {
+          kind: "p",
+          text: `The office has set travel to ${input.county} County for your ${input.deliverableName} at ${input.propertyAddress}. The reference is ${input.reference}.`,
+        },
+        {
+          kind: "details",
+          title: "What the payment covers",
+          rows: [
+            [input.deliverableName, input.letterAmount],
+            [`Travel to ${input.county} County`, input.travelAmount],
+            ["Total", input.totalAmount],
+          ],
+        },
+        {
+          kind: "p",
+          text: "Everything you sent with your order is already on file, so there is nothing to fill in again. Travel is refunded in full if the job is declined before the visit, and kept once the technician has made the trip.",
+        },
+        {
+          kind: "note",
+          text: "Card details are entered on the payment provider's page and never reach this firm. Nothing is charged until you complete it.",
+        },
+        { kind: "p", text: "If anything here is wrong, reply to this email before paying and it will be corrected." },
+      ],
+      button: { label: "Pay for this order", url: input.payUrl },
+    },
+    { to: input.customerEmail },
+  );
+}
+
+/**
  * THE TRIP FEE LINK, for a visit the technician could not get into. Robert's
  * answers 7 to 10 of 2026-11-14 (E5). The disclosure sentence is his approved
  * wording; the rest is the draft he approved as his answer 16 of 2026-11-14.
@@ -3305,6 +3364,19 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       amount: "$925.00",
       payUrl: "https://254engineering.com/pay/sample",
       takenBy: "the firm",
+    }),
+    /* An online order that waited for travel (Robert's answer 12, 2026-11-16). */
+    orderTravelPaymentLink({
+      customerName: "Sample Customer",
+      customerEmail: "sample@example.com",
+      reference: "254-O2026-ABCDEG",
+      propertyAddress: "100 Sample Street, Killeen",
+      deliverableName: "Foundation certification letter",
+      county: "Bell",
+      letterAmount: "$709.00",
+      travelAmount: "$175.00",
+      totalAmount: "$884.00",
+      payUrl: "https://254engineering.com/pay/sample-travel",
     }),
     tripFeeLink({
       customerName: "Sample Customer",

@@ -3,6 +3,7 @@ import { supabaseAdmin } from "./supabase";
 import { can, type Actor } from "./ops-authz";
 import { writeAuditOrRefuse } from "./ops-audit";
 import { TEXAS_COUNTIES } from "./ops-counties";
+import { countyInCoverage } from "./coverage-rules";
 
 /**
  * ===========================================================================
@@ -70,4 +71,28 @@ export async function addCoverageCounty(
   if (writeError) return { ok: false, error: `The coverage could not be saved: ${writeError.message}` };
   if (!written?.length) return { ok: false, error: "The technician could not be found to save their coverage." };
   return { ok: true, counties: next, already: false };
+}
+
+/**
+ * ===========================================================================
+ * IS THIS COUNTY ONE OUR TECHNICIANS COVER? Robert's add-on of 2026-11-16 and
+ * his answer 12 (6931421644): an online order for a county outside the
+ * counties our technicians cover is held for the office to set travel.
+ * ===========================================================================
+ *
+ * The covered counties are the union of every ACTIVE field technician's
+ * coverage_counties: a suspended or invited one sends nobody. True or false;
+ * null when the read failed, and the caller holds the order for travel on
+ * null too, because a far-away order must never reach a checkout with no
+ * travel on it. Pure over the rows (countyInCoverage) so a proof drives it.
+ */
+export { countyInCoverage };
+
+export async function countyIsCovered(county: string | null | undefined): Promise<boolean | null> {
+  if (!county || !county.trim()) return null;
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { data, error } = await db.from("eng_profiles").select("coverage_counties").eq("role", "field_tech").eq("status", "active");
+  if (error) return null;
+  return countyInCoverage(county, (data ?? []) as { coverage_counties: string[] | null }[]);
 }

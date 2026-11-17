@@ -568,6 +568,8 @@ const PORTED = [
   "src/app/portal/(app)/inquiries/page.tsx",
   "src/app/portal/(app)/jobs/layout.tsx",
   "src/app/portal/(app)/orders/AttachAccountClient.tsx",
+  /* Orders waiting for travel, Robert's answer 12 of 2026-11-16: held to the portal rules from its first line. */
+  "src/app/portal/(app)/orders/TravelHoldsClient.tsx",
   "src/app/portal/(app)/pricebook/AddendumDraftForm.tsx",
   "src/app/portal/(app)/protocols/SignAddendumPanel.tsx",
   "src/app/portal/(app)/protocols/SignTemplatePanel.tsx",

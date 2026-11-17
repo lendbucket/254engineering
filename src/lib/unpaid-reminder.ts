@@ -8,6 +8,7 @@ import { orderUnpaidReminder } from "./email-templates";
 import { money } from "./ops-money";
 import { captureError } from "./ops-observability";
 import { services } from "@/content/services";
+import { ordersHeldForTravel } from "./order-travel";
 
 /**
  * ===========================================================================
@@ -56,8 +57,18 @@ export async function sweepUnpaidOrderReminders(now: number = Date.now()): Promi
       return { looked: false, sent: 0, note: `the read failed: ${error.message}` };
     }
 
+    /*
+     * AN ORDER WAITING FOR TRAVEL IS NOT UNPAID BY THE CUSTOMER'S CHOICE: no
+     * payment link has gone yet (order-travel.ts, Robert's answer 12 of
+     * 2026-11-16). It is skipped. If the hold cannot be read, nothing is sent
+     * this run, rather than reminding somebody who was never asked to pay.
+     */
+    const held = await ordersHeldForTravel((data ?? []).map((o) => o.id as string));
+    if (held === null) return { looked: false, sent: 0, note: "the travel holds could not be read, so no reminder was sent" };
+
     let sent = 0;
     for (const o of data ?? []) {
+      if (held.has(o.id as string)) continue;
       /* The claim. Only the worker whose update matches a still-null stamp sends. */
       const { data: claimed, error: claimError } = await db
         .from("eng_service_orders")

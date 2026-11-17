@@ -9,6 +9,7 @@ import { currentCustomer } from "@/lib/customer-auth";
 import { withSaveOutcome } from "@/lib/save-outcome";
 import { adClickOfRequest } from "@/lib/ad-click-server";
 import { utmColumns } from "@/lib/ad-click";
+import { holdOrderForTravel, orderNeedsTravel, travelHeldSays } from "@/lib/order-travel";
 
 export const dynamic = "force-dynamic";
 
@@ -227,6 +228,23 @@ async function handlePOST(request: NextRequest) {
     visitorKey: request.cookies.get(VISITOR_COOKIE)?.value ?? null,
     typedCode: body.attribution?.partner_code ?? null,
   });
+
+  /*
+   * OUTSIDE OUR TECHNICIANS' COUNTIES, THE ORDER WAITS FOR TRAVEL. Robert's
+   * add-on of 2026-11-16 and his answer 12 (6931421644). Everything the
+   * customer sent is already on the order; no checkout opens. The office sets
+   * travel and one payment link, letter plus travel, goes by itself
+   * (src/lib/order-travel.ts). A hold that could not be recorded opens no
+   * checkout either: it says so, and nothing is charged.
+   */
+  if (await orderNeedsTravel(result.orderId)) {
+    const held = await holdOrderForTravel(result.orderId);
+    if (!held.ok) {
+      return NextResponse.json({ ok: true, reference: result.reference, paymentUnavailable: held.error });
+    }
+    if (held.taskWarning) console.error(`[order-flow] ${result.reference}: ${held.taskWarning}`);
+    return NextResponse.json({ ok: true, reference: result.reference, travelHeld: travelHeldSays(held.county) });
+  }
 
   const checkout = await startCheckout(result.orderId);
   if (!checkout.ok) {
