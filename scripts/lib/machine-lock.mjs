@@ -48,7 +48,7 @@
  * the start time in the file is what lets a person tell the difference.
  */
 
-import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
+import { closeSync, existsSync, openSync, readFileSync, unlinkSync, writeSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -123,6 +123,40 @@ export function readLock() {
      */
     return null;
   }
+}
+
+/**
+ * CREATE THE LOCK FILE, OR FIND IT THERE. NEVER OVERWRITE IT.
+ *
+ * Returns true when this call made the file, false when one already existed;
+ * anything else throws. BACKLOG, "our lock and wattsmith's were both held at
+ * once, 2026-10-09": that entry named `wx` creation as the fix worth
+ * considering, and on 2026-11-17 the race it closes was read in this file.
+ * The lock was written with writeFileSync, which OVERWRITES. Process A finds no
+ * file, writes, reads back its own pid and returns holding the lock; process B,
+ * which also found no file a moment earlier, then overwrites A's file and reads
+ * back ITS pid. Both hold it, and the read-back cannot see it, because A's
+ * check had already passed. `wx` makes the second create fail with EEXIST, so
+ * exactly one creator wins, which is also the primitive the other project on
+ * this machine uses.
+ *
+ * Exported so the proof can exercise it on a scratch path rather than on the
+ * real lock, which belongs to every project on the machine.
+ */
+export function createLockFile(path, body) {
+  let fd;
+  try {
+    fd = openSync(path, "wx");
+  } catch (e) {
+    if (e?.code === "EEXIST") return false;
+    throw e;
+  }
+  try {
+    writeSync(fd, body);
+  } finally {
+    closeSync(fd);
+  }
+  return true;
 }
 
 /**
@@ -201,10 +235,34 @@ export async function takeLock({ project, label, pollMs = POLL_MS, onWait }) {
       } catch {}
     }
 
-    writeFileSync(
+    /*
+     * A FILE THAT EXISTS AND NAMES NOBODY. readLock answers null for it, as for
+     * an absent file, and before `wx` the write below simply overwrote it. Now
+     * the create would refuse it for ever, so it is removed here, but only when
+     * it is STILL unreadable after a pause: a live writer's file is unreadable
+     * for the instant between its create and its write, and removing that would
+     * be taking a lock from a project that holds it.
+     */
+    if (!held && existsSync(LOCK_PATH)) {
+      await new Promise((r) => setTimeout(r, 1_000));
+      if (readLock() === null && existsSync(LOCK_PATH)) {
+        if (onWait) onWait({ project: "an unreadable lock file", pid: null, reaped: true });
+        try {
+          unlinkSync(LOCK_PATH);
+        } catch {}
+      }
+      continue;
+    }
+
+    const created = createLockFile(
       LOCK_PATH,
       JSON.stringify({ project, pid: process.pid, label, startedAt: new Date().toISOString() }, null, 2),
     );
+    if (!created) {
+      /* Somebody created it between our read and our create. Round again; never overwrite. */
+      await new Promise((r) => setTimeout(r, 250));
+      continue;
+    }
 
     /*
      * READ IT BACK. Two projects can reach the write in the same instant, and
