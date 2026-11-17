@@ -147,7 +147,7 @@ export const positions: Position[] = [
     about: [
       "This is an additional review engineer seat. A review engineer reads field records produced to a written protocol, forms the opinion, and takes responsible charge of the sealed deliverable for the work they review.",
       "The honest description of the review model is that it is remote and it is volume oriented. You are not driving to properties. You are reading a standardized record, applying judgment, and putting your seal on a document that a lender, a carrier, or a building official will rely on. Engineers who find that unappealing should say so early. Engineers who have been looking for exactly that arrangement usually recognize it in the first paragraph.",
-      "What does not change is responsible charge. If the record in front of you does not support an opinion, the answer is that it does not, and the job goes back to the field. Nobody in this firm is authorized to ask you to seal past that. A firm that would ask is one that eventually costs an engineer their licence rather than its own.",
+      "What does not change is responsible charge. If the record in front of you does not support an opinion, the answer is that it does not, and the job goes back to the field. Nobody in this firm is authorized to ask you to seal past that. A firm that would ask is one that eventually costs an engineer their license rather than its own.",
       "The firm is registered with the Texas Board of Professional Engineers and Land Surveyors, and its engineer of record is in place. This seat works under that existing registration, alongside the engineer of record rather than in place of him.",
     ],
     responsibilities: [
@@ -158,7 +158,7 @@ export const positions: Position[] = [
       "Read records that technicians in Dalhart and in Harlingen produce to the same standard, so the same record reads the same way wherever it was made.",
     ],
     requirements: [
-      "An active Texas Professional Engineer licence in good standing.",
+      "An active Texas Professional Engineer license in good standing.",
       "Structural competence in residential and light commercial work, or another discipline you can demonstrate against the service lines.",
       "Willingness to work to a written review standard rather than to personal preference.",
       "A clear line about what you will and will not seal, stated in the interview rather than discovered later.",
@@ -250,7 +250,7 @@ export const positions: Position[] = [
     growth: [
       "The intent is that technicians who certify on more protocols see more of the dispatch, because more of it is work they are qualified to take.",
       "Rural county groups are where technician density is thinnest, so a technician covering one is worth more to the firm than a technician in a metro, and the intent is for the rate structure to reflect that as volume allows.",
-      "The firm intends to support Part 107 certification for technicians who want it, because aerial imagery is how a steep or brittle roof gets inspected without damaging it. That support is an intent rather than a current programme.",
+      "The firm intends to support Part 107 certification for technicians who want it, because aerial imagery is how a steep or brittle roof gets inspected without damaging it. That support is an intent rather than a current program.",
     ],
 
     open: true,

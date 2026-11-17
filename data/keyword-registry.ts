@@ -178,7 +178,7 @@ export const topics: Topic[] = [
     evidence: "2026-08-30: 'engineer foundation inspection' 40/mo, KD 5, traffic potential 150. 'foundation inspection texas' 10/mo.",
     angles: {
       "254": {
-        angle: "Floor elevation measurement as evidence, what a foundation opinion can and cannot conclude, and soil behaviour by region.",
+        angle: "Floor elevation measurement as evidence, what a foundation opinion can and cannot conclude, and soil behavior by region.",
         path: "/services/foundation-inspections",
         status: "live",
       },
@@ -631,7 +631,7 @@ export const topics: Topic[] = [
     },
   },
   {
-    topic: "Texas PE licence lookup",
+    topic: "Texas PE license lookup",
     cluster: "institutional",
     evidence: "'tbpe roster' 600/mo at KD 55, traffic potential 1,400. KD 55 against a domain with no authority does not rank yet; the page exists because the question is real.",
     angles: {
@@ -657,7 +657,7 @@ export const topics: Topic[] = [
     topic: "county level geography",
     cluster: "geo",
     evidence:
-      "UNMEASURED as of 2026-08-30 and must be measured before anything is built. The city pattern measured ZERO on a prior Sealed pull. Counties are a different search behaviour and may or may not carry demand; assumption is not evidence in either direction.",
+      "UNMEASURED as of 2026-08-30 and must be measured before anything is built. The city pattern measured ZERO on a prior Sealed pull. Counties are a different search behavior and may or may not carry demand; assumption is not evidence in either direction.",
     angles: {
       "254": {
         angle: "Permitting authority, whether unincorporated areas require permits, TWIA designation, soil belt and its engineering implication, adopted code edition. Region pages exist; county pages do not.",
@@ -670,7 +670,7 @@ export const topics: Topic[] = [
   {
     topic: "city level geography",
     cluster: "geo",
-    evidence: "Measured ZERO across every Texas city crossed engineering keyword tested on a prior Sealed pull. City expansion permanently cancelled.",
+    evidence: "Measured ZERO across every Texas city crossed engineering keyword tested on a prior Sealed pull. City expansion permanently canceled.",
     angles: {
       sealed: {
         angle: "The 25 city pages that already exist. Not to be extended without new measurement.",
