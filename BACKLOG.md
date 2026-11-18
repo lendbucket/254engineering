@@ -3118,7 +3118,21 @@ restyles it, and `CUSTOMER_V10` prints the remaining count on every run so
 stalling is visible. This entry exists so the list is a plan rather than a
 silence.
 
-## THE TRIGGER THAT INVALIDATES TOKENS AT SUSPENSION, WHICH IS THE GUARANTEE HALF
+## THE TRIGGER THAT INVALIDATES TOKENS AT SUSPENSION: BUILT AS 0063 AND 0064, ON PRODUCTION SINCE 2026-10-07
+
+**Re-checked 2026-11-18** (the one-time pass). Everything this entry calls owed
+is done:
+
+- **The trigger is 0063** (`a_suspension_spends_every_live_link`, not 0064 as
+  written below: it was renumbered), applied to production on 2026-10-07 per
+  `supabase/applied.mjs`.
+- **The question on closing was ruled the same day**, Robert, 2026-10-07:
+  "Closing an account spends its users' links too: yes." That is
+  **0064** (`closing_an_account_spends_its_links_too`), also on production
+  since 2026-10-07. An account changing into `suspended` or `closed` spends its
+  users' live links, and the audit event says which.
+
+The text below is the record as written before either landed.
 
 **The application half shipped on 2026-09-29** and is not in question. What is
 owed is the migration.
