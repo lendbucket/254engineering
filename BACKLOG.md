@@ -1363,7 +1363,25 @@ approval of each protocol. The scope statement (no architectural or MEP work)
 is rendered in the operator's ruled wording of 2026-10-14 on `/terms` and
 `/design-inquiry`, on `copy/scope-structural`.
 
-## OPEN, FROM THE WEBHOOK WORK OF 2026-10-13, NOT BUILT
+## FROM THE WEBHOOK WORK OF 2026-10-13: THREE BUILT, ONE WAITS ON BILLING, THREE FOR A RULING
+
+**RE-CHECKED AGAINST MAIN `43fbc10` ON 2026-11-17**, working this file in order
+on Robert's order of that morning. The heading said "not built"; three of the
+seven are:
+
+- **Item 2 is built.** Migration 0076 (`a_refund_update_is_applied_once`)
+  handles Stripe's `charge.refund.updated` through the same ledger, proved by
+  `scripts/proofs/a-refund-update-is-applied-once.mjs` (pending to succeeded,
+  pending to failed).
+- **Item 3 is built**, by the operator's ruling of 2026-10-14: `cancelAndRefund`
+  and `settleDecision` in `src/lib/ops-payments.ts` count a pending refund as
+  already given back, so a second refund cannot look owed.
+- **Item 6 was already marked built** below, on `fix/existing-client-account`.
+- **Item 1 waits** on partner billing being switched on, as ruled.
+- **Items 4, 5 and 7 are still for a ruling**, put to Robert as numbered
+  questions in the evening report of 2026-11-17.
+
+### As first written
 
 Each found while building 0075, outside what the ruling asked for, and left
 for a ruling rather than fixed on the way past.
@@ -1815,7 +1833,22 @@ teardown commit) kept whole on `wip/staff-walk-harness` at `4607a2b` and
 removed from the release branch. Its ledger entry is written at the sitting
 either way.
 
-## TWO DEFECTS THE STAFF WALK FOUND, 2026-10-03, AND NEITHER IS FIXED
+## TWO DEFECTS THE STAFF WALK FOUND, 2026-10-03: THE LIST IS BOUNDED, ONE QUESTION ON CLIENTS IS OPEN
+
+**RE-CHECKED AGAINST MAIN `0daa9c0` ON 2026-11-17**, working this file in order
+on Robert's order of that morning. The heading said neither was fixed:
+
+- **Defect 2 is fixed.** `/portal/clients` reads one bounded page of
+  `CLIENT_PAGE_SIZE` with an exact count beside it and a pager (`b13c36bf`,
+  office ready, 2026-10-24).
+- **Defect 1's double click is fixed** (2026-10-07, below). **Still open, for a
+  ruling:** whether a second client at the same address is an error, the same
+  client, or a legitimate second client. Until that is ruled, two requests in
+  the same instant can still both insert, because the guard is a read before
+  the insert and a constraint needs the ruling. Put to Robert in the evening
+  report of 2026-11-17.
+
+### As first written
 
 Operator ruling, 2026-10-03: added to the fix list, not fixed now. Both were
 found by driving the product's own routes rather than by reading them, which is
@@ -3526,6 +3559,21 @@ superseded design direction and would be read against the approved artifact
 before anything rendered it.
 
 ## `compliance-audit` COMPUTES TODAY IN UTC, SO AN ACKNOWLEDGEMENT EXPIRES EARLY IN CENTRAL
+
+**BUILT 2026-11-17 ON `fix/compliance-audit-firm-calendar`**, working this file
+in order on Robert's order of that morning. The decision this entry said had to
+come first was already made: the operator ruled the firm's calendar is
+America/Chicago, and the product has decided every expiry against
+`todayInFirmCalendar()` since 2026-09-24 (`src/lib/launch.ts`). So the audit
+follows the product. **It was three comparisons, not the one this entry
+named:** an engineer's licence lapsing, the roster acknowledgement, and an
+active registration each read a UTC date. All three now read one `FIRM_TODAY`
+taken at the top of the audit, and the parked-work check, already on the firm's
+calendar, reads the same value. Proof
+`compliance-audit-keeps-the-firms-calendar.mjs` pins the reading recorded below
+(19:19 Central on 2026-09-22 is 2026-09-23 in UTC), injection-verified twice.
+
+### As first written
 
 Operator ruling, 2026-09-22. **Recorded, not built. It errs shut, which is why
 it is not urgent, and it is still wrong.**
