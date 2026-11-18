@@ -660,7 +660,12 @@ his existing WP-001 signature in force when he signs, dispatch choosing the
 protocol by the order's tier, and the pay figures. Boards after 0094, in
 migration order.
 
-## 0093, THE SECOND FACTOR FOR THE ADMINISTRATOR, THE OFFICE AND THE REP: BUILT, HELD BEFORE ANY SITTING
+## 0093, THE SECOND FACTOR FOR THE ADMINISTRATOR, THE OFFICE AND THE REP: BUILT, ON PRODUCTION SINCE 2026-10-27
+
+**Re-checked 2026-11-18** (the one-time pass over every open entry, Robert's
+order of that morning): `supabase/applied.mjs` records 0093 applied to
+production on 2026-10-27, so the heading's "held before any sitting" was stale.
+The text below is the record as written.
 
 Robert's addendum of 2026-10-25, item 5, on `migration/0093-second-factor-for-staff`
 with `docs/production-sitting-0093-second-factor-for-staff.md`. **Not posted for
@@ -675,7 +680,13 @@ on development. The probes for every other audit enrol whenever they are sent
 to enrolment, required or not (`scripts/lib/probe-mfa.mjs`), so they need
 nothing.
 
-## THE SITTINGS FOR 0091 AND 0092, AND THE REPAIR SPECIFICATION WAITS ON THEM
+## THE SITTINGS FOR 0091 AND 0092: RUN 2026-10-27; ONE QUESTION ON THE SEAL'S PLACE STAYS OPEN
+
+**Re-checked 2026-11-18** (the one-time pass): `supabase/applied.mjs` records
+0091 and 0092 applied to production on 2026-10-27, and
+`feat/repair-spec-own-document` is merged into main, so the repair
+specification no longer waits on them. **Still open:** "where the seal goes on
+his document", below, is Robert's to rule and nothing found settles it.
 
 `docs/production-sitting-0091-three-letters-seal-without-a-template.md` and
 `docs/production-sitting-0092-the-engineers-own-document-has-its-own-drafts-bucket.md`,
@@ -817,7 +828,10 @@ job; how "evidence relied on" prints; and section 10's non-compliance report
 belongs to a stage after repairs are not made. The office facts it needs (ZIP,
 TDI Application ID) can be recorded today.
 
-## THE SITTING FOR 0090, INSURANCE IS A REGISTER, OPEN
+## THE SITTING FOR 0090, INSURANCE IS A REGISTER: RUN 2026-10-27
+
+**Re-checked 2026-11-18** (the one-time pass): `supabase/applied.mjs` records
+0090 applied to production on 2026-10-27. The heading said open.
 
 `docs/production-sitting-0090-insurance-is-a-register.md`. Written 2026-10-25 on
 `feat/insurance-register`, to Robert's addendum of that night, item 1: the
@@ -872,7 +886,11 @@ moved to form 20-19 on 2026-10-26 by Robert's ruling. The registry is not
 rendered, and it is synchronized verbatim across the three repositories, so
 it is corrected in all three at once rather than here alone.
 
-## AFTER 0089: RETIRE THE FIFTEEN- AND SIXTEEN-ARGUMENT SEAL DOORS: BUILT AS 0094, WAITING BEHIND 0093
+## AFTER 0089: RETIRE THE FIFTEEN- AND SIXTEEN-ARGUMENT SEAL DOORS: BUILT AS 0094, ON PRODUCTION SINCE 2026-10-27
+
+**Re-checked 2026-11-18** (the one-time pass): `supabase/applied.mjs` records
+0094, and 0093 ahead of it, applied to production on 2026-10-27. The heading
+said it was waiting.
 
 0089 (a seal act records who it prints) is sat on both projects: development
 2026-10-25 19:41 UTC (20261025194122) and production 2026-10-26 03:17 UTC
@@ -923,7 +941,10 @@ the header is ignored and the address key is unchanged, injection-verified by
 honouring it unconditionally. Until it lands, boards are never pushed in a
 burst.
 
-## THE SITTING FOR 0088, A LETTER SEALS ONLY FROM A TEMPLATE HE SIGNED, OPEN
+## THE SITTING FOR 0088, A LETTER SEALS ONLY FROM A TEMPLATE HE SIGNED: RUN 2026-10-25
+
+**Re-checked 2026-11-18** (the one-time pass): `supabase/applied.mjs` records
+0088 applied to production on 2026-10-25. The heading said open.
 
 `docs/production-sitting-0088-a-letter-seals-only-from-a-template-he-signed.md`.
 Written 2026-10-24 on `feat/letter-adoption`, narrowed by Robert's ruling 4 of
@@ -955,7 +976,10 @@ is bundled for the Edge runtime too. It must load only when
 `process.env.NEXT_RUNTIME === "nodejs"`. Proof owed: every server-only import in
 the hook sits behind that guard, injection-verified by removing the guard.
 
-## THE SITTING FOR 0085, A LETTER STATES ONLY RECORDED FACTS, OPEN
+## THE SITTING FOR 0085, A LETTER STATES ONLY RECORDED FACTS: RUN 2026-10-24
+
+**Re-checked 2026-11-18** (the one-time pass): `supabase/applied.mjs` records
+0085 applied to production on 2026-10-24. The heading said open.
 
 `docs/production-sitting-0085-a-letter-states-only-recorded-facts.md`. Written
 2026-10-23 on `feat/fc-pl-records` under ruling 7: the facts the foundation and
@@ -973,7 +997,10 @@ does not count them. Making them capture items needs evidence to carry a file
 level item as well as a protocol one, a migration and a change to the capture
 screen and its gate, which is a change to dispatch for a ruling.
 
-## THE SITTING FOR 0084, A LINE OPENS ONLY WHEN TRAINED, OPEN
+## THE SITTING FOR 0084, A LINE OPENS ONLY WHEN TRAINED: RUN 2026-10-24
+
+**Re-checked 2026-11-18** (the one-time pass): `supabase/applied.mjs` records
+0084 applied to production on 2026-10-24. The heading said open.
 
 `docs/production-sitting-0084-a-line-opens-only-when-trained.md`. Written
 2026-10-23 on `feat/training-record`. Two append-only tables for supervised
@@ -992,7 +1019,10 @@ the method for a crawlspace) and five for PL (permit number and authority
 apart, the authority's address, the element described, the visit or desk
 triage record, and the documents schedule with his per job capture list).
 
-## THE SITTING FOR 0080, THE SIGNED SOURCES GO PRIVATE, OPEN
+## THE SITTING FOR 0080, THE SIGNED SOURCES GO PRIVATE: RUN 2026-10-22
+
+**Re-checked 2026-11-18** (the one-time pass): `supabase/applied.mjs` records
+0080 applied to production on 2026-10-22. The heading said open.
 
 `docs/production-sitting-0080-protocol-sources.md`. Written 2026-10-22 on
 `fix/protocol-sources` and applied nowhere, development included. One private
@@ -1044,14 +1074,20 @@ rule to build:** a push to main whose exact commit already has a green board of
 the same workflow is skipped by the board, and the skip names the earlier run
 id. Same commit only: a different tree on main is always boarded.
 
-## THE SITTING FOR 0079, TWO STAFF ROLES AND THE WORK THEY DO, OPEN
+## THE SITTING FOR 0079, TWO STAFF ROLES AND THE WORK THEY DO: RUN 2026-10-21
+
+**Re-checked 2026-11-18** (the one-time pass): `supabase/applied.mjs` records
+0079 applied to production on 2026-10-21. The heading said open.
 
 `docs/production-sitting-0079-staff-roles.md`. Written 2026-10-20 on
 `feat/staff-roles` and applied nowhere, development included. Robert applies it
 to development; the branch is then boarded there and held for the chat's
 production sitting. Additive only: five tables, two roles, 63 grant rows.
 
-## THE SITTING FOR 0078, AN INTAKE ANSWER CAN BE A STORED FILE, OPEN
+## THE SITTING FOR 0078, AN INTAKE ANSWER CAN BE A STORED FILE: RUN 2026-10-16
+
+**Re-checked 2026-11-18** (the one-time pass): `supabase/applied.mjs` records
+0078 applied to production on 2026-10-16. The heading said open.
 
 `docs/production-sitting-0078-intake-photo.md`. Written 2026-10-16 on
 `migration/intake-photo-0078` and applied nowhere. Without it the firm cannot
