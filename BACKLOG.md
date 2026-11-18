@@ -149,7 +149,11 @@ names, needs a device session the server issues:
 debug build does not need it. **It must be built before the first store
 submission.** The account of the store build is `docs/mobile-store-build.md`.
 
-## THE WRITERS SHARD CAN STOP ON ITS OWN SERVER: A TEARDOWN RACE ON PORT 4300
+## THE WRITERS SHARD CAN STOP ON ITS OWN SERVER: A TEARDOWN RACE ON PORT 4300: BUILT, MERGED
+
+**Re-checked 2026-11-18** (the one-time pass): `fix/port-free-before-start` is
+merged into main (`c4f009e`), so the fix below is on main. The heading did not
+say so.
 
 Board 42505750069 (bundle 125, kinds at `fee37b9`, 2026-11-08). After
 `native-audit` finished its 64 signed in screens, the next audit found port 4300
@@ -174,7 +178,36 @@ seconds. The queue's growth is the entry "eng_jobs grows forever" below. The
 account count has no entry of its own, and is named here, with the queue,
 because a writer proof's single red sat beside both.
 
-## A WRITERS DEV SERVER ANSWERED 404 ON ONE SHAPE OF ROUTE, ONCE, UNEXPLAINED
+## A WRITERS DEV SERVER ANSWERS 404 ON NESTED PAGES, TWICE IN SIX DAYS, UNEXPLAINED
+
+**IT RECURRED ON 2026-11-17**, board 44136393166 (`fix/machine-lock-wx` at
+`89f8639`), and the account below is corrected by what that run showed
+(issue #1, 6958192887):
+
+- **15 routes answered 404 at every width**: `/order/start/roof-inspections`,
+  `/order/referred/demo-title`, seven `/portal/crm/*` screens,
+  `/portal/files/dispatch`, `/portal/intake/script`, `/portal/jobs/offline`,
+  `/portal/partners/disputes`, `/portal/profile/seal` and
+  `/portal/protocols/rc-001`. The parent of each answered 200 in the same run
+  (`GET /portal/crm 200` beside `GET /portal/crm/accounts 404`).
+- **"A static segment beside a dynamic sibling" is not what they share.**
+  `intake/script`, `profile/seal`, `protocols/rc-001` and `files/dispatch` have
+  no dynamic sibling, and **`/portal/files/[id]`, named below as one, does not
+  exist on main.** What all 15 share is being a page nested one level under a
+  section that has its own page.
+- **This time the 404s spent 15 to 31ms in application code**, where the first
+  run recorded about 3ms of Next.js time.
+- **Nothing was restored from another tree** (the first check ruled): npm's
+  download cache keyed on `package-lock.json`, Playwright's browsers, and the
+  same run's own `next-build` artifact, digest verified.
+
+The same commit, boarded once more unchanged on Robert's word (44311411205),
+measured every route clean, and so did every board after it that day. **Robert's
+ruling of 2026-11-18, answer 3: if it recurs a third time on any commit, build a
+diagnostic that dumps the dev server's route state when a page that exists on
+disk answers 404, and never loosen the check.**
+
+### As first written
 
 Board 43490081874 (`feat/insights-index-by-section` at `7b18bcf`, 2026-11-13).
 mobile-audit's dev server on port 4301 answered 404 in about 3ms of Next.js
@@ -1134,7 +1167,11 @@ active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
 `scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
 or false.
 
-## CONTRAST-AUDIT CANNOT SEE TEXT ON A GRADIENT BAND
+## CONTRAST-AUDIT CANNOT SEE TEXT ON A GRADIENT BAND: BUILT, MERGED 2026-11-13
+
+**Re-checked 2026-11-18** (the one-time pass): `fix/contrast-on-gradient-bands`
+is merged into main (`ca71093`, 376 gradient nodes measured on its board), so
+the class fix below is on main. The heading did not say so.
 
 Found 2026-10-10 from product audit defect 25. Two links on /about and
 /government were `text-slate` on a `from-slate to-slate-deep` band, navy on
@@ -1637,7 +1674,12 @@ proof `a-deliverable-quotes-its-protocol-in-force.mjs` both apply it.
 **Still pending, correctly:** windstorm ongoing (254-WP-001, held until his
 scope addendum) and the three design tiers (no protocol).
 
-## OUR LOCK AND WATTSMITH'S WERE BOTH HELD AT ONCE, 2026-10-09. NOT EXPLAINED.
+## OUR LOCK AND WATTSMITH'S WERE BOTH HELD AT ONCE, 2026-10-09: THE WX FIX IS MERGED; THE CAUSE IS STILL NOT SHOWN
+
+**Re-checked 2026-11-18** (the one-time pass): `fix/machine-lock-wx` is merged
+into main (`87ff8f0`), so the lock is created with `wx` and never overwritten.
+The race it closes is one way two holders can coexist; it is not shown to be
+what happened on 2026-10-09, so "not explained" still stands for that day.
 
 Read, not inferred. At 04:22:32Z the lock file named wattsmith
 (`test/reds-batch3`, pid 26716, start 04:20:51Z). At 04:22:43Z a screenshot run
