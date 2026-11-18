@@ -1930,6 +1930,20 @@ visible.
 
 ## AND THE NINE ROW CHECKLIST HAS NO ROW FOR A PUBLIC TOKEN-GATED API ROUTE
 
+**RULED AND WRITTEN 2026-11-18** (Robert's answer 9 to the evening report of
+2026-11-17, 6963018405, on `docs/checklist-row-2-any-api`): row 2 of
+`docs/new-surface-checklist.md` widens from "a portal API route" to any API
+route, where a public one gated by a token owes a no-token and a bad-token
+check, refused alike. `/api/order-document`'s pair in `security-audit.mjs` is
+the worked example. **Still open, and said in the checklist itself:** that
+half is not swept. `discoverRoutes` walks the API routes under the signed in
+surfaces only, so nothing names a public route that is missing its pair; it has
+the row 4 shape. A sweep would find every route under `src/app/api` outside a
+guarded surface and require a declared pair or a stated reason; it is not
+built, and is a question for Robert, not a fix taken on the way past.
+
+### As first written
+
 Found 2026-10-03 while reading `docs/new-surface-checklist.md` before building
 the sealed delivery path, which is what that document is for.
 
