@@ -475,9 +475,68 @@ export async function markBatchPaid(input: {
   }
 
   const duplicate = applied.outcome !== "applied";
-  if (applied.release.length === 0) return { ok: true, duplicate, released: 0 };
-  const released = await releaseAndFinish(input.eventId, applied.release);
-  return released.ok ? { ...released, duplicate } : released;
+  const released: PaymentApplied =
+    applied.release.length === 0 ? { ok: true, duplicate, released: 0 } : await releaseAndFinish(input.eventId, applied.release);
+  if (!released.ok) return released;
+
+  /*
+   * A BATCH PAID AFTER ITS EXPIRY SAYS SO ON EACH ORDER IT COULD NOT RELEASE.
+   * Robert's answer 6 to the evening report of 2026-11-17 (6963018405), from the
+   * webhook work of 2026-10-13, item 5. A single order in the same race gets an
+   * internal payment.unexpected line (0075, 0122); a batch was accepted with
+   * its expired orders still cancelled, and nothing said a payment arrived.
+   *
+   * ONLY CANCELLED ORDERS, read before the payment was applied. On a redelivery
+   * the orders the first delivery released are in fulfilment and cannot be
+   * released either, and calling those unexpected would be false. Not when the
+   * amount differs: that case releases nothing and already raises its own task.
+   * Once per order AND charge, so a redelivery writes nothing twice and a second,
+   * different payment is still said. Done after the release so it can never
+   * hold one up; a failure fails the delivery, so Stripe delivers it again.
+   */
+  if (applied.detail.amount_differs !== true) {
+    for (const o of orders.filter((x) => x.expected_status === "cancelled")) {
+      const said = await unexpectedPaymentOnce(
+        o.id,
+        input.chargeRef,
+        `A payment for ${batch.reference} arrived while this order was cancelled: ${money(input.amountCents)} under ${input.chargeRef}. Nothing was released for it.`,
+      );
+      if (!said.ok) return { ok: false, error: said.error };
+    }
+  }
+  return { ...released, duplicate };
+}
+
+/**
+ * The internal payment.unexpected line on one order for one charge, written
+ * once. Reads and writes are each checked, unlike event(), which discards its
+ * error: this line is the only record that a payment reached the order.
+ */
+async function unexpectedPaymentOnce(
+  orderId: string,
+  chargeRef: string,
+  summary: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The order system is not configured." };
+  const { data, error } = await db
+    .from("eng_order_events")
+    .select("id")
+    .eq("order_id", orderId)
+    .eq("event", "payment.unexpected")
+    .contains("detail", { charge_ref: chargeRef })
+    .limit(1);
+  if (error) return { ok: false, error: `Whether the order already says the payment arrived could not be read: ${error.message}` };
+  if ((data ?? []).length > 0) return { ok: true };
+  const { error: insertError } = await db.from("eng_order_events").insert({
+    order_id: orderId,
+    event: "payment.unexpected",
+    customer_visible: false,
+    summary,
+    detail: { charge_ref: chargeRef },
+  });
+  if (insertError) return { ok: false, error: `The order could not be told the payment arrived: ${insertError.message}` };
+  return { ok: true };
 }
 
 /**
