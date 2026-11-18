@@ -237,6 +237,17 @@ async function makeWalkFixtures() {
         city: "Corpus Christi",
         prospect_type: "roofer",
         created_by: owner,
+        /*
+         * OWNED BY THE REP WHO WALKS IT. The sales list's visibility rule R5
+         * (canSeeCompany, src/lib/crm-board-rules.ts) shows a rep the companies
+         * they own, or unowned ones in their territory. This prospect had no
+         * owner and no county, so the rep was correctly refused, and the walk
+         * printed 254-WF-007 step 4 and 254-WF-011 step 2 as "broken" on every
+         * board: a correct refusal reported as a defect. Found reading the
+         * nightly of 2026-11-17 (44174184672). A rep working the sales list
+         * works their own companies, so the fixture is that.
+         */
+        owner_id: owner,
       })
       .select("id")
       .single();
