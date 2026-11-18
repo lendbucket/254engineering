@@ -1854,7 +1854,15 @@ on Robert's order of that morning. The heading said neither was fixed:
   client, or a legitimate second client. Until that is ruled, two requests in
   the same instant can still both insert, because the guard is a read before
   the insert and a constraint needs the ruling. Put to Robert in the evening
-  report of 2026-11-17.
+  report of 2026-11-17. **RULED 2026-11-18 (answer 8): a real second client,
+  no unique constraint, and the clients screen marks a possible duplicate when
+  two clients share an address. BUILT on `feat/possible-duplicate-clients`**:
+  the address is the email (what the guard compares and what a client record
+  carries), compared trimmed and without case; the row and the phone card say
+  "Possible duplicate: another client has this email", and a failed check is
+  said. `src/lib/client-duplicate-rules.ts`, proof
+  `a-shared-email-marks-a-possible-duplicate-client.mjs`. The same-instant
+  double insert stays possible by this ruling and is now marked on the screen.
 
 ### As first written
 
