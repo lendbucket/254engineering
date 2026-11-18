@@ -1378,8 +1378,16 @@ seven are:
   already given back, so a second refund cannot look owed.
 - **Item 6 was already marked built** below, on `fix/existing-client-account`.
 - **Item 1 waits** on partner billing being switched on, as ruled.
-- **Items 4, 5 and 7 are still for a ruling**, put to Robert as numbered
-  questions in the evening report of 2026-11-17.
+- **Items 4, 5 and 7 were put to Robert** in the evening report of
+  2026-11-17 and **ruled on 2026-11-18**, each as recommended. **4: leave it**
+  until a partner refers a batch or statement customer. **5: yes**, a batch
+  paid after its expiry writes `payment.unexpected`, on its own branch. **7:
+  BUILT on `fix/checkout-with-nothing-to-attach`**: a paid checkout naming no
+  order, batch or statement is recorded as a fault, raises a task keyed on the
+  checkout session, and sends one office alert (`ops.payment_unattached`) only
+  when that task is new; a task that cannot be raised answers 500 so Stripe
+  delivers it again. `src/lib/unattached-payment.ts`, proof
+  `a-payment-with-nothing-to-attach-is-a-fault-and-an-alert.mjs`.
 
 ### As first written
 

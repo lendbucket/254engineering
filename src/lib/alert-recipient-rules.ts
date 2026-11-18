@@ -20,6 +20,8 @@ export const OFFICE_ALERT_IDS = [
   "ops.refund_failed",
   "ops.files_overdue",
   "ops.scope_read_failed",
+  /* A paid checkout naming no order, batch or statement (Robert's answer 7, 2026-11-18). */
+  "ops.payment_unattached",
 ] as const;
 
 export function isOfficeAlert(id: string): boolean {

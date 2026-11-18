@@ -3032,6 +3032,61 @@ export function scopeReadFailedAlert(input: ScopeReadFailedAlertInput): Rendered
   );
 }
 
+export type UnattachedPaymentAlertInput = {
+  /** The Stripe checkout session, cs_... */
+  sessionRef: string;
+  /** The payment it carried, pi_..., which is what the Stripe dashboard searches by. */
+  chargeRef: string;
+  /** The amount, already formatted, such as "$884.00". */
+  amount: string;
+  /* No "received at": db-guard-audit forbids an observed time from this process's clock, and the email carries its own. */
+  tasksUrl: string;
+  environment: string;
+};
+
+/**
+ * A PAYMENT ARRIVED WITH NOTHING TO ATTACH IT TO. Robert's answer 7 to the
+ * evening report of 2026-11-17 (6963018405): a completed checkout carrying no
+ * order, batch or statement id is recorded as a fault and the administrator is
+ * alerted. Until then the webhook answered 200 and wrote nothing, so money had
+ * moved and only a log line said so. Sent once per checkout session, to the
+ * alert list (0099), beside a task that stays until somebody settles it.
+ */
+export function unattachedPaymentAlert(input: UnattachedPaymentAlertInput): RenderedEmail {
+  return compose(
+    "ops.payment_unattached",
+    "operator",
+    `Payment with nothing to attach it to: ${input.amount} on ${input.environment}`,
+    {
+      preheader: `Stripe reported a paid checkout for ${input.amount} that names no order, batch or statement. Nothing on the platform records it.`,
+      blocks: [
+        {
+          kind: "p",
+          text: "Stripe reported a completed, paid checkout that names no order, no batch and no statement. The money has moved, and nothing on the platform is attached to it: no order is marked paid, no work is released, and no refund terms are on record for it. It is recorded as a fault and as a task.",
+        },
+        {
+          kind: "details",
+          title: "The payment",
+          rows: rows([
+            ["Amount", input.amount],
+            ["Payment in Stripe", input.chargeRef],
+            ["Checkout session", input.sessionRef],
+            ["Environment", input.environment],
+          ]),
+        },
+        {
+          kind: "p",
+          text: `Find the payment in the Stripe dashboard by its payment reference, work out who paid and for what, and settle it there or refund it. The task stays open until somebody closes it: ${input.tasksUrl}`,
+        },
+        {
+          kind: "note",
+          text: "One email per checkout session. A second delivery of the same event from Stripe sends nothing more.",
+        },
+      ],
+    },
+  );
+}
+
 export function allTemplatesForAudit(): RenderedEmail[] {
 
   return [
@@ -3417,6 +3472,13 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       documentNumber: "254-WS-001",
       why: "The signature record could not be read: canceling statement due to statement timeout",
       pageUrl: "https://254engineering.com/services/windstorm-wpi-8",
+      environment: "production",
+    }),
+    unattachedPaymentAlert({
+      sessionRef: "cs_live_a1SampleSessionReference",
+      chargeRef: "pi_3SampleChargeReference",
+      amount: "$884.00",
+      tasksUrl: "https://254engineering.com/portal/tasks",
       environment: "production",
     }),
     filesOverdueAlert({

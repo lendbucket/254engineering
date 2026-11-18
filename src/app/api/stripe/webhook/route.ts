@@ -13,6 +13,7 @@ import { watchWrites, type AbandonedWrite } from "@/lib/bounded-fetch";
 import { markStatementPaid } from "@/lib/ops-statements";
 import { confirmStripeAccount } from "@/lib/payments-stripe";
 import { applyPartnerBillingEvent } from "@/lib/partner-billing";
+import { recordUnattachedPayment } from "@/lib/unattached-payment";
 
 export const dynamic = "force-dynamic";
 
@@ -215,8 +216,24 @@ async function handle(request: NextRequest): Promise<Response> {
     }
 
     if (!parsed.orderId) {
-      console.error(`[stripe] a completed checkout carried no order id: ${parsed.sessionRef}`);
-      return NextResponse.json({ ok: true, handled: false });
+      /*
+       * PAID, AND NAMES NOTHING (Robert's answer 7, 2026-11-18). Recorded as a
+       * fault, a task and one alert to the office's list (unattached-payment.ts).
+       * A task that could not be raised answers 500 so Stripe delivers it
+       * again; this used to answer 200 with a log line, which told Stripe to
+       * stop while nothing on the platform knew money had moved.
+       */
+      const result = await recordUnattachedPayment({
+        eventId: parsed.eventId,
+        sessionRef: parsed.sessionRef,
+        chargeRef: parsed.chargeRef,
+        amountCents: parsed.amountCents,
+      });
+      if (!result.ok) {
+        console.error(`[stripe] a paid checkout ${parsed.sessionRef} named nothing, and ${result.error}`);
+        return NextResponse.json({ ok: false }, { status: 500 });
+      }
+      return NextResponse.json({ ok: true, handled: true, unattached: true, duplicate: result.alreadyRecorded });
     }
 
     const result = await markPaid({
