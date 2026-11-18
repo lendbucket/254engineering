@@ -1614,6 +1614,22 @@ and the file is read by hand after launch to confirm it names our pid. The fix
 worth considering is `wx` creation here too, so the two projects use the same
 primitive; it is not built.
 
+**BUILT 2026-11-17 ON `fix/machine-lock-wx`**, working this file in order on
+Robert's order of that morning. Reading `takeLock` found a race that explains
+one of the ways two holders can coexist, though it is not shown to be what
+happened on 2026-10-09: two takers that both find no file each write it
+(`writeFileSync` overwrites), each read back their own pid in turn, and each
+return holding the lock, because the first one's read-back has already passed
+when the second one writes. The lock is now created by `createLockFile` with
+`wx`, so the second create fails with EEXIST and goes round again. A lock file
+nobody can read, which the overwrite used to replace, is removed only when it
+is still unreadable after a one second pause, so a live writer's half written
+file is never taken. Proof
+`the-machine-lock-is-created-never-overwritten.mjs` works on a scratch file and
+never touches the real lock, injection-verified twice (`w` for `wx` lets the
+second taker overwrite the first; reaping on first sight); the existing
+`the-machine-lock-holds-and-reaps.mjs` passes A to F on the new code.
+
 ## A STANDALONE AUDIT TAKES NO MACHINE LOCK: BUILT 2026-11-13
 
 **Built on Robert's answer 1 of 2026-11-13, as a wrapper rather than the `pre`
