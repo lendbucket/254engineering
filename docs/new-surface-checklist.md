@@ -87,16 +87,18 @@ never run on it.
 route or table that is missing from those four fails on the first run with the
 path or the table in the message. They cost a board, not a defect.
 
-**EXCEPT ROW 2's PUBLIC HALF, WHICH IS NOT SWEPT.** Row 2 widened from "a portal
-API route" to any API route on Robert's answer 9 of 2026-11-18 (6963018405), from
-the BACKLOG entry "the nine row checklist has no row for a public token-gated API
-route". The sweep (`discoverRoutes` in `security-audit.mjs`) walks the API
-routes under the signed in surfaces only. A public route whose only
-authorization is a token in the query string belongs to none of them, so its
-pair, no token and a bad token refused alike and read for the refusal rather
-than for a status code, is written by hand, as `/api/order-document`'s is.
-**Nothing names a public route that is missing its pair.** That is the row 4
-shape, and it is said here so nobody reads "swept" off the line above.
+**ROW 2's PUBLIC HALF IS SWEPT TOO, SINCE 2026-11-19.** Row 2 widened from "a
+portal API route" to any API route on Robert's answer 9 of 2026-11-18
+(6963018405). The perimeter sweep (`discoverRoutes` in `security-audit.mjs`)
+walks the API routes under the signed in surfaces only, so for one day this
+document said the public half was swept by nothing. **On Robert's answer 6 of
+the night of 2026-11-18 it is:** every API route outside those surfaces is
+declared in `scripts/lib/public-api-routes.mjs`, either as a token route or with
+its reason, and `scripts/proofs/every-public-api-route-is-declared.mjs` fails on
+a route that is not, and on a route whose source reads a link token but is not
+declared a token route. `security-audit` sends every declared token route no
+token and a wrong token, and requires the two refused alike. **A new public
+route costs a red proof until it is declared**, like rows 1, 2, 3 and 5.
 
 **4 is not swept, and that is the one to carry.** Three audits import `NAV` and
 every one of them asks the OUTWARD question: `compliance-audit` asserts one

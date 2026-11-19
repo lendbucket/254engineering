@@ -2088,12 +2088,19 @@ visible.
 `docs/new-surface-checklist.md` widens from "a portal API route" to any API
 route, where a public one gated by a token owes a no-token and a bad-token
 check, refused alike. `/api/order-document`'s pair in `security-audit.mjs` is
-the worked example. **Still open, and said in the checklist itself:** that
-half is not swept. `discoverRoutes` walks the API routes under the signed in
-surfaces only, so nothing names a public route that is missing its pair; it has
-the row 4 shape. A sweep would find every route under `src/app/api` outside a
-guarded surface and require a declared pair or a stated reason; it is not
-built, and is a question for Robert, not a fix taken on the way past.
+the worked example.
+
+**THE SWEEP IS BUILT, 2026-11-19, on `feat/public-route-sweep`** (Robert's
+answer 6 of the night of 2026-11-18). `scripts/lib/public-api-routes.mjs`
+declares all 22 public API routes: 5 token routes, 17 with a reason read off
+each route's own source. `every-public-api-route-is-declared.mjs` fails on an
+undeclared route, a declared route that is gone, and a route whose source reads
+a link token but is not declared a token route (found by injection: a relabel
+otherwise slipped through). `security-audit` sends every token route the pair
+from the declaration. **What it found: the two onboarding routes,
+`/api/onboarding` and `/api/onboarding/training`, had never had a pair.** Both
+refuse correctly, now proven (HTTP 404 and 404, the same body); a route made to
+answer an empty token differently turns exactly that check red.
 
 ### As first written
 
