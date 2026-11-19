@@ -2023,7 +2023,12 @@ teardown commit) kept whole on `wip/staff-walk-harness` at `4607a2b` and
 removed from the release branch. Its ledger entry is written at the sitting
 either way.
 
-## TWO DEFECTS THE STAFF WALK FOUND, 2026-10-03: THE LIST IS BOUNDED, ONE QUESTION ON CLIENTS IS OPEN
+## TWO DEFECTS THE STAFF WALK FOUND, 2026-10-03: BOTH CLOSED, THE CLIENTS QUESTION RULED AND BUILT 2026-11-18
+
+**Confirmed on main `2f06c26`, 2026-11-19** (`docs/master-undone-2026-11-19.md`
+section 7): the open question below was ruled by Robert's answer 8 of
+2026-11-18, a real second client with a possible-duplicate mark, and built as
+`8454509` (`src/lib/client-duplicate-rules.ts`). The body is the record.
 
 **RE-CHECKED AGAINST MAIN `0daa9c0` ON 2026-11-17**, working this file in order
 on Robert's order of that morning. The heading said neither was fixed:
@@ -2110,7 +2115,7 @@ defect again without fixing it, and a bound on the list fixes it whatever the
 table holds. The bound is the real fix and the silt is the reason it was
 visible.
 
-## AND THE NINE ROW CHECKLIST HAS NO ROW FOR A PUBLIC TOKEN-GATED API ROUTE
+## THE NINE ROW CHECKLIST HAD NO ROW FOR A PUBLIC TOKEN-GATED API ROUTE: CLOSED 2026-11-18 (`7c5a7dd`)
 
 **RULED AND WRITTEN 2026-11-18** (Robert's answer 9 to the evening report of
 2026-11-17, 6963018405, on `docs/checklist-row-2-any-api`): row 2 of
@@ -5270,7 +5275,13 @@ would agree because one was copied from the other.
 red, it is red for a reason written down here, and the reason is not that
 somebody forgot.
 
-## THE ROOF PAGE PROMISES REMAINING SERVICE LIFE AND THE PROCESS PAGE REFUSES IT
+## THE ROOF PAGE PROMISED REMAINING SERVICE LIFE AND THE PROCESS PAGE REFUSED IT: CLOSED
+
+**Confirmed on main `2f06c26`, 2026-11-19** (`docs/master-undone-2026-11-19.md`
+section 7): `src/content/services.ts:155` now says the letter "does not estimate
+remaining service life", quoting 254-RC-001 (`cb46721`, 2026-10-08), and the
+roof letter itself says the same (`src/content/letters/roof-certification.ts:67`).
+The body is the record of how the two sources disagreed.
 
 Found 2026-09-18 while retargeting the roof page. **Two of the operator's own
 sources disagree about what the firm will put a seal on, and this is not a
@@ -6642,7 +6653,15 @@ What closing it needs: something that writes `revoked_at`, a reason to write it
 from, and a decision about whether issuing a new link should revoke the previous
 one, which would reintroduce exactly the silent death that was rejected.
 
-## A phone in job reaches payment with no refund disclosure
+## A phone in job reaches payment with no refund disclosure: THE DISCLOSURE AND THE FEE ARE WRITTEN; NO CATALOG SNAPSHOT
+
+**Confirmed on main `2f06c26`, 2026-11-19** (`docs/master-undone-2026-11-19.md`
+section 7): `createOrderForFile` in `src/lib/ops-job-billing.ts` writes
+`refund_disclosure` and `inspection_fee_cents` (lines 260 and 261, from
+`475a5af`, 2026-09-08), so a phoned-in customer is told the terms and a refund
+can be worked out. It still writes no `catalog_snapshot`, which is the one part
+of this entry that is open; nothing found today reads that column for a phoned
+order.
 
 Found 2026-09-08 while porting the email design, and it is a CHECKOUT defect
 rather than an email one. Operator ruling: it belongs at the top.
@@ -6809,7 +6828,10 @@ Setting a role back to `required` is one update and turns on the same
 enforcement that shipped in 0024, which `mfa-audit` proves on every run by
 creating a role that requires a factor and requiring the portal to refuse it.
 
-**The open item this leaves.** Voluntary enrolment from the profile screen is
+**CLOSED, confirmed on main `2f06c26` 2026-11-19:** the profile screen links
+to `/portal/mfa/enrol` for anybody not enrolled
+(`src/app/portal/(app)/profile/page.tsx:80`, since `46e840a`, 2026-10-06). The
+paragraph below is the record. **The open item this leaves.** Voluntary enrolment from the profile screen is
 still not built, so somebody who declines is offered again at their next sign in
 and has no other way in. The enrolment copy says exactly that rather than
 pointing at an account screen that does not exist. It is the natural home for

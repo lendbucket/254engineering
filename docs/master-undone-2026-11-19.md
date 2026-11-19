@@ -210,6 +210,22 @@ Each has a recommendation, so the answer can be "1 yes, 2 no". None of these is 
 16. **The 641 probe client rows on development** (R35): leave them deferred. **Recommendation: yes, leave them.**
 17. **How the gate counts an insurance register policy** (R29): keep the gate reading configuration. The register
     stays a record. **Recommendation: yes.**
+18. **The sign-up and reset limiters** (found during the day, `BACKLOG.md`, "THE SIGN-UP AND RESET LIMITERS DO NOT
+    DO WHAT THEIR COMMENT SAYS"): five requests naming somebody's email, from anywhere, refuse that person's own
+    sign-up for the rest of the hour, three for a password reset, and the route does not tell them. Confirmed by
+    calling the limiters. Refuse on the connection alone, so nobody can lock another person out, and keep a much
+    higher address ceiling, so walking an address list is still slowed. Then the count moves into the database
+    (N6). **Recommendation: yes.**
+
+## 10. During the day
+
+| When | What | Where |
+| --- | --- | --- |
+| 2026-11-19 | **Batch 1 merged as `2f06c26`**: the partner ledger (N4), the Waiting for travel panel, the travel-hold read, the failed-refund panel, the unpaid-orders read and the pipeline report's cycle time now read every row or say they could not. N5's production ledger and uncredited reviews were already paged. Board 44533031128, 65 of 65 | issue #1, 7012641457 |
+| 2026-11-19 | **N6 moved to waiting on Robert**, question 18 above, because the database count would spread the lockout to every server | `BACKLOG.md` |
+| 2026-11-19 | **The 69-site `.in()` survey** recorded as owed, with how the count was made | `BACKLOG.md`, "OPEN: SCREEN READS THAT STILL HIDE A FAILURE" |
+| 2026-11-19 | **Five `BACKLOG.md` headings corrected** to say what main says (section 7's "done" row) | this commit |
+| 2026-11-19 | **I ran three writer audits locally** against development, against the standing rule; confessed | issue #1, 7010344148 |
 
 **Values only you hold, not rulings:** the store reviewer's account id (R10); `REVIEW_LINK` and the review delay
 (R16, R30); where the seal goes on the repair specification (R28); the T8 store keys (R12); the Google Ads and
