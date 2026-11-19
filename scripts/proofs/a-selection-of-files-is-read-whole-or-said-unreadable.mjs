@@ -23,6 +23,9 @@
  *      than it lists, and a failed read of the documents or of the files they
  *      sit on is an error, never an empty table. It discarded its error and
  *      its cap of 300 with nothing said.
+ *   F  a checkout expiry for a bulk batch reads its orders' checkout records
+ *      in chunks; one .in() over a large batch was refused on every retry, so
+ *      the batch never expired
  *
  * The real functions run against a stub PostgREST held here, which refuses an
  * in() list longer than 150 ids and never answers more than 1,000 rows. No
@@ -76,6 +79,7 @@ const { filesByIds } = await import("../../src/lib/ops-crm.ts");
 const { exportFiles, EXPORT_LIMIT } = await import("../../src/lib/ops-bulk-files.ts");
 const { ALL_ACTIONS } = await import("../../src/lib/ops-authz.ts");
 const { listDocuments, DOCUMENT_LIST_CAP } = await import("../../src/lib/ops-docs.ts");
+const { expireCheckout } = await import("../../src/lib/ops-payments.ts");
 
 let failures = 0;
 function check(name, ok, detail = "") {
@@ -173,6 +177,28 @@ console.log("E  the Documents screen's Filed documents panel");
     failing.delete(table);
     check(`a failure on ${table} is an error, never an empty list of documents`, broken.error !== null && broken.rows.length === 0, `error ${broken.error}`);
   }
+}
+
+console.log("F  a large batch's checkout expiry is not refused for its size");
+{
+  const batchId = "e0000000-0000-4000-8000-000000000000";
+  tables.eng_order_batches = [{ id: batchId, status: "awaiting_payment" }];
+  tables.eng_service_orders = [];
+  tables.eng_order_events = [];
+  for (let i = 0; i < 200; i += 1) {
+    const id = `o${String(i).padStart(7, "0")}-0000-4000-8000-000000000000`;
+    tables.eng_service_orders.push({ id, status: "awaiting_payment", batch_id: batchId, created_at: new Date(Date.UTC(2026, 10, 3, 0, i)).toISOString() });
+    tables.eng_order_events.push({ id: i + 1, order_id: id, event: "checkout.started", detail: { session_ref: "cs_batch" }, created_at: new Date(Date.UTC(2026, 10, 3, 1, i)).toISOString() });
+  }
+  const before = refusedForLength;
+  const result = await expireCheckout({ eventId: "evt_proof_expiry", batchId, orderId: null, sessionRef: "cs_batch" });
+  const readRefused = result.ok === false && /checkout records could not be read/.test(result.error);
+  check("the 200 orders' checkout records were read, not refused", !readRefused, result.ok ? "" : result.error);
+  check("no request it sent was past the in() cliff", refusedForLength === before, `${refusedForLength - before} refused`);
+  failing.add("eng_order_events");
+  const broken = await expireCheckout({ eventId: "evt_proof_expiry_2", batchId, orderId: null, sessionRef: "cs_batch" });
+  failing.delete("eng_order_events");
+  check("a failed read of them refuses the expiry and says so, so Stripe sends it again", broken.ok === false && /checkout records could not be read/.test(broken.error));
 }
 
 if (failures) {
