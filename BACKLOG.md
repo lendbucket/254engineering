@@ -3762,7 +3762,7 @@ a hash somebody garbage collects.
 superseded design direction and would be read against the approved artifact
 before anything rendered it.
 
-## `compliance-audit` COMPUTES TODAY IN UTC, SO AN ACKNOWLEDGEMENT EXPIRES EARLY IN CENTRAL
+## `compliance-audit` COMPUTED TODAY IN UTC: FIXED, MERGED 2026-11-18 (`11aff7b`)
 
 **BUILT 2026-11-17 ON `fix/compliance-audit-firm-calendar`**, working this file
 in order on Robert's order of that morning. The decision this entry said had to
