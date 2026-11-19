@@ -5018,6 +5018,29 @@ export const APPLIED = [
       "(6931443522, version 20261116223503, as predicted). Additive: nullable columns, checks that every existing " +
       "row satisfies, indexes, and one table with row level security on and no grant.",
   },
+  {
+    file: "0138_a_payment_received_outside_the_platform_is_recorded.sql", appliedBy: "apply_migration",
+    fingerprint: "14bdcbc9c50eb3706f17af611dc44735",
+    behaviour: "debee15615fed047a9722c65fd601045",
+    /*
+     * PENDING BY RULING, NOT BY CIRCUMSTANCE: Robert's answer 5 of the night of
+     * 2026-11-18 says build it, apply it to development, board it and stage it,
+     * never merge it and never touch production. So it stays on its branch, and
+     * production: null is his decision. It reaches production in a sitting he
+     * runs, and then this entry gains the date and the read-back figures.
+     */
+    production: null,
+    proves: { table: "eng_role_grants", match: { role_key: "admin", action: "payments.record_outside" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-19 on the chain to 0138. Shape unchanged, " +
+      "14bdcbc9 at 1729 columns: a check constraint and a grant row add no column. Behaviour 1716 to 1717 facts.",
+    because:
+      "WRITTEN 2026-11-19 ON feat/record-outside-payment, FOR ROBERT'S ANSWERS 2, 3 AND 5 OF THE NIGHT OF " +
+      "2026-11-18: a payment received outside the platform (Peter Bulatao's Stripe dashboard invoice) is recorded on " +
+      "its job through markPaid. eng_payment_events.source admits staff_recorded, and the administrator alone holds " +
+      "payments.record_outside. The source check is dropped and re-added wider, as 0121 did for event_type, so every " +
+      "existing row still satisfies it. Pending on production by his ruling; on development once the chat applies it.",
+  },
 ];
 
 /*

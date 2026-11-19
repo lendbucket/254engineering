@@ -6,6 +6,7 @@ import { RequestedDocumentUpload } from "./RequestedDocumentUpload";
 import { TrackOnMount } from "@/components/site/Analytics";
 import { GA_EVENTS } from "@/lib/analytics";
 import { business } from "@/config/business";
+import { TERMS_AFTER_PAYMENT_HEADING } from "@/lib/outside-payment-words";
 
 export const dynamic = "force-dynamic";
 
@@ -449,7 +450,15 @@ export default async function OrderStatusPage({
 
         {view.refundDisclosure ? (
           <section className="mt-12 border-t border-[var(--color-limestone-line)] pt-9">
-            <h2 className={LABEL}>What you were told before you paid</h2>
+            {/*
+              * An order paid outside the platform (0138) had its terms stated
+              * AFTER payment, so "before you paid" would be false: it gets its own
+              * heading and the sentence saying when, both from outside-payment-words.
+              */}
+            <h2 className={LABEL}>{view.termsAfterPayment ? TERMS_AFTER_PAYMENT_HEADING : "What you were told before you paid"}</h2>
+            {view.termsAfterPayment ? (
+              <p className="mt-4 text-[15px] leading-[1.7] text-[var(--color-ink)]">{view.termsAfterPayment}</p>
+            ) : null}
             {/*
               * The stored text, verbatim, not a re-render of today's rule. If the
               * firm changes its terms next month, this order still shows the terms

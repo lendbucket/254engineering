@@ -19,7 +19,8 @@ import { supabaseAdmin } from "./supabase";
  * straight to the release, which is safe to run twice.
  */
 
-export type PaymentEventSource = "stripe_webhook" | "reconcile";
+/* staff_recorded (0138): a payment received outside the platform, recorded on its job by the administrator. */
+export type PaymentEventSource = "stripe_webhook" | "reconcile" | "staff_recorded";
 
 /** What a branch function answered. */
 export type AppliedOutcome =

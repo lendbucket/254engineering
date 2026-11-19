@@ -66,6 +66,8 @@ const AFTER_0123 = [
   "0136_an_inquiry_has_a_call_log.sql",
   /* The ad click (Robert's /start add-on, 2026-11-15): lead, order and inquiry columns and eng_ad_conversions; it names no eng_prospects, read by grep. */
   "0137_an_ad_click_follows_the_lead_to_the_order.sql",
+  /* A payment received outside the platform (2026-11-19): the payment source check and one grant; it names no eng_prospects, read by grep. */
+  "0138_a_payment_received_outside_the_platform_is_recorded.sql",
 ];
 const following = at >= 0 ? files.slice(at + 1) : [];
 check(

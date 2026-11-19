@@ -2,7 +2,10 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { supabaseAdmin, SITE_KEY } from "./supabase";
 import { writeAudit } from "./ops-audit";
-import { acceptOnInvoice, startCheckout } from "./ops-payments";
+import { acceptOnInvoice, markPaid, startCheckout } from "./ops-payments";
+import { landingStatusFor } from "./ops-orders";
+import { todayInFirmCalendar } from "./firm-calendar";
+import { OUTSIDE_PAYMENT_EVENT, TERMS_AFTER_PAYMENT_EVENT, outsidePaymentStaffRecord, termsAfterPaymentLine } from "./outside-payment-words";
 import { accountBalance } from "./ops-bulk";
 import { creditDecision } from "./account-credit";
 import { queueEmail } from "./ops-jobs";
@@ -960,4 +963,148 @@ export async function invoiceAccount(actor: Author, fileId: string): Promise<Bil
   });
 
   return { ok: true, orderId: order.orderId, reference: order.reference };
+}
+
+/* ======================================================================== */
+/* A PAYMENT RECEIVED OUTSIDE THE PLATFORM (0138)                            */
+/* ======================================================================== */
+
+/* The words, A and B, live in outside-payment-words.ts, shared with the customer's order page. */
+
+/**
+ * Record on a job a payment received outside the platform. Robert's answers 2,
+ * 3 and 5 of the night of 2026-11-18 (issue #1, 6992466384, plan 6992348494).
+ *
+ * The administrator alone (payments.record_outside, 0138). The amount must
+ * equal the job's total, its price and any travel (answer 3): a different
+ * amount is refused before anything is written, naming the figure to fix.
+ *
+ * It raises the job's order exactly as the payment link does
+ * (createOrderForFile, so the order carries the catalog price, the travel, the
+ * inspection fee and the refund terms), starts no checkout, and applies the
+ * payment through markPaid, the one path every payment takes, with the source
+ * staff_recorded and the Stripe reference as the charge. Revenue, the release
+ * and every report then read it as a card payment.
+ *
+ * WORK ALREADY UNDER WAY. A job opened unpaid may have been dispatched, or
+ * further, before its payment is recorded. The release would try to move the
+ * file back to where a payment lands it, be refused, and write "work.blocked",
+ * which reads as paid work stuck. So when the file is past that point, the
+ * order's own work.released line is written FIRST, saying the work was already
+ * under way, and the release finds it and leaves the file where it is.
+ *
+ * Once per Stripe reference: a reference already recorded is refused, naming
+ * it, so the same invoice cannot be recorded on two jobs.
+ */
+export async function recordOutsidePayment(
+  actor: Author & { email: string },
+  input: { fileId: string; amountCents: number; reference: string; paidOn: string; reason: string },
+): Promise<{ ok: true; reference: string; orderId: string } | { ok: false; error: string }> {
+  if (!can(actor as never, "payments.record_outside")) {
+    return { ok: false, error: "Only the administrator records a payment made outside the platform." };
+  }
+  const reference = input.reference.trim();
+  const reason = input.reason.trim();
+  if (!reference) return { ok: false, error: "Type the Stripe invoice number or payment reference." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.paidOn)) return { ok: false, error: "Give the date it was paid." };
+  if (reason.length < MIN_OVERRIDE_REASON) {
+    return { ok: false, error: `Say why it was paid outside the platform, in at least ${MIN_OVERRIDE_REASON} characters.` };
+  }
+  if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
+    return { ok: false, error: "Type the amount paid as a plain number of dollars above zero." };
+  }
+
+  const db = supabaseAdmin();
+  if (!db) return { ok: false, error: "The database is not configured." };
+  const file = await loadFile(input.fileId);
+  if (!file) return { ok: false, error: "That file does not exist." };
+
+  /* Answer 3: the amount must equal the job's total, read off the file, before anything is written. */
+  if (file.client_price_cents === null) return { ok: false, error: "This job has no price, so a payment cannot be matched to it." };
+  const totalCents = file.client_price_cents + (file.travel_cents ? Number(file.travel_cents) : 0);
+  if (input.amountCents !== totalCents) {
+    return {
+      ok: false,
+      error:
+        `The amount paid, ${money(input.amountCents)}, is not this job's total, ${money(totalCents)} ` +
+        `(${money(file.client_price_cents)} price${file.travel_cents ? ` and ${money(Number(file.travel_cents))} travel` : ""}). ` +
+        "Correct the job's price or travel first, or the amount, and record it again. Nothing was recorded.",
+    };
+  }
+
+  /* Once per reference. The event id is the reference, so this is the read the database's primary key would refuse. */
+  const eventId = `staff_recorded:${reference}`;
+  const { data: prior, error: priorError } = await db.from("eng_payment_events").select("order_id").eq("event_id", eventId).maybeSingle();
+  if (priorError) return { ok: false, error: `Whether that reference was already recorded could not be read: ${priorError.message}. Nothing was recorded.` };
+  if (prior) return { ok: false, error: `The reference ${reference} is already recorded on another payment. Nothing was recorded.` };
+
+  const gap = await termsGap(file);
+  if (gap) return { ok: false, error: gap };
+
+  const loaded = await loadClient(file.client_id);
+  if (!loaded) return { ok: false, error: "That file has no client." };
+  const payer = await payerFor(input.fileId, { name: loaded.name as string, email: (loaded.email as string | null) ?? null, phone: (loaded.phone as string | null) ?? null });
+  if (!payer.ok) return { ok: false, error: `${payer.error} Nothing was recorded.` };
+  const client = { name: payer.name, email: payer.email, phone: payer.phone };
+
+  const second = await secondOrderRefusal(input.fileId);
+  if (second) return { ok: false, error: second };
+
+  const { data: fileRow, error: fileError } = await db.from("eng_files").select("status").eq("id", input.fileId).maybeSingle();
+  if (fileError || !fileRow) return { ok: false, error: `The file's status could not be read${fileError ? `: ${fileError.message}` : ""}. Nothing was recorded.` };
+
+  const order = await createOrderForFile(actor, file, client, "card");
+  if (!order.ok) return order;
+
+  const entry = file.deliverable ? catalogFor(file.service_slug, file.deliverable) : undefined;
+  const landing = entry ? landingStatusFor(entry.orderType) : null;
+  const status = String(fileRow.status);
+  const underWay = landing !== null && status !== "intake" && status !== landing;
+
+  /* The firm's calendar, as every date this platform states (and not this process's clock, which db-guard-audit refuses). */
+  const recordedOn = todayInFirmCalendar();
+  const staffRecord = outsidePaymentStaffRecord({
+    amount: money(input.amountCents),
+    reference,
+    paidOn: input.paidOn,
+    recordedBy: actor.email,
+    recordedOn,
+    reason,
+  });
+  const lines: { order_id: string; event: string; customer_visible: boolean; summary: string; detail?: Record<string, unknown> }[] = [
+    { order_id: order.orderId, event: OUTSIDE_PAYMENT_EVENT, customer_visible: false, summary: staffRecord, detail: { reference, paid_on: input.paidOn } },
+    { order_id: order.orderId, event: TERMS_AFTER_PAYMENT_EVENT, customer_visible: true, summary: termsAfterPaymentLine(input.paidOn), detail: { paid_on: input.paidOn } },
+  ];
+  if (underWay) {
+    lines.push({
+      order_id: order.orderId,
+      event: "work.released",
+      customer_visible: false,
+      summary: `The work was already under way (the file is ${status}) when this payment was recorded, so it was left where it is.`,
+    });
+  }
+  const { error: linesError } = await db.from("eng_order_events").insert(lines);
+  if (linesError) {
+    return { ok: false, error: `Order ${order.reference} was raised and its record could not be written: ${linesError.message}. No payment was recorded on it.` };
+  }
+
+  const paid = await markPaid({
+    eventId,
+    source: "staff_recorded",
+    orderId: order.orderId,
+    chargeRef: reference,
+    amountCents: input.amountCents,
+    provider: "stripe_invoice",
+  });
+  if (!paid.ok) return { ok: false, error: `Order ${order.reference} was raised and the payment could not be recorded on it: ${paid.error}` };
+
+  await writeAudit({
+    actor: actor as never,
+    action: "payment.recorded_outside",
+    entityType: "service_order",
+    entityId: order.orderId,
+    summary: staffRecord,
+  });
+
+  return { ok: true, reference: order.reference, orderId: order.orderId };
 }

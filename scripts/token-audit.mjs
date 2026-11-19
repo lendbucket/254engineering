@@ -421,6 +421,8 @@ const PORTED = [
   "src/app/portal/(app)/files/page.tsx",
   /* The Killeen call of 2026-11-14: the resend on the file and the coverage note on New job. */
   "src/app/portal/(app)/files/ResendPaymentLink.tsx",
+  /* Recording a payment made outside the platform (0138). */
+  "src/app/portal/(app)/files/RecordOutsidePayment.tsx",
   /* The trip fee (0134): the office's button on the file and the technician's on the job. */
   "src/app/portal/(app)/files/SendTripFee.tsx",
   "src/app/portal/(app)/files/SetTravel.tsx",
@@ -862,6 +864,8 @@ const STAFF_V10 = [
   "src/app/portal/(app)/files/DispatchPanel.tsx",
   /* The Killeen call of 2026-11-14: held to V10 with the screens they sit on. */
   "src/app/portal/(app)/files/ResendPaymentLink.tsx",
+  /* Recording a payment made outside the platform (0138), held to V10 with the file screen. */
+  "src/app/portal/(app)/files/RecordOutsidePayment.tsx",
   /* The trip fee (0134), held to V10 with the screens they sit on. */
   "src/app/portal/(app)/files/SendTripFee.tsx",
   "src/app/portal/(app)/files/SetTravel.tsx",

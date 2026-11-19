@@ -27,6 +27,7 @@ import { progressLabel } from "@/lib/ops-evidence";
 import { NewFileForm, TransitionControls, RequestInformation } from "./FileClient";
 import { DispatchPanel } from "./DispatchPanel";
 import { ResendPaymentLink } from "./ResendPaymentLink";
+import { RecordOutsidePayment } from "./RecordOutsidePayment";
 import { SendTripFee } from "./SendTripFee";
 import { SetTravel } from "./SetTravel";
 import { RequestTravel } from "./RequestTravel";
@@ -420,6 +421,17 @@ export default async function FilesPage({
                         {/* Needs travel (Robert's ruling): anyone who can take a job asks, while no travel is set and nothing is pending. */}
                         {!related.travel && travelAsked?.pending === false && can(actor, "files.create") && !can(actor, "pricing.override_at_intake") ? (
                           <RequestTravel fileId={selected.id} />
+                        ) : null}
+                        {/* A payment received outside the platform (0138): the administrator alone, and only while no order is raised. */}
+                        {can(actor, "payments.record_outside") ? (
+                          <RecordOutsidePayment
+                            fileId={selected.id}
+                            total={
+                              related.travel
+                                ? `${money(selected.client_price_cents ?? null)} and ${related.travel.amount} travel`
+                                : money(selected.client_price_cents ?? null)
+                            }
+                          />
                         ) : null}
                       </>
                     ) : related.payment.kind === "waiting" ? (
