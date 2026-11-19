@@ -1,5 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
+import { readEveryIn } from "./bounded-read";
 import { can, type Action, type Actor } from "./ops-authz";
 import { isKnown, money, type Cents } from "./ops-money";
 import { type FigureScope } from "./reporting-scope";
@@ -975,16 +976,28 @@ export async function pipelineReport(period = periodOf(), scope: FigureScope = "
 
   const withFiles = all.filter((o) => o.file_id && o.paid_at);
   if (withFiles.length > 0) {
-    const { data: files, error: fErr } = await client
-      .from("eng_files")
-      .select("id, sealed_at")
-      .in("id", withFiles.map((o) => o.file_id as string))
-      .not("sealed_at", "is", null);
+    /*
+     * Chunked and paged, failing whole (the master undone list of 2026-11-19,
+     * job two). This was one .in() over every paid order's file in the period,
+     * so past IN_FILTER_CHUNK of them the read was refused and cycle time went
+     * absent for a month that had plenty of sealed work to measure.
+     */
+    const filesRead = await readEveryIn<{ id: string; sealed_at: string }>(
+      [...new Set(withFiles.map((o) => o.file_id as string))],
+      (chunk, from, to) =>
+        client
+          .from("eng_files")
+          .select("id, sealed_at")
+          .in("id", [...chunk])
+          .not("sealed_at", "is", null)
+          .order("id", { ascending: true })
+          .range(from, to),
+    );
 
-    if (fErr) {
-      unavailable.push(`Cycle time could not be computed: ${fErr.message}`);
+    if (!filesRead.ok) {
+      unavailable.push(`Cycle time could not be computed: ${filesRead.error}`);
     } else {
-      const sealedAt = new Map((files ?? []).map((f) => [f.id as string, f.sealed_at as string]));
+      const sealedAt = new Map(filesRead.rows.map((f) => [f.id, f.sealed_at]));
       const spans = withFiles
         .filter((o) => sealedAt.has(o.file_id as string))
         .map((o) => ({

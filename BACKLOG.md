@@ -1423,6 +1423,35 @@ fixed since without this entry saying so:
 - **Partial reads** and the two `.in()` lists past the 150 id cliff: not
   re-checked in this pass.
 
+**RE-CHECKED AGAINST MAIN `a494599` ON 2026-11-19** (Robert's all-day prompt,
+job two; `docs/master-undone-2026-11-19.md` rows N4, N5, N15):
+
+- **The production ledger lookup and `uncreditedReviews`: already fixed.** Both
+  read through `readEvery` and `readEveryIn` (`src/lib/ops-engineer.ts`, the
+  uncredited reviews read). `fileMargins` reads through `readEvery`.
+- **`partnerCostByFileRead`: fixed on `fix/day-batch-1`.** It was one `.in()`
+  over every partner file; it now reads through `readEveryIn`.
+- **Found in the same pass, and fixed on the same branch:** the Orders screen's
+  "Waiting for travel" panel read the first 500 travel requests with no order,
+  so past 500 a customer's held order could drop off the one panel that sends
+  its payment link; `ordersHeldForTravel` sent one `.in()` over every id; and
+  the failed-refund panel read the newest 500 and sent one `.in()` over their
+  orders. The survey below then found two more on money paths, fixed on the
+  same branch: `ordersNeedingAttentionRead` (the Orders screen's and the
+  dashboard's unpaid orders) sent one `.in()` over every unpaid order for its
+  charges and again for its checkouts, and the pipeline report's cycle time
+  sent one over every paid order's file. Proof
+  `a-money-list-reads-every-row-past-the-transport-limits.mjs` runs all six
+  against a stub with the transport's two limits, and each restored old read
+  turned exactly its own checks red.
+- **Still open, a survey:** `src` holds **69** `.in()` reads that take a
+  variable list without chunking, counted by `grep` for `.in("` across `src`
+  `*.ts`/`*.tsx` on main `a494599` (173), less the lines that name a `chunk`
+  (45), less those whose list is a literal or a status, role, kind, event,
+  action, state or stage column (59). Each is owed a read of how long its list can grow. Not the
+  `listTasks`, `timeLog` or `listDocuments` caps either, which were not
+  re-checked line by line.
+
 ## APPLIED: 0075, A PAYMENT EVENT IS APPLIED ONCE
 
 **Applied to development and then production 2026-10-13 07:0x CT** by the
@@ -11207,3 +11236,38 @@ entries here whose open residue was not re-checked against the code that day. It
 only Robert can make, and those already answered with their comment ids. Five entries read open and were
 confirmed done on main that day (at `428fb36`, lines 1997, 2084, 5244, 6616 and 6761); their headings are
 corrected separately.
+
+## THE SIGN-UP AND RESET LIMITERS DO NOT DO WHAT THEIR COMMENT SAYS, AND MOVING THEM TO THE DATABASE WAITS ON A RULING
+
+Found 2026-11-19 while working row N6 of `docs/master-undone-2026-11-19.md`
+(the limiters count in each server's memory; `APPLIED: 0071` above). Read in
+the source, not inferred: `takeSignUpAttempt` and `takeResetAttempt` in
+`src/lib/ops-rate-limit.ts`.
+
+**The comment says** the second bucket, keyed on the email address AND the
+connection, "is what stops a limit keyed on an address alone from being a
+denial of service anybody can aim": an attacker burns their own connection's
+allowance rather than the victim's.
+
+**The code refuses on the address bucket first.** The address count rises on
+every call from every connection, and `if (existing.count >
+SIGN_UP_ATTEMPTS_PER_HOUR) return false` returns before the connection bucket
+is read. And because the connection count can never exceed the address count
+under the same ceiling, the connection bucket can never refuse anything. So
+five requests naming somebody's address, from anywhere, and that person's own
+sign up is refused for the rest of the hour (three for a password reset). The
+route answers the same sentence either way, so they are not told. **Confirmed
+by calling the limiters themselves**, not only by reading them: five calls from
+one connection naming an address, then that address's first call from a
+second connection, answered `[true, true, true, true, true]` then `false`;
+three reset calls then a second connection answered `[true, true, true]` then
+`false`; and 61 minutes later the second connection answered `true`.
+
+**Why it is not fixed here.** The two fixes trade one protection for the other.
+Keying the refusal on the connection alone restores the stated protection
+against a lockout and loosens the limit on walking an address list from many
+connections; keeping the address bucket keeps that limit and accepts the
+lockout. That is a ruling, and moving the count into the database (N6) is
+built on whichever answer is given, because a shared count would spread the
+lockout across every server. Put to Robert as a numbered question on
+2026-11-19.
