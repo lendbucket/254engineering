@@ -149,7 +149,11 @@ names, needs a device session the server issues:
 debug build does not need it. **It must be built before the first store
 submission.** The account of the store build is `docs/mobile-store-build.md`.
 
-## THE WRITERS SHARD CAN STOP ON ITS OWN SERVER: A TEARDOWN RACE ON PORT 4300
+## THE WRITERS SHARD CAN STOP ON ITS OWN SERVER: A TEARDOWN RACE ON PORT 4300: BUILT, MERGED
+
+**Re-checked 2026-11-18** (the one-time pass): `fix/port-free-before-start` is
+merged into main (`c4f009e`), so the fix below is on main. The heading did not
+say so.
 
 Board 42505750069 (bundle 125, kinds at `fee37b9`, 2026-11-08). After
 `native-audit` finished its 64 signed in screens, the next audit found port 4300
@@ -174,7 +178,36 @@ seconds. The queue's growth is the entry "eng_jobs grows forever" below. The
 account count has no entry of its own, and is named here, with the queue,
 because a writer proof's single red sat beside both.
 
-## A WRITERS DEV SERVER ANSWERED 404 ON ONE SHAPE OF ROUTE, ONCE, UNEXPLAINED
+## A WRITERS DEV SERVER ANSWERS 404 ON NESTED PAGES, TWICE IN SIX DAYS, UNEXPLAINED
+
+**IT RECURRED ON 2026-11-17**, board 44136393166 (`fix/machine-lock-wx` at
+`89f8639`), and the account below is corrected by what that run showed
+(issue #1, 6958192887):
+
+- **15 routes answered 404 at every width**: `/order/start/roof-inspections`,
+  `/order/referred/demo-title`, seven `/portal/crm/*` screens,
+  `/portal/files/dispatch`, `/portal/intake/script`, `/portal/jobs/offline`,
+  `/portal/partners/disputes`, `/portal/profile/seal` and
+  `/portal/protocols/rc-001`. The parent of each answered 200 in the same run
+  (`GET /portal/crm 200` beside `GET /portal/crm/accounts 404`).
+- **"A static segment beside a dynamic sibling" is not what they share.**
+  `intake/script`, `profile/seal`, `protocols/rc-001` and `files/dispatch` have
+  no dynamic sibling, and **`/portal/files/[id]`, named below as one, does not
+  exist on main.** What all 15 share is being a page nested one level under a
+  section that has its own page.
+- **This time the 404s spent 15 to 31ms in application code**, where the first
+  run recorded about 3ms of Next.js time.
+- **Nothing was restored from another tree** (the first check ruled): npm's
+  download cache keyed on `package-lock.json`, Playwright's browsers, and the
+  same run's own `next-build` artifact, digest verified.
+
+The same commit, boarded once more unchanged on Robert's word (44311411205),
+measured every route clean, and so did every board after it that day. **Robert's
+ruling of 2026-11-18, answer 3: if it recurs a third time on any commit, build a
+diagnostic that dumps the dev server's route state when a page that exists on
+disk answers 404, and never loosen the check.**
+
+### As first written
 
 Board 43490081874 (`feat/insights-index-by-section` at `7b18bcf`, 2026-11-13).
 mobile-audit's dev server on port 4301 answered 404 in about 3ms of Next.js
@@ -313,7 +346,24 @@ which cannot import the catalog). The proof
 `the-ongoing-wpi8-price-is-not-printed` will then go red, which is it asking
 whether you meant it: rewrite it to the opened state.
 
-## THE OFFICE MOVED TO SAN ANTONIO, 2026-10-29: WHAT THE MOVE DID NOT MOVE
+## THE OFFICE MOVED TO SAN ANTONIO, 2026-10-29: TWO RECORDS STILL HOLD THE OLD ADDRESS
+
+**Re-checked 2026-11-18** (the one-time pass), item by item:
+
+1. **Ruled and built.** Robert ruled on 2026-10-29 (CLAUDE.md section 2): a
+   `/san-antonio` location page, with `/corpus-christi` kept as a highlighted
+   market and no street address. Both pages are on main (`/san-antonio` since
+   `3310975`, 2026-11-01).
+2. **Still open.** `supportAddress` in `src/config/stripe-console.ts` still
+   reads 5601 South Padre Island Drive, Suite E, Corpus Christi. It is the
+   dated record of Stripe's console, and the address Stripe prints on a
+   receipt, so it moves only when Robert changes the console and somebody
+   reads it back.
+3. **Still open.** `mailingAddress` in `src/config/credentials.ts` still reads
+   the same Corpus Christi address, as the Board's letter of 2026-09-21 stated
+   it. It moves when the Board's record moves.
+4. **Not checkable from here.** The Google Business Profile is a console this
+   repository cannot read.
 
 Robert, 12:50 Central 2026-10-29: the office is 11103 San Pedro Ave, San Antonio,
 TX 78216, the phone stays (281) 940-4490, and the hours are Monday to Sunday,
@@ -386,7 +436,24 @@ partners. Those are questions, below.
 6. **WF-006 step 2, a customer cannot ask to be forgotten except by calling.** A new customer-facing form. Recommend: keep it staff-taken for now; `/portal/deletion-requests` already records it.
 7. **WF-030 step 5, a technician cannot delete a capture.** `deleteCapture` writes no audit row, and the evidence feeds what the engineer seals. Recommend: a delete button on the capture screen while the file is in the field, and an audit row added to `deleteCapture` first. **Ruled yes by Robert, 10:52 Central 2026-10-29, and built:** `deleteCapture` writes `capture.delete` through `writeAuditOrRefuse` before the row goes and refuses when it cannot, refuses a capture a repair was verified against, and the job screen draws a Remove control per capture from the same rule (`captureDeleteRefusal`). Proved by `scripts/proofs/a-capture-is-removed-only-with-its-record.mjs`. Still open: the stored photograph stays in the evidence bucket after its row goes, named in the audit row's `storage_key`.
 
-## OFFICE READY: WHICH STAFF LISTS EXPORT CSV, AND WHAT IS LEFT
+## OFFICE READY: WHICH STAFF LISTS EXPORT CSV: THE SEVEN FINDINGS ARE RULED, ONE LATER FINDING IS OPEN
+
+**Re-checked 2026-11-18** (the one-time pass). The "seven left" below were
+put to Robert in the morning report of 2026-10-29 and **ruled at 10:52 Central
+that day** (issue #1, 6501552714, "yes to the chat's recommendations on
+everything open"):
+
+- **No list controls** on orders, the job queue, waiting, the technician's jobs
+  and messages.
+- **List controls for onboarding**, built and merged since (`feat/onboarding-list`).
+- **No re-sorting or filtering on `/portal/review`**: "Its order is what the
+  engineer reviews first."
+
+**Still open, and not found in that ruling:** "Applications not yet invited"
+on `/portal/onboarding` is the newest 200 applications minus everyone with an
+onboarding, which cannot be searched or paged in one query without a
+migration. The screen states its bound; the recommendation below (leave it
+bounded and stated) has no ruling recorded against it.
 
 Robert, 21:07 Central 2026-10-28: "list every staff list screen without a CSV
 export. Build the missing ones as one bundle, owner or admin only, with the
@@ -660,7 +727,12 @@ his existing WP-001 signature in force when he signs, dispatch choosing the
 protocol by the order's tier, and the pay figures. Boards after 0094, in
 migration order.
 
-## 0093, THE SECOND FACTOR FOR THE ADMINISTRATOR, THE OFFICE AND THE REP: BUILT, HELD BEFORE ANY SITTING
+## 0093, THE SECOND FACTOR FOR THE ADMINISTRATOR, THE OFFICE AND THE REP: BUILT, ON PRODUCTION SINCE 2026-10-27
+
+**Re-checked 2026-11-18** (the one-time pass over every open entry, Robert's
+order of that morning): `supabase/applied.mjs` records 0093 applied to
+production on 2026-10-27, so the heading's "held before any sitting" was stale.
+The text below is the record as written.
 
 Robert's addendum of 2026-10-25, item 5, on `migration/0093-second-factor-for-staff`
 with `docs/production-sitting-0093-second-factor-for-staff.md`. **Not posted for
@@ -675,7 +747,13 @@ on development. The probes for every other audit enrol whenever they are sent
 to enrolment, required or not (`scripts/lib/probe-mfa.mjs`), so they need
 nothing.
 
-## THE SITTINGS FOR 0091 AND 0092, AND THE REPAIR SPECIFICATION WAITS ON THEM
+## THE SITTINGS FOR 0091 AND 0092: RUN 2026-10-27; ONE QUESTION ON THE SEAL'S PLACE STAYS OPEN
+
+**Re-checked 2026-11-18** (the one-time pass): `supabase/applied.mjs` records
+0091 and 0092 applied to production on 2026-10-27, and
+`feat/repair-spec-own-document` is merged into main, so the repair
+specification no longer waits on them. **Still open:** "where the seal goes on
+his document", below, is Robert's to rule and nothing found settles it.
 
 `docs/production-sitting-0091-three-letters-seal-without-a-template.md` and
 `docs/production-sitting-0092-the-engineers-own-document-has-its-own-drafts-bucket.md`,
@@ -817,7 +895,10 @@ job; how "evidence relied on" prints; and section 10's non-compliance report
 belongs to a stage after repairs are not made. The office facts it needs (ZIP,
 TDI Application ID) can be recorded today.
 
-## THE SITTING FOR 0090, INSURANCE IS A REGISTER, OPEN
+## THE SITTING FOR 0090, INSURANCE IS A REGISTER: RUN 2026-10-27
+
+**Re-checked 2026-11-18** (the one-time pass): `supabase/applied.mjs` records
+0090 applied to production on 2026-10-27. The heading said open.
 
 `docs/production-sitting-0090-insurance-is-a-register.md`. Written 2026-10-25 on
 `feat/insurance-register`, to Robert's addendum of that night, item 1: the
@@ -872,7 +953,11 @@ moved to form 20-19 on 2026-10-26 by Robert's ruling. The registry is not
 rendered, and it is synchronized verbatim across the three repositories, so
 it is corrected in all three at once rather than here alone.
 
-## AFTER 0089: RETIRE THE FIFTEEN- AND SIXTEEN-ARGUMENT SEAL DOORS: BUILT AS 0094, WAITING BEHIND 0093
+## AFTER 0089: RETIRE THE FIFTEEN- AND SIXTEEN-ARGUMENT SEAL DOORS: BUILT AS 0094, ON PRODUCTION SINCE 2026-10-27
+
+**Re-checked 2026-11-18** (the one-time pass): `supabase/applied.mjs` records
+0094, and 0093 ahead of it, applied to production on 2026-10-27. The heading
+said it was waiting.
 
 0089 (a seal act records who it prints) is sat on both projects: development
 2026-10-25 19:41 UTC (20261025194122) and production 2026-10-26 03:17 UTC
@@ -923,7 +1008,10 @@ the header is ignored and the address key is unchanged, injection-verified by
 honouring it unconditionally. Until it lands, boards are never pushed in a
 burst.
 
-## THE SITTING FOR 0088, A LETTER SEALS ONLY FROM A TEMPLATE HE SIGNED, OPEN
+## THE SITTING FOR 0088, A LETTER SEALS ONLY FROM A TEMPLATE HE SIGNED: RUN 2026-10-25
+
+**Re-checked 2026-11-18** (the one-time pass): `supabase/applied.mjs` records
+0088 applied to production on 2026-10-25. The heading said open.
 
 `docs/production-sitting-0088-a-letter-seals-only-from-a-template-he-signed.md`.
 Written 2026-10-24 on `feat/letter-adoption`, narrowed by Robert's ruling 4 of
@@ -955,7 +1043,10 @@ is bundled for the Edge runtime too. It must load only when
 `process.env.NEXT_RUNTIME === "nodejs"`. Proof owed: every server-only import in
 the hook sits behind that guard, injection-verified by removing the guard.
 
-## THE SITTING FOR 0085, A LETTER STATES ONLY RECORDED FACTS, OPEN
+## THE SITTING FOR 0085, A LETTER STATES ONLY RECORDED FACTS: RUN 2026-10-24
+
+**Re-checked 2026-11-18** (the one-time pass): `supabase/applied.mjs` records
+0085 applied to production on 2026-10-24. The heading said open.
 
 `docs/production-sitting-0085-a-letter-states-only-recorded-facts.md`. Written
 2026-10-23 on `feat/fc-pl-records` under ruling 7: the facts the foundation and
@@ -973,7 +1064,10 @@ does not count them. Making them capture items needs evidence to carry a file
 level item as well as a protocol one, a migration and a change to the capture
 screen and its gate, which is a change to dispatch for a ruling.
 
-## THE SITTING FOR 0084, A LINE OPENS ONLY WHEN TRAINED, OPEN
+## THE SITTING FOR 0084, A LINE OPENS ONLY WHEN TRAINED: RUN 2026-10-24
+
+**Re-checked 2026-11-18** (the one-time pass): `supabase/applied.mjs` records
+0084 applied to production on 2026-10-24. The heading said open.
 
 `docs/production-sitting-0084-a-line-opens-only-when-trained.md`. Written
 2026-10-23 on `feat/training-record`. Two append-only tables for supervised
@@ -981,7 +1075,25 @@ training and the engineer's decision on it, a backfill of the interim events
 of 2026-10-07 onward, and `eng_line_is_trained`, which the money door now asks
 of every line opened by a portal signature; roof's path is unchanged. Queued
 for the chat's development sitting after 0083, then the board, then production.
-## THE FOUNDATION AND PERMIT LETTERS, NINE POINTS FOR A RULING, OPEN
+## THE FOUNDATION AND PERMIT LETTERS SEAL ON MAIN, AND ALL NINE POINTS WERE RULED (RULING 7, 2026-10-23)
+
+**Re-checked 2026-11-18** (the one-time pass). "Sealing either letter is not"
+built, below, is stale: `SEALABLE_PROTOCOLS` in `src/lib/letter-seal.ts` holds
+254-FC-001 and 254-PL-001 "since ruling 7 of 2026-10-23" (with RC, MH and SL),
+and `src/lib/letter-draft-fc-pl.ts` drafts both, from `edb7c5b` on 2026-10-23.
+
+**All nine points are ruled and built, each read in the code that applies it:**
+FC-1 and FC-4 in `src/content/letters/foundation-certification.ts`; FC-2 and
+FC-3 there too ("the recipient, the purpose and the foundation type come from
+the file"); PL-1 in `data/catalog.ts`, where PL-001's intake asks the authority
+and the permit number as separate fields (`aec7477`, 2026-10-23); PL-2 to PL-5
+in `src/lib/letter-facts.ts` (who records each fact, migration 0085).
+
+**CORRECTED THE SAME NIGHT.** A first version of this note said a search found
+no ruling for FC-2 or PL-1. The search had matched "ruling" beside a point's
+name, and those two are written "FC-2, FC-3" and "PL-1, operator ruling 7", so
+it missed them. Reading the code found both; the note was a search result, and
+it was wrong.
 
 `docs/fc-pl-letters-open-points.md`. Written 2026-10-23 on
 `feat/fc-pl-letters`. Determination recording for 254-FC-001 and 254-PL-001 is
@@ -992,7 +1104,10 @@ the method for a crawlspace) and five for PL (permit number and authority
 apart, the authority's address, the element described, the visit or desk
 triage record, and the documents schedule with his per job capture list).
 
-## THE SITTING FOR 0080, THE SIGNED SOURCES GO PRIVATE, OPEN
+## THE SITTING FOR 0080, THE SIGNED SOURCES GO PRIVATE: RUN 2026-10-22
+
+**Re-checked 2026-11-18** (the one-time pass): `supabase/applied.mjs` records
+0080 applied to production on 2026-10-22. The heading said open.
 
 `docs/production-sitting-0080-protocol-sources.md`. Written 2026-10-22 on
 `fix/protocol-sources` and applied nowhere, development included. One private
@@ -1044,14 +1159,20 @@ rule to build:** a push to main whose exact commit already has a green board of
 the same workflow is skipped by the board, and the skip names the earlier run
 id. Same commit only: a different tree on main is always boarded.
 
-## THE SITTING FOR 0079, TWO STAFF ROLES AND THE WORK THEY DO, OPEN
+## THE SITTING FOR 0079, TWO STAFF ROLES AND THE WORK THEY DO: RUN 2026-10-21
+
+**Re-checked 2026-11-18** (the one-time pass): `supabase/applied.mjs` records
+0079 applied to production on 2026-10-21. The heading said open.
 
 `docs/production-sitting-0079-staff-roles.md`. Written 2026-10-20 on
 `feat/staff-roles` and applied nowhere, development included. Robert applies it
 to development; the branch is then boarded there and held for the chat's
 production sitting. Additive only: five tables, two roles, 63 grant rows.
 
-## THE SITTING FOR 0078, AN INTAKE ANSWER CAN BE A STORED FILE, OPEN
+## THE SITTING FOR 0078, AN INTAKE ANSWER CAN BE A STORED FILE: RUN 2026-10-16
+
+**Re-checked 2026-11-18** (the one-time pass): `supabase/applied.mjs` records
+0078 applied to production on 2026-10-16. The heading said open.
 
 `docs/production-sitting-0078-intake-photo.md`. Written 2026-10-16 on
 `migration/intake-photo-0078` and applied nowhere. Without it the firm cannot
@@ -1098,7 +1219,11 @@ active, login 2026-09-02 16:45:18 UTC, profile 17:57:25 UTC, and no
 `scripts/seed-admin.mjs`, not the People screen, so it carries no such row, true
 or false.
 
-## CONTRAST-AUDIT CANNOT SEE TEXT ON A GRADIENT BAND
+## CONTRAST-AUDIT CANNOT SEE TEXT ON A GRADIENT BAND: BUILT, MERGED 2026-11-13
+
+**Re-checked 2026-11-18** (the one-time pass): `fix/contrast-on-gradient-bands`
+is merged into main (`ca71093`, 376 gradient nodes measured on its board), so
+the class fix below is on main. The heading did not say so.
 
 Found 2026-10-10 from product audit defect 25. Two links on /about and
 /government were `text-slate` on a `from-slate to-slate-deep` band, navy on
@@ -1605,7 +1730,12 @@ proof `a-deliverable-quotes-its-protocol-in-force.mjs` both apply it.
 **Still pending, correctly:** windstorm ongoing (254-WP-001, held until his
 scope addendum) and the three design tiers (no protocol).
 
-## OUR LOCK AND WATTSMITH'S WERE BOTH HELD AT ONCE, 2026-10-09. NOT EXPLAINED.
+## OUR LOCK AND WATTSMITH'S WERE BOTH HELD AT ONCE, 2026-10-09: THE WX FIX IS MERGED; THE CAUSE IS STILL NOT SHOWN
+
+**Re-checked 2026-11-18** (the one-time pass): `fix/machine-lock-wx` is merged
+into main (`87ff8f0`), so the lock is created with `wx` and never overwritten.
+The race it closes is one way two holders can coexist; it is not shown to be
+what happened on 2026-10-09, so "not explained" still stands for that day.
 
 Read, not inferred. At 04:22:32Z the lock file named wattsmith
 (`test/reds-batch3`, pid 26716, start 04:20:51Z). At 04:22:43Z a screenshot run
@@ -1813,7 +1943,26 @@ seal. If the answer is only `deliverable`, the clause goes back in and the
 fixture's `kind` changes to match. If it is more than one, nothing changes and
 this entry records why.
 
-## THE PARKED 0061 MUST RENUMBER TO 0062 BEFORE IT MERGES
+## THE DEFERRED CREDENTIALS DROP: ITS BRANCH'S NUMBER, 0062, IS NOW TAKEN ON MAIN
+
+**Re-checked 2026-11-18** (the one-time pass). The renumbering below was
+overtaken the same day it was done:
+
+- **On 2026-10-07 the operator deferred the drop out of `release/2026-10-20`**
+  (the 2026-10-02 row of the table further down, and `supabase/applied.mjs` at
+  0062: "eng_credentials.storage_key stays"). The sealing migrations then took
+  the numbers: on main, **0061 is `a_sealed_deliverable_says_who_and_when` and
+  0062 is `a_seal_is_applied_once_and_locked`**, both on production since
+  2026-10-07.
+- **`migration/credentials-0062` still carries
+  `0062_credentials_hold_no_documents.sql`**, read off the branch on
+  2026-11-18, so it collides with main's 0062 and cannot land as it stands.
+  Main's chain now ends at 0137.
+- **What is open:** the drop of `eng_credentials.storage_key` is still deferred
+  and still destructive, so it runs only by the operator in the SQL editor
+  (`docs/production-sitting-destructive.md`). **When it is run it takes the
+  next free number**, and that sitting document's references to 0062 move with
+  it.
 
 Recorded 2026-10-03. `0061_credentials_hold_no_documents.sql` on
 `migration/credentials-hold-no-documents` is the `drop column` parked because
@@ -1858,7 +2007,15 @@ on Robert's order of that morning. The heading said neither was fixed:
   client, or a legitimate second client. Until that is ruled, two requests in
   the same instant can still both insert, because the guard is a read before
   the insert and a constraint needs the ruling. Put to Robert in the evening
-  report of 2026-11-17.
+  report of 2026-11-17. **RULED 2026-11-18 (answer 8): a real second client,
+  no unique constraint, and the clients screen marks a possible duplicate when
+  two clients share an address. BUILT on `feat/possible-duplicate-clients`**:
+  the address is the email (what the guard compares and what a client record
+  carries), compared trimmed and without case; the row and the phone card say
+  "Possible duplicate: another client has this email", and a failed check is
+  said. `src/lib/client-duplicate-rules.ts`, proof
+  `a-shared-email-marks-a-possible-duplicate-client.mjs`. The same-instant
+  double insert stays possible by this ruling and is now marked on the screen.
 
 ### As first written
 
@@ -1925,6 +2082,20 @@ table holds. The bound is the real fix and the silt is the reason it was
 visible.
 
 ## AND THE NINE ROW CHECKLIST HAS NO ROW FOR A PUBLIC TOKEN-GATED API ROUTE
+
+**RULED AND WRITTEN 2026-11-18** (Robert's answer 9 to the evening report of
+2026-11-17, 6963018405, on `docs/checklist-row-2-any-api`): row 2 of
+`docs/new-surface-checklist.md` widens from "a portal API route" to any API
+route, where a public one gated by a token owes a no-token and a bad-token
+check, refused alike. `/api/order-document`'s pair in `security-audit.mjs` is
+the worked example. **Still open, and said in the checklist itself:** that
+half is not swept. `discoverRoutes` walks the API routes under the signed in
+surfaces only, so nothing names a public route that is missing its pair; it has
+the row 4 shape. A sweep would find every route under `src/app/api` outside a
+guarded surface and require a declared pair or a stated reason; it is not
+built, and is a question for Robert, not a fix taken on the way past.
+
+### As first written
 
 Found 2026-10-03 while reading `docs/new-surface-checklist.md` before building
 the sealed delivery path, which is what that document is for.
@@ -3022,7 +3193,21 @@ restyles it, and `CUSTOMER_V10` prints the remaining count on every run so
 stalling is visible. This entry exists so the list is a plan rather than a
 silence.
 
-## THE TRIGGER THAT INVALIDATES TOKENS AT SUSPENSION, WHICH IS THE GUARANTEE HALF
+## THE TRIGGER THAT INVALIDATES TOKENS AT SUSPENSION: BUILT AS 0063 AND 0064, ON PRODUCTION SINCE 2026-10-07
+
+**Re-checked 2026-11-18** (the one-time pass). Everything this entry calls owed
+is done:
+
+- **The trigger is 0063** (`a_suspension_spends_every_live_link`, not 0064 as
+  written below: it was renumbered), applied to production on 2026-10-07 per
+  `supabase/applied.mjs`.
+- **The question on closing was ruled the same day**, Robert, 2026-10-07:
+  "Closing an account spends its users' links too: yes." That is
+  **0064** (`closing_an_account_spends_its_links_too`), also on production
+  since 2026-10-07. An account changing into `suspended` or `closed` spends its
+  users' live links, and the audit event says which.
+
+The text below is the record as written before either landed.
 
 **The application half shipped on 2026-09-29** and is not in question. What is
 owed is the migration.

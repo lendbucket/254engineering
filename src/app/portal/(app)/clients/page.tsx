@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
 import { mayExport } from "@/lib/list-exports";
-import { CLIENT_PAGE_SIZE, countClients, listClientsRead } from "@/lib/ops-crm";
+import { CLIENT_PAGE_SIZE, countClients, listClientsRead, sharedClientEmails } from "@/lib/ops-crm";
+import { comparableEmail } from "@/lib/client-duplicate-rules";
 import { supabaseAdmin } from "@/lib/supabase";
 import { TEXAS_COUNTIES } from "@/lib/ops-counties";
 import { services } from "@/content/services";
@@ -65,6 +66,16 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
   /* Q13, office audit F9: a failed read is said, never drawn as "No clients yet". */
   const clientsRead = await listClientsRead(actor, { limit: CLIENT_PAGE_SIZE, offset: (query.page - 1) * CLIENT_PAGE_SIZE, query });
   const clients = clientsRead.ok ? clientsRead.rows : [];
+  /*
+   * POSSIBLE DUPLICATES (Robert's answer 8, 2026-11-18): a client whose email
+   * another client also holds is marked, never merged or refused. Null when the
+   * check could not run, and the screen says so rather than drawing no marks.
+   */
+  const shared = clientsRead.ok ? await sharedClientEmails(clients.map((c) => c.email)) : new Set<string>();
+  const possibleDuplicate = (email: string | null) => {
+    const key = comparableEmail(email);
+    return key !== null && shared !== null && shared.has(key);
+  };
   const total = await countClients(actor, query);
   const filtered = query.term !== "" || query.kind !== "all";
 
@@ -119,6 +130,11 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
       cell: (c) => (
         <div className="text-[14px] text-[var(--secondary)]">
           {c.email ? <p className="[overflow-wrap:anywhere]">{c.email}</p> : null}
+          {possibleDuplicate(c.email) ? (
+            <p data-possible-duplicate="">
+              <Chip label="Possible duplicate: another client has this email" tone="warn" />
+            </p>
+          ) : null}
           {c.phone ? <p><PhoneLink phone={c.phone} /></p> : null}
           {!c.email && !c.phone ? "none recorded" : null}
         </div>
@@ -272,6 +288,11 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
             : `${total} ${filtered ? "matching " : ""}client${total === 1 ? "" : "s"}`
         }
       >
+        {shared === null ? (
+          <p data-read-failed="" className="mb-3 text-[14px] text-[var(--secondary)]">
+            Whether any of these clients share an email with another client could not be checked, so no possible duplicate is marked. Reload in a moment.
+          </p>
+        ) : null}
         <RecordTable
           rows={clients}
           columns={columns}
@@ -293,6 +314,11 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
                   <p className="mt-0.5 text-[14px] [overflow-wrap:anywhere] text-[var(--secondary)]">
                     {c.email ?? c.phone ?? "no contact recorded"}
                   </p>
+                  {possibleDuplicate(c.email) ? (
+                    <p data-possible-duplicate="" className="mt-0.5">
+                      <Chip label="Possible duplicate: another client has this email" tone="warn" />
+                    </p>
+                  ) : null}
                 </div>
                 <Chip label={c.kind === "organization" ? "Org" : "Person"} />
               </div>

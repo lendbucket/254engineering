@@ -2,6 +2,7 @@ import "server-only";
 import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
 import { clientSearchOr, type ClientListQuery } from "./client-list";
+import { comparableEmail, sharedEmails } from "./client-duplicate-rules";
 import { cleanSearchTerm } from "./search-rules";
 import { writeAudit, diffOf, safeDiff } from "./ops-audit";
 import { canSeeFile, redactFile, visibleFiles, type Actor, actionsFor } from "./ops-authz";
@@ -223,6 +224,41 @@ export async function listClientsRead(
     .range(offset, offset + limit - 1);
   if (error) return { ok: false, error: error.message };
   return { ok: true, rows: (data ?? []) as ClientRow[] };
+}
+
+/**
+ * Which of these clients share their email with another client (Robert's
+ * answer 8, 2026-11-18; the rule is in client-duplicate-rules.ts). Read for the
+ * page's own emails, across every client that is not a demonstration, so a
+ * client on this page whose twin is on another page is still marked. Null when
+ * the read failed, so the screen says the check could not run rather than
+ * drawing no marks.
+ *
+ * ilike, so a difference in case still matches, in chunks of 25, because a long
+ * or() list is the request size this codebase has already met a cliff on. The
+ * match is a candidate only: an underscore in an address is a LIKE wildcard, so
+ * the rows read are compared again exactly by sharedEmails before anything is
+ * marked.
+ */
+export async function sharedClientEmails(
+  emails: (string | null)[],
+): Promise<Set<string> | null> {
+  const wanted = [...new Set(emails.map(comparableEmail).filter((e): e is string => e !== null))];
+  if (wanted.length === 0) return new Set();
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const seen: { id: string; email: string | null }[] = [];
+  for (let i = 0; i < wanted.length; i += 25) {
+    const chunk = wanted.slice(i, i + 25);
+    const or = chunk.map((e) => `email.ilike."${e.replace(/["\\]/g, "")}"`).join(",");
+    const { data, error } = await db.from("eng_clients").select("id, email").not("is_demo", "is", true).or(or).limit(1000);
+    if (error) {
+      console.error(`[crm] whether clients share an email could not be read: ${error.message}`);
+      return null;
+    }
+    seen.push(...((data ?? []) as { id: string; email: string | null }[]));
+  }
+  return sharedEmails(seen);
 }
 
 /**

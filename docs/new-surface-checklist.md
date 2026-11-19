@@ -45,7 +45,7 @@ and its table, all shipped correctly. Nothing here is from memory.
 | # | Inventory | Applies to | Verified against |
 | --- | --- | --- | --- |
 | 1 | `scripts/security-audit.mjs`, page perimeter list | **any signed in screen**, portal, partner or account | `/portal/inquiries` line 97, `/account/orders` 2026-10-03 |
-| 2 | `scripts/security-audit.mjs`, API perimeter list | a portal API route | `/api/portal/inquiries`, line 209 |
+| 2 | `scripts/security-audit.mjs`, API perimeter list; **for a public route, its no-token and bad-token pair** | **any API route**. One under a signed in surface is in the perimeter list. **A public one gated by a token owes a check that no token and a bad token are refused alike** | `/api/portal/inquiries`, line 209; the public pair, `/api/order-document` ("a sealed letter with no token serves nothing") |
 | 3 | `scripts/roles-audit.mjs`, the engineer ruling | a portal screen | `/portal/inquiries`, line 1541 |
 | 4 | `src/components/portal/nav.ts` | a portal screen | `/portal/inquiries`, line 95 |
 | 5 | `src/lib/retention-policy.ts` | a table | `eng_design_inquiries`, line 318 |
@@ -86,6 +86,17 @@ never run on it.
 **1, 2, 3 and 5 are swept against disk, so the board names them.** A new screen,
 route or table that is missing from those four fails on the first run with the
 path or the table in the message. They cost a board, not a defect.
+
+**EXCEPT ROW 2's PUBLIC HALF, WHICH IS NOT SWEPT.** Row 2 widened from "a portal
+API route" to any API route on Robert's answer 9 of 2026-11-18 (6963018405), from
+the BACKLOG entry "the nine row checklist has no row for a public token-gated API
+route". The sweep (`discoverRoutes` in `security-audit.mjs`) walks the API
+routes under the signed in surfaces only. A public route whose only
+authorization is a token in the query string belongs to none of them, so its
+pair, no token and a bad token refused alike and read for the refusal rather
+than for a status code, is written by hand, as `/api/order-document`'s is.
+**Nothing names a public route that is missing its pair.** That is the row 4
+shape, and it is said here so nobody reads "swept" off the line above.
 
 **4 is not swept, and that is the one to carry.** Three audits import `NAV` and
 every one of them asks the OUTWARD question: `compliance-audit` asserts one
