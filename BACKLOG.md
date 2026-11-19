@@ -1904,7 +1904,26 @@ seal. If the answer is only `deliverable`, the clause goes back in and the
 fixture's `kind` changes to match. If it is more than one, nothing changes and
 this entry records why.
 
-## THE PARKED 0061 MUST RENUMBER TO 0062 BEFORE IT MERGES
+## THE DEFERRED CREDENTIALS DROP: ITS BRANCH'S NUMBER, 0062, IS NOW TAKEN ON MAIN
+
+**Re-checked 2026-11-18** (the one-time pass). The renumbering below was
+overtaken the same day it was done:
+
+- **On 2026-10-07 the operator deferred the drop out of `release/2026-10-20`**
+  (the 2026-10-02 row of the table further down, and `supabase/applied.mjs` at
+  0062: "eng_credentials.storage_key stays"). The sealing migrations then took
+  the numbers: on main, **0061 is `a_sealed_deliverable_says_who_and_when` and
+  0062 is `a_seal_is_applied_once_and_locked`**, both on production since
+  2026-10-07.
+- **`migration/credentials-0062` still carries
+  `0062_credentials_hold_no_documents.sql`**, read off the branch on
+  2026-11-18, so it collides with main's 0062 and cannot land as it stands.
+  Main's chain now ends at 0137.
+- **What is open:** the drop of `eng_credentials.storage_key` is still deferred
+  and still destructive, so it runs only by the operator in the SQL editor
+  (`docs/production-sitting-destructive.md`). **When it is run it takes the
+  next free number**, and that sitting document's references to 0062 move with
+  it.
 
 Recorded 2026-10-03. `0061_credentials_hold_no_documents.sql` on
 `migration/credentials-hold-no-documents` is the `drop column` parked because
