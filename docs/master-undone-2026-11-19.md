@@ -142,6 +142,18 @@ Who the 57 unchecked entries probably wait on, from their own words: Robert on L
 L1445, L2221, L2279, L2561, L2753, L3347, L3373, L3843, L4714, L5288, L5328, L5468, L7816, L8232, L8844 and
 L11142; the cutover (R7) on L5697, L7121 and L7381; nobody on the other 33.
 
+**Re-checked against main `2c304e9` on the afternoon of 2026-11-19**, seven of the 57, each read in the code:
+
+| Entry (line at `428fb36`) | What the code says today | Placement now |
+| --- | --- | --- |
+| L5733, an audit that cannot open a screen must not report it as passing | `contrast-audit` reports a combination that never loaded as COULD NOT TELL and lists it (`scripts/contrast-audit.mjs` lines 509 and 587), from `0946bf7` (2026-09-20) | **Done**; the entry still reads "Not yet fixed" |
+| L10913, `/portal/accounts` renders in 50 seconds | The board of 2026-11-19 (44552289997) served it in 1.7 to 2.5 seconds of application code; the cliff was fixed and recorded in `775746d` (2026-09-24) | **The 50 seconds is done.** Whether 2.5 seconds on development meets the office-ready two-second standard is N1's measurement, not this entry's |
+| L8915, UTM parameters are not captured on `/api/lead` | Still not: `src/app/api/lead/route.ts` reads no `utm_` field. The order routes and `/start` (0137) carry their own attribution | **Open, waits on nobody**; it needs a lead column, so a migration, staged not merged |
+| L9077, the onboarding stepper is outside two audits | Still outside `mobile-overflow-audit`: nothing in it or `forms-audit` walks `/onboarding/[token]` at 360 or 390 | **Open, waits on nobody**; a writer-audit change, so it is built in a night run |
+| L927, the letterhead prints the registrant until the board confirms "254 Engineering" | `letterheadBrand()` (`src/lib/letter-seal.ts:118`) prints the brand only when `dbas` holds `business.shortName`; `dbas` (`src/config/credentials.ts:288`) holds Sealed Engineering, Stamp My Plans and 254 Engineering Services | **Open, waits on Robert**: whether the board holds "254 Engineering" itself |
+| L1578, a partner's approved logo on the partner order page | `src/app/(order)/order/referred/[code]/page.tsx` renders no logo | **Open, waits on Robert**: a partner's mark on a 254 order page is a branding question beside the "own name only" ruling |
+| L1445, 0076's keyed live half | `liveConfirmedOn` is still `2026-09-16` (`src/config/stripe-webhook.ts:86`); the keyed read needs `STRIPE_SECRET_KEY`, which no session holds | **Open, waits on others**: the chat, on Robert's word, runs the keyed half |
+
 ## 8. Asked, and done: confirmed on main today
 
 | What | Where it was asked | The commit and file on main |
