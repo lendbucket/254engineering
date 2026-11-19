@@ -11197,3 +11197,13 @@ something off the critical path.
 `scripts/seed-roof-protocol.mjs` is written, dry-run clean, and cannot insert
 254-RC-001 until development has 0049. So no protocol row exists yet, nothing
 is in `awaiting_engineer`, and the approval screen has nothing to show.
+
+## THE MASTER UNDONE LIST OF 2026-11-19 IS IN `docs/master-undone-2026-11-19.md`
+
+Robert's all-day prompt of 2026-11-19, job one. Pointer entry, not a second copy, placed last so the line
+numbers that document cites for this file at `428fb36` stay true. It places every open entry here (160 of 218
+at `428fb36`) beside what issue #1, `CLAUDE.md`, `docs/` and the standing list hold: 63 rows, plus 57 older
+entries here whose open residue was not re-checked against the code that day. It carries the numbered rulings
+only Robert can make, and those already answered with their comment ids. Five entries read open and were
+confirmed done on main that day (at `428fb36`, lines 1997, 2084, 5244, 6616 and 6761); their headings are
+corrected separately.
