@@ -419,7 +419,24 @@ partners. Those are questions, below.
 6. **WF-006 step 2, a customer cannot ask to be forgotten except by calling.** A new customer-facing form. Recommend: keep it staff-taken for now; `/portal/deletion-requests` already records it.
 7. **WF-030 step 5, a technician cannot delete a capture.** `deleteCapture` writes no audit row, and the evidence feeds what the engineer seals. Recommend: a delete button on the capture screen while the file is in the field, and an audit row added to `deleteCapture` first. **Ruled yes by Robert, 10:52 Central 2026-10-29, and built:** `deleteCapture` writes `capture.delete` through `writeAuditOrRefuse` before the row goes and refuses when it cannot, refuses a capture a repair was verified against, and the job screen draws a Remove control per capture from the same rule (`captureDeleteRefusal`). Proved by `scripts/proofs/a-capture-is-removed-only-with-its-record.mjs`. Still open: the stored photograph stays in the evidence bucket after its row goes, named in the audit row's `storage_key`.
 
-## OFFICE READY: WHICH STAFF LISTS EXPORT CSV, AND WHAT IS LEFT
+## OFFICE READY: WHICH STAFF LISTS EXPORT CSV: THE SEVEN FINDINGS ARE RULED, ONE LATER FINDING IS OPEN
+
+**Re-checked 2026-11-18** (the one-time pass). The "seven left" below were
+put to Robert in the morning report of 2026-10-29 and **ruled at 10:52 Central
+that day** (issue #1, 6501552714, "yes to the chat's recommendations on
+everything open"):
+
+- **No list controls** on orders, the job queue, waiting, the technician's jobs
+  and messages.
+- **List controls for onboarding**, built and merged since (`feat/onboarding-list`).
+- **No re-sorting or filtering on `/portal/review`**: "Its order is what the
+  engineer reviews first."
+
+**Still open, and not found in that ruling:** "Applications not yet invited"
+on `/portal/onboarding` is the newest 200 applications minus everyone with an
+onboarding, which cannot be searched or paged in one query without a
+migration. The screen states its bound; the recommendation below (leave it
+bounded and stated) has no ruling recorded against it.
 
 Robert, 21:07 Central 2026-10-28: "list every staff list screen without a CSV
 export. Build the missing ones as one bundle, owner or admin only, with the
