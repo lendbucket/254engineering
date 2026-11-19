@@ -31,6 +31,7 @@ import { chromium } from "playwright";
 import { readSource } from "./lib/read-source.mjs";
 
 import { apisOf, guardedSurfaces, routesOf } from "./lib/surfaces.mjs";
+import { PUBLIC_API_ROUTES } from "./lib/public-api-routes.mjs";
 import { AUDIT_BASE_URL } from "./lib/ports.mjs";
 import {
   HEALTH_PROBE_PATH,
@@ -1659,6 +1660,45 @@ async function run() {
       upNoToken.status === upBadToken.status && upNoTokenBody === upBadTokenBody,
       "a different answer would tell somebody which of their guesses was a real order",
     );
+
+    /*
+     * PUBLIC TOKEN ROUTES, EVERY ONE, FROM THE DECLARATION. Robert's answer 6
+     * of 2026-11-18: the sweep docs/new-surface-checklist.md row 2 said was
+     * missing. The three pairs above were written by hand, one per route as
+     * each shipped, and nothing named a token route that had none: the two
+     * onboarding routes had none. Every route scripts/lib/public-api-routes.mjs
+     * declares a token route gets the same pair here, from the declaration, so
+     * the next one is covered the day it is declared, and
+     * every-public-api-route-is-declared.mjs refuses a route that is not.
+     *
+     * The pair, as the hand-written ones read it: never 2xx, and no token and
+     * a wrong token answered with the same status and the same body, because a
+     * different answer tells somebody which guess was real.
+     */
+    for (const [route, entry] of Object.entries(PUBLIC_API_ROUTES)) {
+      if (entry.kind !== "token") continue;
+      const call = (token) => {
+        if (entry.method === "GET") {
+          const q = new URLSearchParams({ ...(entry.query ?? {}), ...(token === null ? {} : { token }) });
+          return fetch(`${BASE}${route}?${q}`, { redirect: "manual" });
+        }
+        return fetch(`${BASE}${route}`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ ...(entry.body ?? {}), ...(token === null ? {} : { token }) }),
+          redirect: "manual",
+        });
+      };
+      const noToken = await call(null);
+      const noTokenBody = await noToken.text();
+      const wrongToken = await call("not-a-real-token");
+      const wrongTokenBody = await wrongToken.text();
+      rec(
+        `public token route ${route}: no token and a wrong token are refused alike`,
+        noToken.status >= 400 && noToken.status === wrongToken.status && noTokenBody === wrongTokenBody,
+        `HTTP ${noToken.status} and ${wrongToken.status}${noTokenBody === wrongTokenBody ? "" : ", the bodies differ"}`,
+      );
+    }
   }
 }
 
