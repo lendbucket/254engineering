@@ -1506,7 +1506,11 @@ seven are:
 - **Items 4, 5 and 7 were put to Robert** in the evening report of
   2026-11-17 and **ruled on 2026-11-18**, each as recommended. **4: leave it**
   until a partner refers a batch or statement customer. **5: yes**, a batch
-  paid after its expiry writes `payment.unexpected`, on its own branch. **7:
+  paid after its expiry writes `payment.unexpected`, **BUILT on
+  `fix/batch-paid-after-expiry`**: `markBatchPaid` writes the internal line on
+  each order that was cancelled before the payment, once per order and charge,
+  after the release, and a failed read or write fails the delivery; proof
+  `a-batch-paid-after-its-expiry-says-so-on-each-order.mjs`. **7:
   BUILT on `fix/checkout-with-nothing-to-attach`**: a paid checkout naming no
   order, batch or statement is recorded as a fault, raises a task keyed on the
   checkout session, and sends one office alert (`ops.payment_unattached`) only
