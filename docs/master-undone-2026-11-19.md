@@ -216,6 +216,18 @@ Each has a recommendation, so the answer can be "1 yes, 2 no". None of these is 
     calling the limiters. Refuse on the connection alone, so nobody can lock another person out, and keep a much
     higher address ceiling, so walking an address list is still slowed. Then the count moves into the database
     (N6). **Recommendation: yes.**
+19. **A staff sentence still describes the gate as shut.** The Documents screen's empty "Filed documents" panel
+    says "Sealed deliverables land here when the compliance gate lifts and a Professional Engineer seals one." The
+    firm takes payment on production (Robert, 2026-11-14) and the engineer seals letters, so the first clause no
+    longer describes the firm. It mentions the gate and sealing, which
+    makes it regulatory copy, so it is not changed without you. Suggested: "Sealed deliverables land here when the
+    engineer seals one. Credentials and agreements are filed from onboarding." **Recommendation: yes.**
+20. **The live region pages state facts with no sources.** Read as a visitor on 2026-11-19 (`/coverage/coastal-bend`):
+    "seven Coastal Bend counties ... are inside the catastrophe area designated by the Texas Department of
+    Insurance", and "Hurricane Harvey made landfall near Rockport in 2017", among others, carry no citation. A
+    region can carry sources since batch 2 (N3). Adding them puts a new sources band, with its labels, on public
+    pages. **Recommendation: yes. I propose the sources for each region's existing sentences, read from the
+    primary pages, and post them for your approval before anything renders.**
 
 ## 10. During the day
 
@@ -226,6 +238,8 @@ Each has a recommendation, so the answer can be "1 yes, 2 no". None of these is 
 | 2026-11-19 | **The 69-site `.in()` survey** recorded as owed, with how the count was made | `BACKLOG.md`, "OPEN: SCREEN READS THAT STILL HIDE A FAILURE" |
 | 2026-11-19 | **Five `BACKLOG.md` headings corrected** to say what main says (section 7's "done" row) | this commit |
 | 2026-11-19 | **I ran three writer audits locally** against development, against the standing rule; confessed | issue #1, 7010344148 |
+| 2026-11-19 | **Batch 2 merged as `d6eebb1`**: bulk dispatch and the bulk export read a selection whole or say they could not; the Documents screen's Filed documents panel says a failed read and its cap; a large batch's checkout expiry is no longer refused for its size; a region can carry its sources (N3, built). Board 44552289997, 65 of 65 | issue #1, 7013182807 |
+| 2026-11-19 | **Held, each for a stated reason:** N10 (the `mfa-audit` change) needs a standalone run and `mfa-audit` is a writer, so it waits for a night run with the turn lock; N8 (staff and partner self-service reset) sends an email whose wording goes to Robert; N9 (the customer screens restyle) needs signed-in screenshots, which a local writer run would make | this table |
 
 **Values only you hold, not rulings:** the store reviewer's account id (R10); `REVIEW_LINK` and the review delay
 (R16, R30); where the seal goes on the repair specification (R28); the T8 store keys (R12); the Google Ads and
