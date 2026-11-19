@@ -346,7 +346,24 @@ which cannot import the catalog). The proof
 `the-ongoing-wpi8-price-is-not-printed` will then go red, which is it asking
 whether you meant it: rewrite it to the opened state.
 
-## THE OFFICE MOVED TO SAN ANTONIO, 2026-10-29: WHAT THE MOVE DID NOT MOVE
+## THE OFFICE MOVED TO SAN ANTONIO, 2026-10-29: TWO RECORDS STILL HOLD THE OLD ADDRESS
+
+**Re-checked 2026-11-18** (the one-time pass), item by item:
+
+1. **Ruled and built.** Robert ruled on 2026-10-29 (CLAUDE.md section 2): a
+   `/san-antonio` location page, with `/corpus-christi` kept as a highlighted
+   market and no street address. Both pages are on main (`/san-antonio` since
+   `3310975`, 2026-11-01).
+2. **Still open.** `supportAddress` in `src/config/stripe-console.ts` still
+   reads 5601 South Padre Island Drive, Suite E, Corpus Christi. It is the
+   dated record of Stripe's console, and the address Stripe prints on a
+   receipt, so it moves only when Robert changes the console and somebody
+   reads it back.
+3. **Still open.** `mailingAddress` in `src/config/credentials.ts` still reads
+   the same Corpus Christi address, as the Board's letter of 2026-09-21 stated
+   it. It moves when the Board's record moves.
+4. **Not checkable from here.** The Google Business Profile is a console this
+   repository cannot read.
 
 Robert, 12:50 Central 2026-10-29: the office is 11103 San Pedro Ave, San Antonio,
 TX 78216, the phone stays (281) 940-4490, and the hours are Monday to Sunday,
