@@ -1,7 +1,7 @@
 import "server-only";
 import { DB_NOW } from "./db-now";
 import { todayInFirmCalendar } from "./firm-calendar";
-import { readEvery } from "./bounded-read";
+import { readEvery, readEveryIn } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { orderForFileRead } from "./order-for-file";
 import { writeAudit } from "./ops-audit";
@@ -658,17 +658,33 @@ export async function partnerCostByFileRead(
   const db = supabaseAdmin();
   if (!db) return null;
 
-  const { data, error } = await db
-    .from("eng_partner_entries")
-    .select("file_id, amount_cents, status")
-    .in("file_id", withPartner);
-  if (error) {
-    console.error(`[partners] the partner ledger could not be read: ${error.message}`);
+  /*
+   * Chunked and paged, failing whole (BACKLOG, "OPEN: SCREEN READS THAT STILL
+   * HIDE A FAILURE", partial reads; the master undone list of 2026-11-19, N4).
+   * This was one .in() over every partner file in the period. Past
+   * IN_FILTER_CHUNK ids the request is refused, so the margin read turned from a
+   * figure into "could not be read" as volume grew, and past PostgREST's 1,000
+   * rows a period's entries would have been cut short with no error at all,
+   * leaving a partner file with less cost than it carries and its margin too
+   * high. readEveryIn reads every chunk to the end or returns nothing.
+   */
+  const read = await readEveryIn<{ id: string; file_id: string; amount_cents: number | null; status: string }>(
+    withPartner,
+    (chunk, from, to) =>
+      db
+        .from("eng_partner_entries")
+        .select("id, file_id, amount_cents, status")
+        .in("file_id", [...chunk])
+        .order("id", { ascending: true })
+        .range(from, to),
+  );
+  if (!read.ok) {
+    console.error(`[partners] the partner ledger could not be read: ${read.error}`);
     return null;
   }
 
   const byFile = new Map<string, { amountCents: number | null; status: "accrued" | "blocked" }[]>();
-  for (const row of data ?? []) {
+  for (const row of read.rows) {
     const key = row.file_id as string;
     byFile.set(key, [
       ...(byFile.get(key) ?? []),

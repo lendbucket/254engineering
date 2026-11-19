@@ -2496,31 +2496,57 @@ export async function refundsFailedAfterRefunded(): Promise<RefundFailedAfterRef
   const db = supabaseAdmin();
   if (!db) return null;
 
-  const { data: failed, error } = await db
-    .from("eng_order_payments")
-    .select("order_id, amount_cents, status, failure_reason, updated_at")
-    .eq("kind", "refund")
-    .in("status", ["failed", "cancelled"])
-    .not("order_id", "is", null)
-    /* A reservation that never took Stripe's answer was never at Stripe, so it is not a refund that failed there (Q8, F2). */
-    .not("provider_ref", "like", `${PLATFORM_REFUND_REF_PREFIX}%`)
-    .order("updated_at", { ascending: false })
-    .limit(500);
-  if (error) return null;
-  const ids = [...new Set((failed ?? []).map((r) => r.order_id as string))];
+  /*
+   * Every failed or cancelled refund, paged, and the orders read in chunks,
+   * failing whole (the master undone list of 2026-11-19, job two). This was the
+   * newest 500 rows and one .in() over their orders. Past IN_FILTER_CHUNK
+   * orders the second read was refused and the panel said it could not be
+   * read; past 500 failed refunds an older one on an order still marked
+   * refunded fell off the panel that exists to show it, with nothing saying so.
+   */
+  const failedRead = await readEvery<{
+    id: string;
+    order_id: string;
+    amount_cents: number;
+    status: string;
+    failure_reason: string | null;
+    updated_at: string;
+  }>((from, to) =>
+    db
+      .from("eng_order_payments")
+      .select("id, order_id, amount_cents, status, failure_reason, updated_at")
+      .eq("kind", "refund")
+      .in("status", ["failed", "cancelled"])
+      .not("order_id", "is", null)
+      /* A reservation that never took Stripe's answer was never at Stripe, so it is not a refund that failed there (Q8, F2). */
+      .not("provider_ref", "like", `${PLATFORM_REFUND_REF_PREFIX}%`)
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!failedRead.ok) return null;
+  const failed = failedRead.rows;
+  const ids = [...new Set(failed.map((r) => r.order_id))];
   if (ids.length === 0) return [];
 
-  const { data: orders, error: ordersError } = await db
-    .from("eng_service_orders")
-    .select("id, reference, status, refunded_at")
-    .in("id", ids)
-    .eq("status", "refunded");
-  if (ordersError) return null;
+  const ordersRead = await readEveryIn<{ id: string; reference: string; status: string; refunded_at: string | null }>(
+    ids,
+    (chunk, from, to) =>
+      db
+        .from("eng_service_orders")
+        .select("id, reference, status, refunded_at")
+        .in("id", [...chunk])
+        .eq("status", "refunded")
+        .order("id", { ascending: true })
+        .range(from, to),
+  );
+  if (!ordersRead.ok) return null;
+  const orders = ordersRead.rows;
 
   const out: RefundFailedAfterRefunded[] = [];
-  for (const o of orders ?? []) {
+  for (const o of orders) {
     const markedAt = o.refunded_at ? Date.parse(o.refunded_at as string) : null;
-    const after = (failed ?? []).find(
+    const after = failed.find(
       (r) => r.order_id === o.id && markedAt !== null && Date.parse(r.updated_at as string) >= markedAt,
     );
     if (!after) continue;
