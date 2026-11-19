@@ -5039,7 +5039,10 @@ export const APPLIED = [
       "2026-11-18: a payment received outside the platform (Peter Bulatao's Stripe dashboard invoice) is recorded on " +
       "its job through markPaid. eng_payment_events.source admits staff_recorded, and the administrator alone holds " +
       "payments.record_outside. The source check is dropped and re-added wider, as 0121 did for event_type, so every " +
-      "existing row still satisfies it. Pending on production by his ruling; on development once the chat applies it.",
+      "existing row still satisfies it. Pending on production by his ruling. ON DEVELOPMENT SINCE 2026-11-19 (issue #1, " +
+      "7006862329, on request 7004644931: version 20261119104610, the file's sha256 c6d93d3e, shape 14bdcbc9 at 1729 " +
+      "columns and 130 tables unchanged, eng_role_grants 203 to 204 with payments.record_outside held by admin alone, " +
+      "the source check admitting staff_recorded, and eng_payment_events' one row untouched, as predicted).",
   },
 ];
 
