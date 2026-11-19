@@ -1,6 +1,6 @@
 import "server-only";
 import { activeFirmRegistration } from "./launch";
-import { readEvery } from "./bounded-read";
+import { readEvery, readEveryIn } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { writeAudit } from "./ops-audit";
 import { can, canSeeFile, visibleFiles, type Actor, type FileSubject } from "./ops-authz";
@@ -74,24 +74,51 @@ const DOCUMENT_COLUMNS =
  * their own storage keys and their own screens, which is why a technician's
  * driver licence cannot appear here by any visibility setting.
  */
+/** The most filed documents the Documents screen lists, newest first. */
+export const DOCUMENT_LIST_CAP = 300;
+
+/**
+ * THE NEWEST DOCUMENT_LIST_CAP DOCUMENTS, WHETHER THERE ARE MORE, AND WHETHER
+ * THE READ FAILED (the master undone list of 2026-11-19, job two). This
+ * discarded its error and its cap: a failed read drew an empty "Filed
+ * documents" table, and past 300 documents the oldest left the screen with
+ * nothing saying the list was part of a set. The rest of the Documents screen
+ * was made to page and say a failed read on 2026-11-13; this panel was not.
+ *
+ * A failed read of the files the documents sit on is an error too. It used to
+ * show nothing, which was the safe direction for access and the wrong
+ * sentence: "no documents" is a claim about the firm's records.
+ */
 export async function listDocuments(
   actor: Actor | null,
   filters: { fileId?: string; kind?: string } = {},
-): Promise<DocumentRow[]> {
+): Promise<{ rows: DocumentRow[]; more: boolean; error: string | null }> {
+  if (!can(actor, "documents.read")) return { rows: [], more: false, error: null };
   const db = supabaseAdmin();
-  if (!db || !can(actor, "documents.read")) return [];
+  if (!db) return { rows: [], more: false, error: "the database is not configured" };
 
   let query = db.from("eng_documents").select(DOCUMENT_COLUMNS);
   if (actor!.role !== "admin") query = query.neq("visibility", "admin_only");
   if (filters.fileId) query = query.eq("file_id", filters.fileId);
   if (filters.kind) query = query.eq("kind", filters.kind);
 
-  const { data } = await query.order("created_at", { ascending: false }).limit(300);
-  const rows = (data ?? []) as DocumentRow[];
+  const { data, error } = await query
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: true })
+    .limit(DOCUMENT_LIST_CAP + 1);
+  if (error) {
+    console.error(`[documents] the filed documents could not be read: ${error.message}`);
+    return { rows: [], more: false, error: error.message };
+  }
+  const all = (data ?? []) as DocumentRow[];
+  const rows = all.slice(0, DOCUMENT_LIST_CAP);
   const files = await fileSubjectsFor(rows.map((r) => r.file_id).filter((id): id is string => Boolean(id)));
-  /* A failed read of the files shows nothing rather than everything: the same answer documentUrl gives. */
-  if (!files) return [];
-  return rows.filter((r) => mayOpenDocument(actor, r, r.file_id ? files.get(r.file_id) ?? null : null));
+  if (!files) return { rows: [], more: false, error: "the files these documents sit on could not be read" };
+  return {
+    rows: rows.filter((r) => mayOpenDocument(actor, r, r.file_id ? files.get(r.file_id) ?? null : null)),
+    more: all.length > DOCUMENT_LIST_CAP,
+    error: null,
+  };
 }
 
 /**
@@ -126,18 +153,33 @@ async function fileSubjectsFor(fileIds: string[]): Promise<Map<string, FileSubje
   const ids = [...new Set(fileIds)];
   const subjects = new Map<string, FileSubject>();
   if (ids.length === 0) return subjects;
-  const [{ data: files, error: filesError }, { data: offers, error: offersError }] = await Promise.all([
-    db.from("eng_files").select("id, status, assigned_tech_id, assigned_engineer_id").in("id", ids),
-    db.from("eng_assignments").select("file_id, tech_id").in("file_id", ids),
+  /* Chunked and paged, failing whole: a page of documents can name DOCUMENT_LIST_CAP files, which is the edge of the .in() cliff. */
+  const [filesRead, offersRead] = await Promise.all([
+    readEveryIn<{ id: string; status: string; assigned_tech_id: string | null; assigned_engineer_id: string | null }>(ids, (chunk, from, to) =>
+      db
+        .from("eng_files")
+        .select("id, status, assigned_tech_id, assigned_engineer_id")
+        .in("id", [...chunk])
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    readEveryIn<{ id: string; file_id: string; tech_id: string }>(ids, (chunk, from, to) =>
+      db
+        .from("eng_assignments")
+        .select("id, file_id, tech_id")
+        .in("file_id", [...chunk])
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
   ]);
-  if (filesError || offersError) return null;
-  for (const f of files ?? []) {
-    subjects.set(f.id as string, {
-      id: f.id as string,
-      status: f.status as string,
-      assigned_tech_id: (f.assigned_tech_id as string | null) ?? null,
-      assigned_engineer_id: (f.assigned_engineer_id as string | null) ?? null,
-      offered_tech_ids: (offers ?? []).filter((o) => o.file_id === f.id).map((o) => o.tech_id as string),
+  if (!filesRead.ok || !offersRead.ok) return null;
+  for (const f of filesRead.rows) {
+    subjects.set(f.id, {
+      id: f.id,
+      status: f.status,
+      assigned_tech_id: f.assigned_tech_id ?? null,
+      assigned_engineer_id: f.assigned_engineer_id ?? null,
+      offered_tech_ids: offersRead.rows.filter((o) => o.file_id === f.id).map((o) => o.tech_id),
     });
   }
   return subjects;

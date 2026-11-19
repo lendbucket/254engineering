@@ -1,6 +1,7 @@
 import "server-only";
 import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
+import { readEveryIn } from "./bounded-read";
 import { clientSearchOr, type ClientListQuery } from "./client-list";
 import { comparableEmail, sharedEmails } from "./client-duplicate-rules";
 import { cleanSearchTerm } from "./search-rules";
@@ -552,23 +553,51 @@ export async function listFilesPage(
  * found by reading a CSV. Added here rather than to FILE_COLUMNS so no existing
  * caller's shape changes for a column only this path reads.
  */
-export async function filesByIds(actor: Actor | null, ids: string[]): Promise<FileRow[]> {
+export async function filesByIds(actor: Actor | null, ids: string[]): Promise<FileRow[] | null> {
   if (!actor || ids.length === 0) return [];
   const db = supabaseAdmin();
-  if (!db) return [];
+  if (!db) return null;
 
-  const scoped = await scopedFileQuery(actor);
-  if (!scoped) return [];
+  /* A role that may see no file at all is an empty answer, not a failure. */
+  if (visibleFiles(actor).kind === "none") return [];
 
-  const { data } = await scoped.query.in("id", ids);
-  const rows = ((data ?? []) as FileRow[]).map((f) => redactFile(actor, f));
+  /*
+   * NULL WHEN EITHER READ FAILS, AND BOTH ARE CHUNKED (the master undone list
+   * of 2026-11-19, job two). Both errors were discarded, so a failed read
+   * answered an empty list: bulk dispatch reviewed a selection as having no
+   * files and sent nothing, with nothing saying why. And a selection runs to
+   * EXPORT_LIMIT ids, at the edge of the measured .in() cliff before the
+   * scope's own filters lengthen the request. The scoped query is built again
+   * for every chunk, because a query builder carries the filters already put
+   * on it.
+   */
+  const unique = [...new Set(ids)];
+  const read = await readEveryIn<FileRow>(unique, async (chunk, from, to) => {
+    const scoped = await scopedFileQuery(actor);
+    if (!scoped) return { data: null, count: null, error: { message: "the file scope could not be built" } };
+    return scoped.query
+      .in("id", [...chunk])
+      .order("id", { ascending: true })
+      .range(from, to) as unknown as { data: FileRow[] | null; count: number | null; error: { message: string } | null };
+  });
+  if (!read.ok) {
+    console.error(`[files] the selected files could not be read: ${read.error}`);
+    return null;
+  }
+  const rows = read.rows.map((f) => redactFile(actor, f));
 
   /* is_demo, for the rows the scope actually allowed. A second read rather than
    * a widened select, and scoped by the ids that survived the first. */
   const allowed = rows.map((r) => r.id);
   if (allowed.length === 0) return rows;
-  const { data: flags } = await db.from("eng_files").select("id, is_demo").in("id", allowed);
-  const demo = new Map((flags ?? []).map((f) => [f.id as string, f.is_demo === true]));
+  const flags = await readEveryIn<{ id: string; is_demo: boolean | null }>(allowed, (chunk, from, to) =>
+    db.from("eng_files").select("id, is_demo").in("id", [...chunk]).order("id", { ascending: true }).range(from, to),
+  );
+  if (!flags.ok) {
+    console.error(`[files] the demonstration flags of the selected files could not be read: ${flags.error}`);
+    return null;
+  }
+  const demo = new Map(flags.rows.map((f) => [f.id, f.is_demo === true]));
   return rows.map((r) => ({ ...r, is_demo: demo.get(r.id) ?? false }));
 }
 export async function getFile(actor: Actor | null, id: string): Promise<FileRow | null> {

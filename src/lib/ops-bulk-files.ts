@@ -145,6 +145,8 @@ export async function exportFiles(
   }
 
   const rows = await filesByIds(actor, ids);
+  /* A failed read is no export, never a spreadsheet that says it returned none of the files asked for. */
+  if (rows === null) return { ok: false, error: "The selected files could not be read, so nothing was exported. Try again." };
   const demonstration = rows.filter((f) => f.is_demo).length;
 
   /*

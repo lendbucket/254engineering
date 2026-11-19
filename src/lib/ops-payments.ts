@@ -613,14 +613,24 @@ export async function expireCheckout(input: {
    */
   const superseded = new Set<string>();
   if (input.sessionRef && rows.length > 0) {
-    const started = await readEvery<{ order_id: string; detail: { session_ref?: unknown } | null }>((from, to) =>
-      db
-        .from("eng_order_events")
-        .select("order_id, detail, created_at")
-        .in("order_id", rows.map((o) => o.id))
-        .eq("event", "checkout.started")
-        .order("created_at", { ascending: false })
-        .range(from, to),
+    /*
+     * Chunked by order (the master undone list of 2026-11-19, job two). One
+     * .in() over every order in a batch was refused past IN_FILTER_CHUNK
+     * orders, so a large batch's expiry was refused on every retry Stripe
+     * made, and it never expired. An order's events all sit in one chunk, so
+     * the newest-first order the loop below relies on holds within each order.
+     */
+    const started = await readEveryIn<{ order_id: string; detail: { session_ref?: unknown } | null }>(
+      rows.map((o) => o.id),
+      (chunk, from, to) =>
+        db
+          .from("eng_order_events")
+          .select("id, order_id, detail, created_at")
+          .in("order_id", [...chunk])
+          .eq("event", "checkout.started")
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(from, to),
     );
     if (!started.ok) return { ok: false, error: "The orders' checkout records could not be read, so the expiry was not applied." };
     const latest = new Map<string, string>();
