@@ -51,7 +51,7 @@ Ordered as job two works them: orders, payments, refunds, dispatch and customer 
 | N3 | A region page cannot carry a sourced fact: `Region` has no `sources` field | `BACKLOG.md` L3390, operator ruling 2026-10-17 | Open. `src/content/regions.ts:32` has no `sources` | nobody (no copy changes; the field is empty until a sourced sentence is written) |
 | N7 | The engineer's added capture items are shown but not captured against | `BACKLOG.md` L1057 | Not built. Needs evidence to carry a file-level item, a schema change | nobody (migration, so it is staged, not merged) |
 | N8 | Self-service password reset for staff and partners | Robert's answer 1 on the sign-in redesign, 2026-11-08 (6724956292): "a separate full-lane item later" | Not built. `src/app/portal/(public)/forgot-password/page.tsx` says an administrator sends the link (`1a9503b`) | nobody |
-| N9 | The customer screens still judged on the staff type scale | `BACKLOG.md` L3180 | Open. `token-audit`'s `CUSTOMER_V10` prints the remaining count on every run | nobody |
+| N9 | The customer screens still judged on the staff type scale | `BACKLOG.md` L3180 | **Re-checked 2026-11-19: twelve of the entry's thirteen files are on `CUSTOMER_V10`** (`scripts/token-audit.mjs` lines 753 onward). Only `src/app/account/layout.tsx` is still on the staff scale (line 353, `PORTED` only) | nobody |
 | N10 | `mfa-audit` reports an unreachable database as a content finding | `BACKLOG.md` L4234 | Open | nobody |
 | N11 | The build guard's port range is typed, not derived | `BACKLOG.md` L3569 | Recorded, not built | nobody |
 | N12 | The build guard cannot tell a foreign checkout's server from ours (read the working directory, move the ports) | `BACKLOG.md` L2774, CLAUDE.md 6 | Not built. Deliberately not built at night | nobody |
@@ -142,7 +142,7 @@ Who the 57 unchecked entries probably wait on, from their own words: Robert on L
 L1445, L2221, L2279, L2561, L2753, L3347, L3373, L3843, L4714, L5288, L5328, L5468, L7816, L8232, L8844 and
 L11142; the cutover (R7) on L5697, L7121 and L7381; nobody on the other 33.
 
-**Re-checked against main `2c304e9` on the afternoon of 2026-11-19**, seven of the 57, each read in the code:
+**Re-checked against main `2c304e9` and `0e68e85` on the afternoon of 2026-11-19**, eleven of the 57, each read in the code:
 
 | Entry (line at `428fb36`) | What the code says today | Placement now |
 | --- | --- | --- |
@@ -153,6 +153,12 @@ L11142; the cutover (R7) on L5697, L7121 and L7381; nobody on the other 33.
 | L927, the letterhead prints the registrant until the board confirms "254 Engineering" | `letterheadBrand()` (`src/lib/letter-seal.ts:118`) prints the brand only when `dbas` holds `business.shortName`; `dbas` (`src/config/credentials.ts:288`) holds Sealed Engineering, Stamp My Plans and 254 Engineering Services | **Open, waits on Robert**: whether the board holds "254 Engineering" itself |
 | L1578, a partner's approved logo on the partner order page | `src/app/(order)/order/referred/[code]/page.tsx` renders no logo | **Open, waits on Robert**: a partner's mark on a 254 order page is a branding question beside the "own name only" ruling |
 | L1445, 0076's keyed live half | `liveConfirmedOn` is still `2026-09-16` (`src/config/stripe-webhook.ts:86`); the keyed read needs `STRIPE_SECRET_KEY`, which no session holds | **Open, waits on others**: the chat, on Robert's word, runs the keyed half |
+| L1119, removing the signed protocols from history | The removal from the tree is ruled (2026-10-22); rewriting history is not, because it rehashes about 955 commits and force pushes 126 branches (`docs/history-rewrite-proposal-2026-10-22.md`) | **Open, waits on Robert**; a force push is never the session's |
+| L2259, development ran three migrations behind main | A three-layer check is proposed in `docs/development-drift-2026-10-07.md` and not built, by his order "report only until his word" | **Open, waits on Robert** |
+| L2898, whether anything deployed drains development's job queue | Still unconfirmed in the code: `/api/cron/jobs` is the only drain, and whether a Preview cron runs against development is a Vercel console fact no session can read | **Open, waits on others**: the chat reads the Vercel cron runs, on Robert's word |
+| L3180, customer screens on the staff scale | Twelve of thirteen now on `CUSTOMER_V10`; only `src/app/account/layout.tsx` remains | **Nearly done**; row N9 updated |
+
+Eleven of the 57 re-checked so far: two done, one nearly done, two open on nobody, four on Robert, two on others.
 
 ## 8. Asked, and done: confirmed on main today
 
