@@ -1075,7 +1075,21 @@ training and the engineer's decision on it, a backfill of the interim events
 of 2026-10-07 onward, and `eng_line_is_trained`, which the money door now asks
 of every line opened by a portal signature; roof's path is unchanged. Queued
 for the chat's development sitting after 0083, then the board, then production.
-## THE FOUNDATION AND PERMIT LETTERS, NINE POINTS FOR A RULING, OPEN
+## THE FOUNDATION AND PERMIT LETTERS SEAL ON MAIN; TWO OF THE NINE POINTS HAVE NO RULING FOUND
+
+**Re-checked 2026-11-18** (the one-time pass). "Sealing either letter is not"
+built, below, is stale: `SEALABLE_PROTOCOLS` in `src/lib/letter-seal.ts` holds
+254-FC-001 and 254-PL-001 "since ruling 7 of 2026-10-23" (with RC, MH and SL),
+and `src/lib/letter-draft-fc-pl.ts` drafts both, from `edb7c5b` on 2026-10-23,
+citing rulings FC-1, FC-4, PL-4 and PL-5.
+
+**Of the nine points, a search of `src`, `docs` and `scripts` finds a ruling
+cited for seven and none for FC-2 or PL-1.** That is one search, not a
+reading of each: before either point is called open, the code that drafts the
+foundation letter's recipient and purpose (FC-2) and the permit letter's
+permit number and authority (PL-1) should be read for what it does with a
+value it does not have. `docs/fc-pl-letters-open-points.md` itself still says
+"nothing opens" and was not re-read line by line here.
 
 `docs/fc-pl-letters-open-points.md`. Written 2026-10-23 on
 `feat/fc-pl-letters`. Determination recording for 254-FC-001 and 254-PL-001 is
