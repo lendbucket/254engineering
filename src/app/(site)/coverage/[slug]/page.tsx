@@ -12,6 +12,7 @@ import { regionPhotos } from "@/content/photos";
 import { buildMetadata } from "@/lib/seo";
 import { JsonLd, breadcrumbSchema } from "@/lib/schema";
 import { regionBySlug, regions } from "@/content/regions";
+import { SourceList } from "@/components/insights/Body";
 import { serviceBySlug, services } from "@/content/services";
 
 export const dynamicParams = false;
@@ -168,6 +169,23 @@ export default async function RegionPage({ params }: { params: Promise<{ slug: s
             </CardGrid>
         </div>
       </Section>
+
+      {/*
+        A region's sources, rendered the way a post's are, and only when the
+        region has one (operator ruling 2026-10-17, BACKLOG "A REGION HAS NO
+        SOURCES"). The heading and lede are the post sources band's own words,
+        so this adds no sentence of its own.
+      */}
+      {region.sources && region.sources.length > 0 ? (
+        <Section id="sources" tone="sunk">
+          <SectionHeading
+            eyebrow="Sources"
+            title="Every claim above, and where to check it"
+            lede="Primary sources only. Where something could not be traced to one, the page says so rather than repeating it."
+          />
+          <SourceList sources={region.sources} />
+        </Section>
+      ) : null}
 
       <section className="border-b border-limestone-line">
         <Container>

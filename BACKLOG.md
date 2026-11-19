@@ -1451,6 +1451,19 @@ job two; `docs/master-undone-2026-11-19.md` rows N4, N5, N15):
   action, state or stage column (59). Each is owed a read of how long its list can grow. Not the
   `listTasks`, `timeLog` or `listDocuments` caps either, which were not
   re-checked line by line.
+- **Batch 2 of the same day, `fix/day-batch-2`, worked the survey's money,
+  dispatch and staff-record sites:** `filesByIds` (bulk dispatch and the bulk
+  export; it discarded both errors, so a failed read reviewed a selection as
+  having no files), `listDocuments` and the files it checks (the Documents
+  screen's "Filed documents" panel; it discarded its error and its cap of
+  300), and a bulk batch's checkout expiry (one `.in()` over every order in
+  the batch, so a large batch's expiry was refused on every retry). Proof
+  `a-selection-of-files-is-read-whole-or-said-unreadable.mjs`. Read and left
+  as bounded by design: the file's own order answers, record search
+  (`SEARCH_LIMIT`), the inquiries page (one page of keys), unreleased payments
+  (200), the partner portal's referrals (`REFERRAL_PAGE`). **Still owed:** the
+  rest of the 69, chiefly the partner statement close's claim write, the
+  partner attribution reads by visitor key, `timeLog` and `listTasks`.
 
 ## APPLIED: 0075, A PAYMENT EVENT IS APPLIED ONCE
 
@@ -3421,7 +3434,17 @@ had not been boarded since, so nothing had read it.
 - Partner onboarding and the ledger fold, not started by order.
 - The engineer's signatures and approvals on the incoming protocols.
 
-## A REGION HAS NO SOURCES, SO A REGION PAGE CANNOT CARRY A SOURCED FACT
+## A REGION HAD NO SOURCES, SO A REGION PAGE COULD NOT CARRY A SOURCED FACT: BUILT ON `fix/day-batch-2`, 2026-11-19
+
+**Built**, on Robert's all-day prompt of 2026-11-19, job two
+(`docs/master-undone-2026-11-19.md`, N3): `Region` carries an optional
+`sources` in a post's `Source` shape, the region page renders them the way a
+post does and only when a region has one, using the post sources band's own
+heading and lede, and `citation-audit` already reads every `url:` under
+`src/content`. Proof `a-region-page-shows-the-sources-its-region-carries.mjs`
+builds its own subject, because no region carries a source yet. **What stays
+open is the writing:** the Frisco sentence for DFW below is not written, and
+a sourced sentence on any region is new public copy that goes to Robert first.
 
 Operator ruling, 2026-10-17. Not built. `Region` in `src/content/regions.ts`
 has no sources field, and the coverage region page renders none, so a sentence
