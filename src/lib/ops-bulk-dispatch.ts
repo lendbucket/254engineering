@@ -96,6 +96,8 @@ export async function dispatchPlans(
   }
 
   const files = await filesByIds(actor, fileIds);
+  /* A failed read is said, never reviewed as a selection with no files in it. */
+  if (files === null) return { ok: false, error: "The selected files could not be read, so nothing was planned. Try again." };
   const plans: DispatchPlanRow[] = [];
 
   for (const file of files) {
@@ -191,6 +193,8 @@ export async function sendBulkOffers(
     actor,
     wanted.map((p) => p.fileId),
   );
+  /* A failed read sends nothing and says so, rather than refusing every file as one this person cannot see. */
+  if (allowed === null) return { ok: false, error: "The selected files could not be read, so no offer was sent. Try again." };
   const byId = new Map(allowed.map((f) => [f.id, f]));
 
   const sent: BulkDispatchResult["sent"] = [];
