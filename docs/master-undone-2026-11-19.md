@@ -222,6 +222,16 @@ Thirty-one of the 57 re-checked: **eight done, two superseded, two ruled with no
 
 Thirty-six of the 57 re-checked: **ten done, two superseded, two ruled with nothing to build, two partly or nearly done, three open on nobody, eleven on Robert, two on others, and four not confirmed.** Twenty-one remain unchecked.
 
+**Three more, against main `4f9f9f2`:**
+
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L1183, the sitting for `release/2026-10-20`, part C open | Parts A and B and C1 to C3 ran on 2026-10-07. The People screen fix it held open, `fix/people-linked-audit` at `fe6f898`, is on main: `src/app/api/portal/people/route.ts` records a linked profile as linked. C4, his two credentials, still waits on his documents | **Open, waits on Robert:** C4 only |
+| L8232, blocked on the owner | Of its six subsections: the logo is done and `info@` is closed, both in their own text; the launch flip is overtaken by production taking payment (2026-11-14); and the SAM.gov UEI and CAGE subsection is overtaken by `samRegistration` being retired on 2026-09-17, so no SAM claim renders at all. "No phone number is published anywhere" is stale: the site's number comes from `FIRM_PHONE` through `e164Phone()`, and `business.phone` is an unused null. The capability statement PDF is still not written | **Partly superseded. Open, waits on Robert:** the capability statement |
+| L9285, Phase 3, the proximity head term and an honest link count | History: `link-map` stopped counting card navigation as prose (links inside a heading are stripped before anchors are read), measured on 2026-08-31 | **Done** |
+
+Thirty-nine of the 57 re-checked: **eleven done, two superseded, two ruled with nothing to build, three partly or nearly done, three open on nobody, twelve on Robert, two on others, and four not confirmed.** Eighteen remain unchecked.
+
 ## 8. Asked, and done: confirmed on main today
 
 | What | Where it was asked | The commit and file on main |
