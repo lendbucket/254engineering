@@ -254,6 +254,19 @@ Forty-three of the 57 re-checked: **eleven done, two superseded, three ruled wit
 
 Forty-seven of the 57 re-checked: **twelve done, two superseded, three ruled with nothing to build, four partly or nearly done, three open on nobody, sixteen on Robert, two on others, and five not confirmed.** Ten remain unchecked.
 
+**Four more, against main `883a489`:**
+
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L2221, waiting on Robert | Its table of 18 rows: most are ruled, built or closed in their own State column. Four still read open: the dispatch readiness sitting script (written, not run), the three findings from the one-protocol-to-many groundwork, "Next payout run" drawn on the owner dashboard with no payout run behind it (a money question), and monospace on a one-time secret | **Open, waits on Robert:** those four |
+| L2279, stage 2 was read against the code before it was styled | `docs/design-v10/stage-2-reconciliation.md` leaves the first pass rate, the median review time and the time under responsible charge uncomputed, the KPI sparklines without a series, and the PDF export of the responsible charge log unbuilt. Each is absent from the screen rather than false on it | **Open, waits on Robert** to schedule: they are features, not defects |
+| L7449, recorded elsewhere, and now indexed here | Ten subsections; three are RESOLVED in their own text (messages addressed to you, the scroll half of native point 8, queue depth alerting). Sentry, messaging edit, delete and export, metric charts, uptime, telemetry retention and the unbuilt prototype surfaces were not each read today. `SENTRY_DSN` is declared in `src/config/credential-inventory.ts`; whether a value is set is a Vercel read | **Partly closed, not confirmed whole** |
+| L8348, engineering | Six subsections. The intake that answered success on a failed write is RESOLVED (2026-09-06). Resend sending, the forms round trip on this machine, county pages and the waitlist route were not each read today | **Partly closed, not confirmed whole** |
+
+Fifty-one entries re-checked: **twelve done, two superseded, three ruled with nothing to build, four partly or nearly done, three open on nobody, eighteen on Robert, two on others, and seven not confirmed.**
+
+**A correction to every running total above, found while writing this one.** The first pass on 2026-11-19 counted L3180 among "the 57", and L3180 is not on that list: it is N9 in section 3. So the totals are of fifty-one entries, of which **fifty are among the 57, and seven of the 57 remain unchecked**, not six: L2561, L2753, L2847, L3347, L3373 and L4714 are pointers to dated overnight and sitting documents, and L5288 is the site rebuild. The earlier totals are left as written, each one high by that same one, rather than rewritten silently.
+
 ## 8. Asked, and done: confirmed on main today
 
 | What | Where it was asked | The commit and file on main |
