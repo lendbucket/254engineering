@@ -808,6 +808,13 @@ const CUSTOMER_V10 = [
   "src/app/account/login/AccountLoginForm.tsx",
   "src/app/account/statements/PayStatementButton.tsx",
   "src/app/account/orders/page.tsx",
+  /*
+   * The account surface's own layout, 2026-11-20 (master undone list N9, from
+   * BACKLOG's "customer screens still judged on the staff type scale"): the
+   * last of that entry's thirteen files. Every page under it is on this list,
+   * so it is held to the same scale, as the order surface's layout is above.
+   */
+  "src/app/account/layout.tsx",
 ];
 /**
  * THE STAFF SCREENS PORTED TO V10, stage 2 onward.

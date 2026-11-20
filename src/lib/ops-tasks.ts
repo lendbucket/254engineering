@@ -73,13 +73,20 @@ export async function listTasks(
  * The same, or null when the read failed, so a caller can tell an outage from
  * an empty list. Operator ruling, 2026-10-12: the dashboard showed "Tasks
  * overdue 0" over a read that had failed.
+ *
+ * EVERY MATCHING TASK, NOT THE FIRST PAGE. Master undone list N5, 2026-11-20.
+ * This was the first page of listTasksPage, 300 rows, and `taskCounts` counts
+ * what it returns, so the dashboard's open count stopped at 300 and an overdue
+ * task on a later page was not counted, with nothing on the tile saying so.
+ * It reads through listEveryTask now, which is the same query in
+ * `tasksMatching` and the same canSeeTask filter, paged to the end, and null
+ * when any page fails.
  */
 export async function listTasksRead(
   actor: Actor | null,
   filters: { status?: string; mine?: boolean } = {},
 ): Promise<TaskRow[] | null> {
-  const page = await listTasksPage(actor, filters);
-  return page ? page.rows : null;
+  return listEveryTask(actor, filters);
 }
 
 /** One page of tasks. */
