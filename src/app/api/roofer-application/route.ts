@@ -73,7 +73,7 @@ async function handlePOST(request: Request) {
     return NextResponse.json({ ok: false, message: PUBLIC_FORM_REFUSAL }, { status: 429 });
   }
   /* Door 1's own per address limit, refused exactly as a success reads. */
-  if (!takeSignUpAttempt(address, clientKey(request.headers))) {
+  if (!(await takeSignUpAttempt(address, clientKey(request.headers)))) {
     return NextResponse.json({ ok: true, message: SENT });
   }
 

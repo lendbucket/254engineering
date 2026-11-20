@@ -1553,6 +1553,22 @@ function screenDirFor(urlPath) {
     /RESET_ATTEMPTS_PER_HOUR = 3;/.test(doorsSource),
     "beyond it, a stranger is using this firm's mail server to write to somebody else's inbox",
   );
+  /*
+   * RULING 18 OF 2026-11-19: THE TWO ABOVE ARE PER CONNECTION, AND THE ADDRESS
+   * HAS ITS OWN, MUCH HIGHER CEILING. Pinned here as literals for the same
+   * reason the two above are. An address ceiling moved down to the connection
+   * ceiling would bring back the lockout the ruling removed: a stranger naming
+   * somebody's address could spend that person's allowance.
+   */
+  rec(
+    "the sign up ceiling on one address, from every connection, is still twenty an hour",
+    /SIGN_UP_ADDRESS_CEILING_PER_HOUR = 20;/.test(doorsSource),
+    "below it a list walked from many places goes faster; at the connection ceiling a stranger can lock a person out again",
+  );
+  rec(
+    "the reset ceiling on one address, from every connection, is still ten an hour",
+    /RESET_ADDRESS_CEILING_PER_HOUR = 10;/.test(doorsSource),
+  );
   rec(
     "a verification link still lasts 72 hours",
     /VERIFICATION_TTL_HOURS = 72;/.test(doorsSource),
