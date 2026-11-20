@@ -194,7 +194,7 @@ export const insights: Insight[] = [
       },
       {
         kind: "p",
-        text: "In practice that means the responsive material is the record: relevant project experience, the licensure and registration standing of the firm and the individuals who would perform the work, capacity against the schedule, and the geographic reach to serve the sites in question. This firm publishes its [government and public sector capability](/government) against exactly those headings, and its [coverage of all 254 Texas counties](/coverage) is organised by region because the reach question is usually the one a rural entity asks first.",
+        text: "In practice that means the responsive material is the record: relevant project experience, the licensure and registration standing of the firm and the individuals who would perform the work, capacity against the schedule, and the geographic reach to serve the sites in question. This firm publishes its [government and public sector capability](/government) against exactly those headings, and its [coverage of all 254 Texas counties](/coverage) is organized by region because the reach question is usually the one a rural entity asks first.",
       },
       {
         kind: "p",
@@ -419,7 +419,7 @@ export const insights: Insight[] = [
       },
       {
         q: "Can an out of state firm practice engineering in Texas?",
-        a: "The registration requirement in section 1001.405(b) is written about the practice of engineering in this state rather than about where the entity is organised, and the individual license requirement in section 1001.301 applies to the person doing the work. Both have to be satisfied. The board is the authority on how it treats a particular out of state entity.",
+        a: "The registration requirement in section 1001.405(b) is written about the practice of engineering in this state rather than about where the entity is organized, and the individual license requirement in section 1001.301 applies to the person doing the work. Both have to be satisfied. The board is the authority on how it treats a particular out of state entity.",
       },
       {
         q: "What happens to a firm that practises before it is registered?",

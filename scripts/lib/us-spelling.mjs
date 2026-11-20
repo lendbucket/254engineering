@@ -51,6 +51,18 @@ export const BRITISH = [
   ["maximise", "maximize"], ["realise", "realize"], ["emphasise", "emphasize"],
   ["standardise", "standardize"], ["optimise", "optimize"], ["programme", "program"],
   ["programmes", "programs"], ["cancelled", "canceled"], ["travelled", "traveled"],
+  /*
+   * Robert's ruling 14 of 2026-11-19, yes: the list proposed in BACKLOG
+   * ("`voice-audit` HAS NO LIST OF BRITISH WORDS") where the forms above did
+   * not already carry it. Left off by the proposal's own notes: "post" (the
+   * platform genuinely posts messages), "enquiry" (a route name) and "ring",
+   * "rang" (a ring shank nail is a construction term this firm's copy may
+   * need; put back to Robert as a question rather than matched).
+   */
+  ["offence", "offense"], ["offences", "offenses"], ["organise", "organize"], ["organised", "organized"],
+  ["cheque", "check"], ["cheques", "checks"], ["storey", "story"], ["storeys", "stories"],
+  ["metre", "meter"], ["metres", "meters"], ["litre", "liter"], ["litres", "liters"],
+  ["kerb", "curb"], ["aluminium", "aluminum"],
 ];
 
 /** True when the text carries a British form from the list, matched as a whole word. */
