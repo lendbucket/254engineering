@@ -1,5 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "./supabase";
+import { readEvery, readEveryIn } from "./bounded-read";
 import { writeAudit } from "./ops-audit";
 import { startCheckout } from "./ops-payments";
 import { event } from "./ops-intake";
@@ -65,15 +66,34 @@ export async function ordersHeldForTravel(orderIds: string[]): Promise<Set<strin
   if (orderIds.length === 0) return new Set();
   const db = supabaseAdmin();
   if (!db) return null;
-  const { data, error } = await db
-    .from("eng_order_events")
-    .select("order_id, event, created_at")
-    .in("order_id", orderIds)
-    .in("event", [ORDER_TRAVEL_REQUESTED, ORDER_TRAVEL_SET])
-    .order("created_at", { ascending: false });
-  if (error) return null;
+  /*
+   * Chunked and paged, failing whole (the master undone list of 2026-11-19,
+   * job two). One .in() over every id was refused past IN_FILTER_CHUNK ids, and
+   * past 1,000 event rows PostgREST would have cut the set short with no error,
+   * so an order whose latest event fell off the end read as not held.
+   */
+  const read = await readEveryIn<{ id: number; order_id: string; event: string; created_at: string }>(
+    [...new Set(orderIds)],
+    (chunk, from, to) =>
+      db
+        .from("eng_order_events")
+        .select("id, order_id, event, created_at")
+        .in("order_id", [...chunk])
+        .in("event", [ORDER_TRAVEL_REQUESTED, ORDER_TRAVEL_SET])
+        .order("id", { ascending: true })
+        .range(from, to),
+  );
+  if (!read.ok) return null;
+  /*
+   * Newest first across the whole set, by time and then by the event's own
+   * serial id, so two events written in the same instant still have an order.
+   * A chunked read cannot order the whole set on its own.
+   */
+  const rows = [...read.rows].sort((a, b) =>
+    a.created_at !== b.created_at ? (a.created_at < b.created_at ? 1 : -1) : Number(b.id) - Number(a.id),
+  );
   const latest = new Map<string, string>();
-  for (const r of data ?? []) if (!latest.has(r.order_id as string)) latest.set(r.order_id as string, r.event as string);
+  for (const r of rows) if (!latest.has(r.order_id)) latest.set(r.order_id, r.event);
   return new Set([...latest].filter(([, e]) => e === ORDER_TRAVEL_REQUESTED).map(([id]) => id));
 }
 
@@ -115,20 +135,51 @@ export type OrderWaitingForTravel = {
 export async function ordersWaitingForTravel(): Promise<OrderWaitingForTravel[] | null> {
   const db = supabaseAdmin();
   if (!db) return null;
-  const { data: asked, error } = await db.from("eng_order_events").select("order_id").eq("event", ORDER_TRAVEL_REQUESTED).limit(500);
-  if (error) return null;
-  const ids = [...new Set((asked ?? []).map((r) => r.order_id as string))];
+  /*
+   * EVERY travel request, paged. This read was `.limit(500)` with no order, so
+   * once the firm had asked travel on more than 500 orders, which orders this
+   * screen saw was whichever 500 rows came back, and a customer's order held
+   * for travel could drop off the one panel that sends its payment link, with
+   * nothing saying the list was short (the master undone list of 2026-11-19,
+   * job two).
+   */
+  const askedRead = await readEvery<{ id: number; order_id: string }>((from, to) =>
+    db
+      .from("eng_order_events")
+      .select("id, order_id")
+      .eq("event", ORDER_TRAVEL_REQUESTED)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!askedRead.ok) return null;
+  const ids = [...new Set(askedRead.rows.map((r) => r.order_id))];
   const held = await ordersHeldForTravel(ids);
   if (held === null) return null;
   if (held.size === 0) return [];
-  const { data: orders, error: oError } = await db
-    .from("eng_service_orders")
-    .select("id, reference, county, property_address, service_slug, tier, customer_name, total_cents, status, created_at")
-    .in("id", [...held])
-    .eq("status", "awaiting_payment")
-    .order("created_at", { ascending: true });
-  if (oError) return null;
-  return (orders ?? []).map((o) => ({
+  const ordersRead = await readEveryIn<{
+    id: string;
+    reference: string;
+    county: string | null;
+    property_address: string;
+    service_slug: string;
+    tier: string;
+    customer_name: string | null;
+    total_cents: number;
+    status: string;
+    created_at: string;
+  }>([...held], (chunk, from, to) =>
+    db
+      .from("eng_service_orders")
+      .select("id, reference, county, property_address, service_slug, tier, customer_name, total_cents, status, created_at")
+      .in("id", [...chunk])
+      .eq("status", "awaiting_payment")
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!ordersRead.ok) return null;
+  /* Oldest first across the whole set, which a chunked read cannot order on its own. */
+  const orders = [...ordersRead.rows].sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0));
+  return orders.map((o) => ({
     id: o.id as string,
     reference: o.reference as string,
     county: String(o.county ?? "").replace(/\s+county$/i, "").trim(),

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { listDocuments } from "@/lib/ops-docs";
+import { DOCUMENT_LIST_CAP, listDocuments } from "@/lib/ops-docs";
 import { FILE_LIST_CAP, listFilesPage } from "@/lib/ops-crm";
 import { FILE_STATUSES, STATUS_LABEL, STATUS_TONE, type FileStatus } from "@/lib/ops-files";
 import { Chip, EmptyState, PageHead, Panel, RecordTable } from "@/components/portal/surfaces";
@@ -73,10 +73,11 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
    * read showed "No files you can see". It now searches, filters by status,
    * orders and pages, and a failed read is said.
    */
-  const [documents, filesRead] = await Promise.all([
+  const [documentsRead, filesRead] = await Promise.all([
     listDocuments(actor),
     listFilesPage(actor, { status: params.status, search: params.q, page, oldest }),
   ]);
+  const documents = documentsRead.rows;
   const files = filesRead.rows;
   const binderHref = (patch: Record<string, string>) => listHref("/portal/documents", params, patch);
 
@@ -238,6 +239,18 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
         title="Filed documents"
         description="Stored artifacts. A download link is signed and expires in an hour, because these buckets are private and stay that way."
       >
+        {documentsRead.more ? (
+          <p className="mb-3 text-[13.5px] leading-[1.6] text-[var(--secondary)]">
+            The newest {DOCUMENT_LIST_CAP} filed documents, newest first. Older ones exist and are not listed here.
+          </p>
+        ) : null}
+        {documentsRead.error ? (
+          <div role="alert" data-list-not-loaded className="py-6">
+            <p className="text-[15px] font-semibold text-[var(--ink)]">{LIST_NOT_LOADED}</p>
+            <p className="mt-1 text-[13.5px] text-[var(--secondary)]">The filed documents could not be read, so this is not an empty list.</p>
+            <RetryButton />
+          </div>
+        ) : (
         <RecordTable
           rows={documents}
           columns={[
@@ -299,10 +312,11 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
           empty={
             <EmptyState
               title="Nothing has been filed yet"
-              body="Sealed deliverables land here when the compliance gate lifts and a Professional Engineer seals one. Credentials and agreements are filed from onboarding."
+              body="Sealed deliverables land here when the engineer seals one. Credentials and agreements are filed from onboarding."
             />
           }
         />
+        )}
       </Panel>
 
       <p className="mt-4 max-w-[74ch] text-[13.5px] leading-[1.6] text-[var(--secondary)]">

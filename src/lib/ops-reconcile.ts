@@ -1,5 +1,5 @@
 import "server-only";
-import { readEvery } from "./bounded-read";
+import { readEvery, readEveryIn } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { markAbandoned, markPaid, paymentProvider } from "./ops-payments";
 import { event } from "./ops-intake";
@@ -201,14 +201,37 @@ export async function ordersNeedingAttentionRead(): Promise<OrderNeedingAttentio
    * session is past the cut looks like an order that never started one, and the
    * screen reports it as stuck for a reason that is not true.
    */
+  /*
+   * AND BOTH ARE CHUNKED, failing whole (the master undone list of 2026-11-19,
+   * job two). They were one .in() over every unpaid order. Past
+   * IN_FILTER_CHUNK orders waiting on a payment the request is refused, and
+   * the panel and the dashboard that read this said the orders could not be
+   * read at exactly the moment there were most of them to chase. Each order's
+   * rows sit inside one chunk, so the oldest-first order within an order holds,
+   * and the session kept below is still that order's newest.
+   */
   const [paymentRead, checkoutRead] = await Promise.all([
-    // readEvery: a payment missed here makes a paid order read as unpaid.
-    readEvery<{ order_id: string }>((from, to) =>
-      db.from("eng_order_payments").select("order_id").in("order_id", ids).eq("kind", "charge").order("created_at", { ascending: true }).range(from, to),
+    // readEveryIn: a payment missed here makes a paid order read as unpaid.
+    readEveryIn<{ order_id: string }>(ids, (chunk, from, to) =>
+      db
+        .from("eng_order_payments")
+        .select("order_id")
+        .in("order_id", [...chunk])
+        .eq("kind", "charge")
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
     ),
-    // readEvery: an event missed here reports an order stuck for a reason that is not true.
-    readEvery<{ order_id: string; detail: unknown }>((from, to) =>
-      db.from("eng_order_events").select("order_id, detail").in("order_id", ids).eq("event", "checkout.started").order("created_at", { ascending: true }).range(from, to),
+    // readEveryIn: an event missed here reports an order stuck for a reason that is not true.
+    readEveryIn<{ order_id: string; detail: unknown }>(ids, (chunk, from, to) =>
+      db
+        .from("eng_order_events")
+        .select("order_id, detail")
+        .in("order_id", [...chunk])
+        .eq("event", "checkout.started")
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
     ),
   ]);
 

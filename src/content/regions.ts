@@ -28,6 +28,7 @@
  */
 
 import { HARRIS_DESIGNATION } from "./windstorm-harris";
+import type { Source } from "./insights";
 
 export type Region = {
   slug: string;
@@ -50,6 +51,17 @@ export type Region = {
   /** Service slugs that carry the most weight here, most first. */
   emphasis: { slug: string; why: string }[];
   counties: string[];
+  /**
+   * The primary sources a sourced sentence on this region page rests on, in
+   * the shape a post's sources take, rendered the way a post renders them.
+   * Operator ruling, 2026-10-17 (BACKLOG, "A REGION HAS NO SOURCES"): a
+   * sentence on a region page that needs a primary source has to be able to
+   * show it, so a region without this field could carry no such sentence.
+   * Optional and empty everywhere today: the page renders the list only when a
+   * region has one, and citation-audit reads every `url:` under src/content,
+   * so a source written here is loaded the day it is written.
+   */
+  sources?: Source[];
 };
 
 export const regions: Region[] = [

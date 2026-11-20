@@ -1423,6 +1423,48 @@ fixed since without this entry saying so:
 - **Partial reads** and the two `.in()` lists past the 150 id cliff: not
   re-checked in this pass.
 
+**RE-CHECKED AGAINST MAIN `a494599` ON 2026-11-19** (Robert's all-day prompt,
+job two; `docs/master-undone-2026-11-19.md` rows N4, N5, N15):
+
+- **The production ledger lookup and `uncreditedReviews`: already fixed.** Both
+  read through `readEvery` and `readEveryIn` (`src/lib/ops-engineer.ts`, the
+  uncredited reviews read). `fileMargins` reads through `readEvery`.
+- **`partnerCostByFileRead`: fixed on `fix/day-batch-1`.** It was one `.in()`
+  over every partner file; it now reads through `readEveryIn`.
+- **Found in the same pass, and fixed on the same branch:** the Orders screen's
+  "Waiting for travel" panel read the first 500 travel requests with no order,
+  so past 500 a customer's held order could drop off the one panel that sends
+  its payment link; `ordersHeldForTravel` sent one `.in()` over every id; and
+  the failed-refund panel read the newest 500 and sent one `.in()` over their
+  orders. The survey below then found two more on money paths, fixed on the
+  same branch: `ordersNeedingAttentionRead` (the Orders screen's and the
+  dashboard's unpaid orders) sent one `.in()` over every unpaid order for its
+  charges and again for its checkouts, and the pipeline report's cycle time
+  sent one over every paid order's file. Proof
+  `a-money-list-reads-every-row-past-the-transport-limits.mjs` runs all six
+  against a stub with the transport's two limits, and each restored old read
+  turned exactly its own checks red.
+- **Still open, a survey:** `src` holds **69** `.in()` reads that take a
+  variable list without chunking, counted by `grep` for `.in("` across `src`
+  `*.ts`/`*.tsx` on main `a494599` (173), less the lines that name a `chunk`
+  (45), less those whose list is a literal or a status, role, kind, event,
+  action, state or stage column (59). Each is owed a read of how long its list can grow. Not the
+  `listTasks`, `timeLog` or `listDocuments` caps either, which were not
+  re-checked line by line.
+- **Batch 2 of the same day, `fix/day-batch-2`, worked the survey's money,
+  dispatch and staff-record sites:** `filesByIds` (bulk dispatch and the bulk
+  export; it discarded both errors, so a failed read reviewed a selection as
+  having no files), `listDocuments` and the files it checks (the Documents
+  screen's "Filed documents" panel; it discarded its error and its cap of
+  300), and a bulk batch's checkout expiry (one `.in()` over every order in
+  the batch, so a large batch's expiry was refused on every retry). Proof
+  `a-selection-of-files-is-read-whole-or-said-unreadable.mjs`. Read and left
+  as bounded by design: the file's own order answers, record search
+  (`SEARCH_LIMIT`), the inquiries page (one page of keys), unreleased payments
+  (200), the partner portal's referrals (`REFERRAL_PAGE`). **Still owed:** the
+  rest of the 69, chiefly the partner statement close's claim write, the
+  partner attribution reads by visitor key, `timeLog` and `listTasks`.
+
 ## APPLIED: 0075, A PAYMENT EVENT IS APPLIED ONCE
 
 **Applied to development and then production 2026-10-13 07:0x CT** by the
@@ -1994,7 +2036,12 @@ teardown commit) kept whole on `wip/staff-walk-harness` at `4607a2b` and
 removed from the release branch. Its ledger entry is written at the sitting
 either way.
 
-## TWO DEFECTS THE STAFF WALK FOUND, 2026-10-03: THE LIST IS BOUNDED, ONE QUESTION ON CLIENTS IS OPEN
+## TWO DEFECTS THE STAFF WALK FOUND, 2026-10-03: BOTH CLOSED, THE CLIENTS QUESTION RULED AND BUILT 2026-11-18
+
+**Confirmed on main `2f06c26`, 2026-11-19** (`docs/master-undone-2026-11-19.md`
+section 7): the open question below was ruled by Robert's answer 8 of
+2026-11-18, a real second client with a possible-duplicate mark, and built as
+`8454509` (`src/lib/client-duplicate-rules.ts`). The body is the record.
 
 **RE-CHECKED AGAINST MAIN `0daa9c0` ON 2026-11-17**, working this file in order
 on Robert's order of that morning. The heading said neither was fixed:
@@ -2081,7 +2128,7 @@ defect again without fixing it, and a bound on the list fixes it whatever the
 table holds. The bound is the real fix and the silt is the reason it was
 visible.
 
-## AND THE NINE ROW CHECKLIST HAS NO ROW FOR A PUBLIC TOKEN-GATED API ROUTE
+## THE NINE ROW CHECKLIST HAD NO ROW FOR A PUBLIC TOKEN-GATED API ROUTE: CLOSED 2026-11-18 (`7c5a7dd`)
 
 **RULED AND WRITTEN 2026-11-18** (Robert's answer 9 to the evening report of
 2026-11-17, 6963018405, on `docs/checklist-row-2-any-api`): row 2 of
@@ -3387,7 +3434,17 @@ had not been boarded since, so nothing had read it.
 - Partner onboarding and the ledger fold, not started by order.
 - The engineer's signatures and approvals on the incoming protocols.
 
-## A REGION HAS NO SOURCES, SO A REGION PAGE CANNOT CARRY A SOURCED FACT
+## A REGION HAD NO SOURCES, SO A REGION PAGE COULD NOT CARRY A SOURCED FACT: BUILT ON `fix/day-batch-2`, 2026-11-19
+
+**Built**, on Robert's all-day prompt of 2026-11-19, job two
+(`docs/master-undone-2026-11-19.md`, N3): `Region` carries an optional
+`sources` in a post's `Source` shape, the region page renders them the way a
+post does and only when a region has one, using the post sources band's own
+heading and lede, and `citation-audit` already reads every `url:` under
+`src/content`. Proof `a-region-page-shows-the-sources-its-region-carries.mjs`
+builds its own subject, because no region carries a source yet. **What stays
+open is the writing:** the Frisco sentence for DFW below is not written, and
+a sourced sentence on any region is new public copy that goes to Robert first.
 
 Operator ruling, 2026-10-17. Not built. `Region` in `src/content/regions.ts`
 has no sources field, and the coverage region page renders none, so a sentence
@@ -5241,7 +5298,13 @@ would agree because one was copied from the other.
 red, it is red for a reason written down here, and the reason is not that
 somebody forgot.
 
-## THE ROOF PAGE PROMISES REMAINING SERVICE LIFE AND THE PROCESS PAGE REFUSES IT
+## THE ROOF PAGE PROMISED REMAINING SERVICE LIFE AND THE PROCESS PAGE REFUSED IT: CLOSED
+
+**Confirmed on main `2f06c26`, 2026-11-19** (`docs/master-undone-2026-11-19.md`
+section 7): `src/content/services.ts:155` now says the letter "does not estimate
+remaining service life", quoting 254-RC-001 (`cb46721`, 2026-10-08), and the
+roof letter itself says the same (`src/content/letters/roof-certification.ts:67`).
+The body is the record of how the two sources disagreed.
 
 Found 2026-09-18 while retargeting the roof page. **Two of the operator's own
 sources disagree about what the firm will put a seal on, and this is not a
@@ -6613,7 +6676,15 @@ What closing it needs: something that writes `revoked_at`, a reason to write it
 from, and a decision about whether issuing a new link should revoke the previous
 one, which would reintroduce exactly the silent death that was rejected.
 
-## A phone in job reaches payment with no refund disclosure
+## A phone in job reaches payment with no refund disclosure: THE DISCLOSURE AND THE FEE ARE WRITTEN; NO CATALOG SNAPSHOT
+
+**Confirmed on main `2f06c26`, 2026-11-19** (`docs/master-undone-2026-11-19.md`
+section 7): `createOrderForFile` in `src/lib/ops-job-billing.ts` writes
+`refund_disclosure` and `inspection_fee_cents` (lines 260 and 261, from
+`475a5af`, 2026-09-08), so a phoned-in customer is told the terms and a refund
+can be worked out. It still writes no `catalog_snapshot`, which is the one part
+of this entry that is open; nothing found today reads that column for a phoned
+order.
 
 Found 2026-09-08 while porting the email design, and it is a CHECKOUT defect
 rather than an email one. Operator ruling: it belongs at the top.
@@ -6780,7 +6851,10 @@ Setting a role back to `required` is one update and turns on the same
 enforcement that shipped in 0024, which `mfa-audit` proves on every run by
 creating a role that requires a factor and requiring the portal to refuse it.
 
-**The open item this leaves.** Voluntary enrolment from the profile screen is
+**CLOSED, confirmed on main `2f06c26` 2026-11-19:** the profile screen links
+to `/portal/mfa/enrol` for anybody not enrolled
+(`src/app/portal/(app)/profile/page.tsx:80`, since `46e840a`, 2026-10-06). The
+paragraph below is the record. **The open item this leaves.** Voluntary enrolment from the profile screen is
 still not built, so somebody who declines is offered again at their next sign in
 and has no other way in. The enrolment copy says exactly that rather than
 pointing at an account screen that does not exist. It is the natural home for
@@ -11197,3 +11271,48 @@ something off the critical path.
 `scripts/seed-roof-protocol.mjs` is written, dry-run clean, and cannot insert
 254-RC-001 until development has 0049. So no protocol row exists yet, nothing
 is in `awaiting_engineer`, and the approval screen has nothing to show.
+
+## THE MASTER UNDONE LIST OF 2026-11-19 IS IN `docs/master-undone-2026-11-19.md`
+
+Robert's all-day prompt of 2026-11-19, job one. Pointer entry, not a second copy, placed last so the line
+numbers that document cites for this file at `428fb36` stay true. It places every open entry here (160 of 218
+at `428fb36`) beside what issue #1, `CLAUDE.md`, `docs/` and the standing list hold: 63 rows, plus 57 older
+entries here whose open residue was not re-checked against the code that day. It carries the numbered rulings
+only Robert can make, and those already answered with their comment ids. Five entries read open and were
+confirmed done on main that day (at `428fb36`, lines 1997, 2084, 5244, 6616 and 6761); their headings are
+corrected separately.
+
+## THE SIGN-UP AND RESET LIMITERS DO NOT DO WHAT THEIR COMMENT SAYS, AND MOVING THEM TO THE DATABASE WAITS ON A RULING
+
+Found 2026-11-19 while working row N6 of `docs/master-undone-2026-11-19.md`
+(the limiters count in each server's memory; `APPLIED: 0071` above). Read in
+the source, not inferred: `takeSignUpAttempt` and `takeResetAttempt` in
+`src/lib/ops-rate-limit.ts`.
+
+**The comment says** the second bucket, keyed on the email address AND the
+connection, "is what stops a limit keyed on an address alone from being a
+denial of service anybody can aim": an attacker burns their own connection's
+allowance rather than the victim's.
+
+**The code refuses on the address bucket first.** The address count rises on
+every call from every connection, and `if (existing.count >
+SIGN_UP_ATTEMPTS_PER_HOUR) return false` returns before the connection bucket
+is read. And because the connection count can never exceed the address count
+under the same ceiling, the connection bucket can never refuse anything. So
+five requests naming somebody's address, from anywhere, and that person's own
+sign up is refused for the rest of the hour (three for a password reset). The
+route answers the same sentence either way, so they are not told. **Confirmed
+by calling the limiters themselves**, not only by reading them: five calls from
+one connection naming an address, then that address's first call from a
+second connection, answered `[true, true, true, true, true]` then `false`;
+three reset calls then a second connection answered `[true, true, true]` then
+`false`; and 61 minutes later the second connection answered `true`.
+
+**Why it is not fixed here.** The two fixes trade one protection for the other.
+Keying the refusal on the connection alone restores the stated protection
+against a lockout and loosens the limit on walking an address list from many
+connections; keeping the address bucket keeps that limit and accepts the
+lockout. That is a ruling, and moving the count into the database (N6) is
+built on whichever answer is given, because a shared count would spread the
+lockout across every server. Put to Robert as a numbered question on
+2026-11-19.
