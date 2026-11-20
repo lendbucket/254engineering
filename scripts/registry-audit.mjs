@@ -43,8 +43,19 @@
  */
 import { BRANDS } from "../data/keyword-registry.ts";
 import { AUDIT_BASE_URL } from "./lib/ports.mjs";
+import { orCouldNotTell } from "./lib/reachable.mjs";
 
 const LOCAL = process.env.BASE_URL || AUDIT_BASE_URL;
+
+/*
+ * UNREACHABLE IS NOT FAILED (BACKLOG "Audits that still fail red when run
+ * standalone with no server", master undone list L6661, 2026-11-20). Run
+ * standalone with nothing answering, this audit used to record a FAIL for
+ * every route. It now asks the server once before measuring anything, and if
+ * nothing answered it says COULD NOT TELL and exits on the third code. Any
+ * other error is rethrown, so a server that answers and refuses stays loud.
+ */
+await orCouldNotTell(() => fetch(`${LOCAL}/`), `the site at ${LOCAL}`);
 const SELF = "254";
 const FAIL_AT = 0.75;
 

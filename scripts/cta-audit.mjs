@@ -22,6 +22,16 @@
 // gate the CTA has to be waitlist or notify language, and order language on a
 // service surface is a finding.
 const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
+
+/*
+ * UNREACHABLE IS NOT FAILED (BACKLOG "Audits that still fail red when run
+ * standalone with no server", master undone list L6661, 2026-11-20). Run
+ * standalone with nothing answering, this audit used to record a FAIL for
+ * every route. It now asks the server once before measuring anything, and if
+ * nothing answered it says COULD NOT TELL and exits on the third code. Any
+ * other error is rethrown, so a server that answers and refuses stays loud.
+ */
+await orCouldNotTell(() => fetch(`${BASE}/`), `the site at ${BASE}`);
 /*
  * THE MODE COMES FROM THE GATE. Same defect as voice-audit and found the same
  * way: this audit carried its own copy of the compliance gate, derived from
@@ -31,6 +41,7 @@ const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
  */
 import "./lib/load-env.mjs";
 import { AUDIT_BASE_URL } from "./lib/ports.mjs";
+import { orCouldNotTell } from "./lib/reachable.mjs";
 import { adLandingRoutes } from "./lib/surfaces.mjs";
 const { launchMode } = await import("../src/lib/launch.ts");
 const MODE = launchMode();
