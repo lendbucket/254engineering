@@ -358,7 +358,7 @@ export const topics: Topic[] = [
     evidence: "2026-10-16, operator's Ahrefs pull, US, supplied with the brief: primary 'foundation inspection cost' 2,200/mo, KD 2. Supporting: 'how much is a foundation inspection'.",
     angles: {
       "254": {
-        angle: "What each of three providers sells under one name (TREC inspector under 22 TAC 535.227 and 535.228, a repair company's free visit, an engineer), the engineer's fee read through the ASCE Texas Section levels A, B and C, costs outside the fee (plumbing test, boring, repair documents, a city permit, post repair letter), who engages inspectors under TREC form 20-18, and the Fannie Mae B4-1.3-06 report standard. Types no price of its own; links /structural-engineer/cost, which owns 'structural engineer cost'.",
+        angle: "What each of three providers sells under one name (TREC inspector under 22 TAC 535.227 and 535.228, a repair company's free visit, an engineer), the engineer's fee read through the ASCE Texas Section levels A, B and C, costs outside the fee (plumbing test, boring, repair documents, a city permit, post repair letter), who engages inspectors under TREC form 20-19, and the Fannie Mae B4-1.3-06 report standard. Types no price of its own; links /structural-engineer/cost, which owns 'structural engineer cost'.",
         path: "/insights/foundation-inspection-cost",
         status: "live",
       },
@@ -374,7 +374,7 @@ export const topics: Topic[] = [
     evidence: "2026-10-16, operator's Ahrefs pull, US, supplied with the brief: primary 'free foundation inspection' 1,300/mo, KD 0. Supporting: 'foundation repair inspection'.",
     angles: {
       "254": {
-        angle: "Who offers a free inspection and why it is free, what it can and cannot be used for (Occupations Code 1001.003, 1001.301, 1001.401; TREC form 20-18 paragraph 7A; Fannie Mae settlement standard), conflict of interest under TBPELS rule 137.57 and ASCE Texas section 2.2, how to use free proposals well, and city permits as a check. Names no company.",
+        angle: "Who offers a free inspection and why it is free, what it can and cannot be used for (Occupations Code 1001.003, 1001.301, 1001.401; TREC form 20-19 paragraph 7A; Fannie Mae settlement standard), conflict of interest under TBPELS rule 137.57 and ASCE Texas section 2.2, how to use free proposals well, and city permits as a check. Names no company.",
         path: "/insights/free-foundation-inspection",
         status: "live",
       },
@@ -390,7 +390,7 @@ export const topics: Topic[] = [
     evidence: "2026-10-16, operator's Ahrefs pull, US, supplied with the brief: primary 'pre purchase home inspection' 1,000/mo, KD 1. Supporting: 'pre-purchase inspection', 'structural inspection', 'roof inspection before buying a house' (40/mo, a full section).",
     angles: {
       "254": {
-        angle: "The Texas buyer's inspection read from the rules: TREC form 20-18 and the termination option, what 22 TAC 535.227 and 535.228 require and exclude, the REI 7-6 form, when the report points to an engineer, a full roof section (inspector's roof duties versus an engineer's structural roof assessment and when to commission one before closing), and the Property Code 5.008 disclosure. Distinct from /structural-engineer/inspection, which describes the engineer's visit itself.",
+        angle: "The Texas buyer's inspection read from the rules: TREC form 20-19 and the termination option, what 22 TAC 535.227 and 535.228 require and exclude, the REI 7-6 form, when the report points to an engineer, a full roof section (inspector's roof duties versus an engineer's structural roof assessment and when to commission one before closing), and the Property Code 5.008 disclosure. Distinct from /structural-engineer/inspection, which describes the engineer's visit itself.",
         path: "/insights/pre-purchase-home-inspection",
         status: "live",
       },
@@ -516,7 +516,7 @@ export const topics: Topic[] = [
     evidence: "Operator's Ahrefs pull, 2026-10-18: 'roof certification letter' 50/mo; 'roof certification for home sale' no measurable volume. Retargeted from the second to the first on the operator's ruling of 2026-10-18, because 'roof certification' (500/mo, KD 0) belongs to /services/roof-inspections (topic 'roof inspection and certification', and docs/keyword-mapping.md target 6). That topic's evidence also lists 'roof certification letter' as a supporting term, so the service page and this post share the term and the similarity check watches the pair.",
     angles: {
       "254": {
-        angle: "Who in Texas can sign a roof certification letter (TREC inspector limits, a contractor's letter, the seal), what the firm's sealed letter states and the five things it is not, and how it fits a resale: TREC 20-18 paragraph 7A, the termination option, and the seller's notice. Distinct from /services/roof-inspections, which owns 'roof certification', and from roof-certification-vs-wpi-8.",
+        angle: "Who in Texas can sign a roof certification letter (TREC inspector limits, a contractor's letter, the seal), what the firm's sealed letter states and the five things it is not, and how it fits a resale: TREC 20-19 paragraph 7A, the termination option, and the seller's notice. Distinct from /services/roof-inspections, which owns 'roof certification', and from roof-certification-vs-wpi-8.",
         path: "/insights/roof-certification-letter",
         status: "live",
       },
@@ -533,7 +533,7 @@ export const topics: Topic[] = [
     note: "An outreach page for agents, not a search target. Operator ruling, 2026-10-18: kept as written for agents to be sent to, not written or measured for ranking.",
     angles: {
       "254": {
-        angle: "For agents: when to suggest a roof or structural engineer inside the TREC 20-18 option period and when not to, how the online roof order runs, naming the addressee at the start, and what the agent and client receive. Distinct from pre-purchase-home-inspection, which is the buyer's rule by rule reading.",
+        angle: "For agents: when to suggest a roof or structural engineer inside the TREC 20-19 option period and when not to, how the online roof order runs, naming the addressee at the start, and what the agent and client receive. Distinct from pre-purchase-home-inspection, which is the buyer's rule by rule reading.",
         path: "/insights/option-period-inspection",
         status: "live",
       },
