@@ -210,6 +210,18 @@ Twenty-seven of the 57 re-checked: **seven done, one superseded, two ruled with 
 
 Thirty-one of the 57 re-checked: **eight done, two superseded, two ruled with nothing to build, two partly or nearly done, three open on nobody, ten on Robert, two on others, and two not confirmed.** Twenty-six remain unchecked.
 
+**Five more, against main `ab32221`:**
+
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L3843, two reds on the board, 2026-09-21, both owed human reads | Both have been read. The Stripe legal name was captured cropped on 2026-09-22, and the Account status tab was attested by Robert the same day (`verificationNotice` in `src/config/stripe-console.ts`). The engineer's roster entry was re-read on 2026-09-24 and names 254 Engineering LLC (`employersOnRoster` in `src/config/credentials.ts`), and the acknowledgement is retired | **Done** |
+| L9868, the production outage of 2026-09-03, and the audit that scored it green | The hole it names, "nothing watches the health probe on a schedule", is closed: `/api/cron/health-watch` runs every five minutes (`vercel.json`) and reads `/api/portal/health` | **Done** |
+| L4177, the development-against-replay comparison becomes a board preflight | Not built. No audit reads development's live shape: `schema-ledger-audit` compares the recorded behaviour baselines, and PostgREST does not expose `information_schema`. The risk is held by practice instead: a branch's migration goes to development before its board | **Open.** Ruled "record only, do not build now" on 2026-09-21, so it waits on Robert to schedule |
+| L6709, the email design port does not merge until support@ is proven to receive | The port merged long ago, and the mailbox ruling of 2026-10-04 closed the `info@` half. Whether the reply from his phone to a preview send was confirmed is not recorded in the entry | **Not confirmed:** one question for Robert |
+| L7857, left by Phase 9 | Seven subsections. Three are closed in their own text: the eight probe partners (0028), the silent thousand (all twenty-four closed on 2026-09-09) and Phase 9's own scope note. The other four, the report export queue, the unnamed development client, the pre-0022 attribution and retention's inventory, were not each read today | **Partly closed, not confirmed whole** |
+
+Thirty-six of the 57 re-checked: **ten done, two superseded, two ruled with nothing to build, two partly or nearly done, three open on nobody, eleven on Robert, two on others, and four not confirmed.** Twenty-one remain unchecked.
+
 ## 8. Asked, and done: confirmed on main today
 
 | What | Where it was asked | The commit and file on main |
