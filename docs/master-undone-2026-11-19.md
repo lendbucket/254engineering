@@ -232,6 +232,17 @@ Thirty-six of the 57 re-checked: **ten done, two superseded, two ruled with noth
 
 Thirty-nine of the 57 re-checked: **eleven done, two superseded, two ruled with nothing to build, three partly or nearly done, three open on nobody, twelve on Robert, two on others, and four not confirmed.** Eighteen remain unchecked.
 
+**Four more, against main `0f7738b`:**
+
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L7121, the cutover, reopened 2026-09-10, and two defects the dry run found | Both defects are marked RESOLVED in the entry: `copy-project.mjs` reads every row, and the three missing tables are in its lists. The copy script has still never been run against anything, and the cutover is deferred by operator decision (CLAUDE.md 6b) | **Open, waits on Robert:** the cutover |
+| L8458, careers system | Most subsections are marked resolved or done in their own text. "/careers/professional-engineer is 54ms over its LCP ceiling" is overtaken: `perf-audit` passed on boards 44713824145 and 44731413928 today, with only `/coverage` in the standing NOT STABLE note. "The engineer application cannot be completed without storage" still holds: `scripts/lib/careers-audit.mjs` stops the engineer flow at the documents step | **Partly done.** The engineer flow's full submission is still unproven; that needs storage on the checking machine, which waits on nobody |
+| L8844, visual layer | Five standing notes on deliberate choices: the deferred texture, the map's restated hex values, the generated county geometry, no service line icons, and the mobile menu marks in CSS. Each says why it is as it is | **Ruled, with nothing to build** |
+| L8436, content | "Region pages are the deepest content and the least reviewed" is being worked now: ruling 20's source drafts are 7033496016 and 7041269871. "There are no reviews, and no review schema" is still true, and by standing law it stays so until real third-party reviews exist | **Open, waits on Robert:** ruling 20's sources |
+
+Forty-three of the 57 re-checked: **eleven done, two superseded, three ruled with nothing to build, four partly or nearly done, three open on nobody, fourteen on Robert, two on others, and four not confirmed.** Fourteen remain unchecked.
+
 ## 8. Asked, and done: confirmed on main today
 
 | What | Where it was asked | The commit and file on main |
