@@ -267,6 +267,20 @@ Fifty-one entries re-checked: **twelve done, two superseded, three ruled with no
 
 **A correction to every running total above, found while writing this one.** The first pass on 2026-11-19 counted L3180 among "the 57", and L3180 is not on that list: it is N9 in section 3. So the totals are of fifty-one entries, of which **fifty are among the 57, and seven of the 57 remain unchecked**, not six: L2561, L2753, L2847, L3347, L3373 and L4714 are pointers to dated overnight and sitting documents, and L5288 is the site rebuild. The earlier totals are left as written, each one high by that same one, rather than rewritten silently.
 
+**The last seven of the 57, against main `2792a1b`:**
+
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L2561, rulings owed from the overnight of 2026-09-21 (`docs/overnight-2026-09-22.md` section 3, eight questions) | Four are settled in the code. One, the `field_tech` label, is ruled "Field Technician" (`src/content/onboarding-checklists.ts`). Four, the photo time difference, is stored by 0057. Six, CLAUDE.md's condition count, now reads eleven. Eight, `stripe-webhook-audit` comparing the account's legal name with the registrant, is in `accountVerdict`. Seven is still open: `scripts/lib/us-spelling.mjs` says it does not read JSX text or interpolated templates, and he asked for that in a sitting. Two, three and five, the partner DBA, audit wording and the ten-year floor, were not traced today | **Mostly done. Open, waits on Robert:** question seven, in a sitting |
+| L2753, the overnight of 2026-09-23 | A pointer to `docs/overnight-2026-09-23.md` (1,257 lines) and its questions | **Not confirmed:** the document's questions were not read item by item |
+| L2847, the production sitting of 2026-09-24 | A pointer to `docs/production-sitting-2026-09-24.md`, a checklist for one sitting two months ago | **Not confirmed** |
+| L3347, the overnight of 2026-09-24 | A pointer to `docs/overnight-2026-09-24.md`. The rule disagreement it names, the engineer seeing money, was ruled on 2026-09-24 (CLAUDE.md 6b-i) | **Not confirmed** for the rest of the document |
+| L3373, the morning of 2026-10-15 | A pointer to `docs/MORNING-2026-10-15.md` and its numbered questions | **Not confirmed** |
+| L4714, the handoff of 2026-09-22 is the position; this file is the index | A pointer to `docs/HANDOFF-2026-09-22.md`, which its own text says is stale the moment anything moves. CLAUDE.md still tells a new session to read it first | **Not confirmed.** Whether it is still the position document is a question for Robert |
+| L5288, the site rebuild: approved copy, retargeted keywords, and the gate under it | Not read today | **Not confirmed** |
+
+**All 57 have now had a first read. Of the fifty-eight entries placed** (the 57 and L3180): **twelve done, two superseded, three ruled with nothing to build, five partly, mostly or nearly done, three open on nobody, eighteen on Robert, two on others, and thirteen not confirmed.** The thirteen are where a second pass starts. Six of them are dated documents whose questions were never read item by item, which is a session's work of its own.
+
 ## 8. Asked, and done: confirmed on main today
 
 | What | Where it was asked | The commit and file on main |
