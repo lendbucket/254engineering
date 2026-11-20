@@ -175,6 +175,18 @@ Seventeen of the 57 re-checked, recounted with the night's changes (UTM moved to
 
 **Two corrections to rows above this table, from the same night:** R33 has been done since `fe9c586` (2026-09-10), and UTM capture on leads since `c4dc17e` (2026-11-15). Both were written from records rather than from the code, and both were found when the code was read to build them.
 
+**Re-checked on the morning of 2026-11-20 against main `987622f`**, five more, each read in the code:
+
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L6397, the queue: nothing on the board goes through its door | `scripts/queue-audit.mjs` enqueues a probe for every registered kind, lets `eng_claim_jobs` claim it and runs it through `runBatch` (added in `e4ac96d`, 2026-09-09) | **Done** |
+| L5525, the first measurement of every authenticated screen | It was taken on 2026-09-14, and the measurement itself had then broken: until `987622f` no signed-in screen could be measured, because Lighthouse dropped the session header. On 2026-11-20, 81 screens were measured (7036330039), and six are over their byte budget | **Superseded by the 2026-11-20 measurement.** Its six byte findings and the office profile wait on Robert (questions 7 and 8 of 7038485968) |
+| L4624, nothing asks whether every portal screen is reachable from the navigation | Every check that imports `NAV` still starts from the menu: `compliance-audit`, `reporting-audit`, `overnight-roles.mjs`, and the newer `a-granted-screen-always-opens.mjs` and `no-menu-offers-a-screen-that-turns-its-reader-away.mjs`. None starts from disk and asks what the menu is missing | **Open.** Ruled "record only, do not build now" on 2026-09-21, so it waits on Robert to schedule |
+| L4661, the design brief has no proof that a valid submission saves | `scripts/forms-audit.mjs` still validates `/design-inquiry` and never completes a submission, deliberately: a valid one would leave a business row that has no delete path | **Open, waits on Robert.** Proving the save needs either a delete path or a fixture database, which is his decision |
+| L6661, audits that still fail red when run standalone with no server | Of the fourteen named, three now say COULD NOT TELL: `asset-audit` and `messaging-audit` through `scripts/lib/reachable.mjs`, and `voice-audit`. The other eleven still do not: `bucket-roundtrip`, `coverage-audit`, `cta-audit`, `forms-audit`, `link-map`, `placeholder-audit`, `preflight-audit`, `preflight-harness`, `registry-audit`, `seo-audit`, `shots` | **Partly done. Open, waits on nobody** |
+
+Twenty-two of the 57 re-checked: **seven done, one superseded, one ruled with nothing to build, one nearly done, three open on nobody, six on Robert, one on others, and two not confirmed.** Thirty-five remain unchecked.
+
 ## 8. Asked, and done: confirmed on main today
 
 | What | Where it was asked | The commit and file on main |
