@@ -160,6 +160,21 @@ L11142; the cutover (R7) on L5697, L7121 and L7381; nobody on the other 33.
 
 Eleven of the 57 re-checked so far: two done, one nearly done, two open on nobody, four on Robert, two on others.
 
+**Re-checked overnight into 2026-11-20 against main `76bc29f`**, six more, each read in the code:
+
+| Entry (line at `428fb36`) | What the code says today | Placement now |
+| --- | --- | --- |
+| L11142, the demo seeder mints a published protocol nobody approved | `scripts/seed-field-demo.mjs:436` names a demonstration approver, marked as one, under the operator's ruling that a marked demonstration approval is allowed | **Done** |
+| L7816, before a partner can sign in on production | `PARTNER_SESSION_SECRET` is recorded set in Production (`src/config/credential-inventory.ts:373`) | **Done** |
+| L6642, onboarding-welcome waits on self-service accounts | The account welcome is built (`accountWelcome`, `3e9d40d`, 2026-09-12) and both doors send it, `/api/account/sign-up` and `/api/portal/accounts/create` | **Done** |
+| L4260, `mfa-audit`'s teardown deletes one key where `destroyProbes` sweeps a domain | Still so: it deletes the probe ids it made (`scripts/mfa-audit.mjs` around line 1381) | **Open, waits on nobody**; a writer-audit change, so it is tested in a night run like N10 |
+| L8987, `forms-audit` skips "engineer: review, consent, and submit" | That step's wording no longer appears in `scripts/forms-audit.mjs`; what replaced it was not read tonight | **Not confirmed either way** |
+| L5328, trade pricing held by the compliance gate | The entry's second reason, the gate, no longer describes production, which takes payment by Robert's ruling of 2026-11-14. Whether a trade price reaches a customer's order today was not read | **Not confirmed**; owed a read of the trade price path |
+
+Seventeen of the 57 re-checked, recounted with the night's changes (UTM moved to done, L1445's keyed read moved to Robert because the chat holds no Stripe key, 7017912532, and L1578 ruled "no" by Robert, 7029872252): **six done, one ruled with nothing to build (L1578), one nearly done (L3180), two open on nobody (L9077, L4260), four on Robert (L927, L1119, L2259, L1445), one on others (L2898), two not confirmed (L8987, L5328).** Forty remain unchecked.
+
+**Two corrections to rows above this table, from the same night:** R33 has been done since `fe9c586` (2026-09-10), and UTM capture on leads since `c4dc17e` (2026-11-15). Both were written from records rather than from the code, and both were found when the code was read to build them.
+
 ## 8. Asked, and done: confirmed on main today
 
 | What | Where it was asked | The commit and file on main |
