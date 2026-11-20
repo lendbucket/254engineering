@@ -130,7 +130,10 @@ entry is left open; it stays as the record of how the gap was closed.
 Robert ruled its figures on 2026-11-10 (6767214731, questions 1 and 5): thirty
 days, and field technicians only. 0125 is recorded as on production since
 2026-11-12 in `supabase/applied.mjs`. Nothing on this entry is left open; it
-stays as the record, and the store submission is not waiting on it.
+stays as the record, and the store submission is not waiting on it. What is
+still open before the first store submission is the console work in
+`docs/store-console-steps.md` (from `store/prep`, corrected the same way on
+2026-11-14 and merged here 2026-11-20).
 
 ### As first written
 
