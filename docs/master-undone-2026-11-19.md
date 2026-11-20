@@ -210,6 +210,77 @@ Twenty-seven of the 57 re-checked: **seven done, one superseded, two ruled with 
 
 Thirty-one of the 57 re-checked: **eight done, two superseded, two ruled with nothing to build, two partly or nearly done, three open on nobody, ten on Robert, two on others, and two not confirmed.** Twenty-six remain unchecked.
 
+**Five more, against main `ab32221`:**
+
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L3843, two reds on the board, 2026-09-21, both owed human reads | Both have been read. The Stripe legal name was captured cropped on 2026-09-22, and the Account status tab was attested by Robert the same day (`verificationNotice` in `src/config/stripe-console.ts`). The engineer's roster entry was re-read on 2026-09-24 and names 254 Engineering LLC (`employersOnRoster` in `src/config/credentials.ts`), and the acknowledgement is retired | **Done** |
+| L9868, the production outage of 2026-09-03, and the audit that scored it green | The hole it names, "nothing watches the health probe on a schedule", is closed: `/api/cron/health-watch` runs every five minutes (`vercel.json`) and reads `/api/portal/health` | **Done** |
+| L4177, the development-against-replay comparison becomes a board preflight | Not built. No audit reads development's live shape: `schema-ledger-audit` compares the recorded behaviour baselines, and PostgREST does not expose `information_schema`. The risk is held by practice instead: a branch's migration goes to development before its board | **Open.** Ruled "record only, do not build now" on 2026-09-21, so it waits on Robert to schedule |
+| L6709, the email design port does not merge until support@ is proven to receive | The port merged long ago, and the mailbox ruling of 2026-10-04 closed the `info@` half. Whether the reply from his phone to a preview send was confirmed is not recorded in the entry | **Not confirmed:** one question for Robert |
+| L7857, left by Phase 9 | Seven subsections. Three are closed in their own text: the eight probe partners (0028), the silent thousand (all twenty-four closed on 2026-09-09) and Phase 9's own scope note. The other four, the report export queue, the unnamed development client, the pre-0022 attribution and retention's inventory, were not each read today | **Partly closed, not confirmed whole** |
+
+Thirty-six of the 57 re-checked: **ten done, two superseded, two ruled with nothing to build, two partly or nearly done, three open on nobody, eleven on Robert, two on others, and four not confirmed.** Twenty-one remain unchecked.
+
+**Three more, against main `4f9f9f2`:**
+
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L1183, the sitting for `release/2026-10-20`, part C open | Parts A and B and C1 to C3 ran on 2026-10-07. The People screen fix it held open, `fix/people-linked-audit` at `fe6f898`, is on main: `src/app/api/portal/people/route.ts` records a linked profile as linked. C4, his two credentials, still waits on his documents | **Open, waits on Robert:** C4 only |
+| L8232, blocked on the owner | Of its six subsections: the logo is done and `info@` is closed, both in their own text; the launch flip is overtaken by production taking payment (2026-11-14); and the SAM.gov UEI and CAGE subsection is overtaken by `samRegistration` being retired on 2026-09-17, so no SAM claim renders at all. "No phone number is published anywhere" is stale: the site's number comes from `FIRM_PHONE` through `e164Phone()`, and `business.phone` is an unused null. The capability statement PDF is still not written | **Partly superseded. Open, waits on Robert:** the capability statement |
+| L9285, Phase 3, the proximity head term and an honest link count | History: `link-map` stopped counting card navigation as prose (links inside a heading are stripped before anchors are read), measured on 2026-08-31 | **Done** |
+
+Thirty-nine of the 57 re-checked: **eleven done, two superseded, two ruled with nothing to build, three partly or nearly done, three open on nobody, twelve on Robert, two on others, and four not confirmed.** Eighteen remain unchecked.
+
+**Four more, against main `0f7738b`:**
+
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L7121, the cutover, reopened 2026-09-10, and two defects the dry run found | Both defects are marked RESOLVED in the entry: `copy-project.mjs` reads every row, and the three missing tables are in its lists. The copy script has still never been run against anything, and the cutover is deferred by operator decision (CLAUDE.md 6b) | **Open, waits on Robert:** the cutover |
+| L8458, careers system | Most subsections are marked resolved or done in their own text. "/careers/professional-engineer is 54ms over its LCP ceiling" is overtaken: `perf-audit` passed on boards 44713824145 and 44731413928 today, with only `/coverage` in the standing NOT STABLE note. "The engineer application cannot be completed without storage" still holds: `scripts/lib/careers-audit.mjs` stops the engineer flow at the documents step | **Partly done.** The engineer flow's full submission is still unproven; that needs storage on the checking machine, which waits on nobody |
+| L8844, visual layer | Five standing notes on deliberate choices: the deferred texture, the map's restated hex values, the generated county geometry, no service line icons, and the mobile menu marks in CSS. Each says why it is as it is | **Ruled, with nothing to build** |
+| L8436, content | "Region pages are the deepest content and the least reviewed" is being worked now: ruling 20's source drafts are 7033496016 and 7041269871. "There are no reviews, and no review schema" is still true, and by standing law it stays so until real third-party reviews exist | **Open, waits on Robert:** ruling 20's sources |
+
+Forty-three of the 57 re-checked: **eleven done, two superseded, three ruled with nothing to build, four partly or nearly done, three open on nobody, fourteen on Robert, two on others, and four not confirmed.** Fourteen remain unchecked.
+
+**Four more, against main `9d21740`:**
+
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L795, the workflow map is written and not walked: W2, W3 and W4 are open | All three happened. W2 is `scripts/w2-walk-audit.mjs` on the board's writers shard, W3 took its findings by severity (`feat/w3-walk-findings`), and W4's procedures screen is `src/app/portal/(app)/procedures/page.tsx` | **Done.** What each walk found is in the next two rows |
+| L807, W2 walked, 2026-10-28 | Its open item is speed: `/portal/accounts` and `/portal/review` over the two-second standard. Today's measurement (7036330039) has them at 2925 ms and 3311 ms, but under the gate's slowed phone profile, which is not the office-ready standard's "normal office connection" | **Open, waits on Robert:** question 7 of 7038485968, the office profile |
+| L394, W3 round 2: the walk's 28 missing and off-screen steps | Twenty-one are classed in its own table: off-screen by nature, wording corrected, no screen by design, a code edit by ruling, or built. Seven are "asked, not built" | **Open, waits on Robert:** the seven questions |
+| L54, the October 2026 product audit's records, indexed by path, not re-checked | A pointer to six documents under `docs/audit-2026-10/`, and it says itself that their items were not re-checked when it was written | **Not confirmed.** Reading the six documents item by item is a session's work of its own |
+
+Forty-seven of the 57 re-checked: **twelve done, two superseded, three ruled with nothing to build, four partly or nearly done, three open on nobody, sixteen on Robert, two on others, and five not confirmed.** Ten remain unchecked.
+
+**Four more, against main `883a489`:**
+
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L2221, waiting on Robert | Its table of 18 rows: most are ruled, built or closed in their own State column. Four still read open: the dispatch readiness sitting script (written, not run), the three findings from the one-protocol-to-many groundwork, "Next payout run" drawn on the owner dashboard with no payout run behind it (a money question), and monospace on a one-time secret | **Open, waits on Robert:** those four |
+| L2279, stage 2 was read against the code before it was styled | `docs/design-v10/stage-2-reconciliation.md` leaves the first pass rate, the median review time and the time under responsible charge uncomputed, the KPI sparklines without a series, and the PDF export of the responsible charge log unbuilt. Each is absent from the screen rather than false on it | **Open, waits on Robert** to schedule: they are features, not defects |
+| L7449, recorded elsewhere, and now indexed here | Ten subsections; three are RESOLVED in their own text (messages addressed to you, the scroll half of native point 8, queue depth alerting). Sentry, messaging edit, delete and export, metric charts, uptime, telemetry retention and the unbuilt prototype surfaces were not each read today. `SENTRY_DSN` is declared in `src/config/credential-inventory.ts`; whether a value is set is a Vercel read | **Partly closed, not confirmed whole** |
+| L8348, engineering | Six subsections. The intake that answered success on a failed write is RESOLVED (2026-09-06). Resend sending, the forms round trip on this machine, county pages and the waitlist route were not each read today | **Partly closed, not confirmed whole** |
+
+Fifty-one entries re-checked: **twelve done, two superseded, three ruled with nothing to build, four partly or nearly done, three open on nobody, eighteen on Robert, two on others, and seven not confirmed.**
+
+**A correction to every running total above, found while writing this one.** The first pass on 2026-11-19 counted L3180 among "the 57", and L3180 is not on that list: it is N9 in section 3. So the totals are of fifty-one entries, of which **fifty are among the 57, and seven of the 57 remain unchecked**, not six: L2561, L2753, L2847, L3347, L3373 and L4714 are pointers to dated overnight and sitting documents, and L5288 is the site rebuild. The earlier totals are left as written, each one high by that same one, rather than rewritten silently.
+
+**The last seven of the 57, against main `2792a1b`:**
+
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L2561, rulings owed from the overnight of 2026-09-21 (`docs/overnight-2026-09-22.md` section 3, eight questions) | Four are settled in the code. One, the `field_tech` label, is ruled "Field Technician" (`src/content/onboarding-checklists.ts`). Four, the photo time difference, is stored by 0057. Six, CLAUDE.md's condition count, now reads eleven. Eight, `stripe-webhook-audit` comparing the account's legal name with the registrant, is in `accountVerdict`. Seven is still open: `scripts/lib/us-spelling.mjs` says it does not read JSX text or interpolated templates, and he asked for that in a sitting. Two, three and five, the partner DBA, audit wording and the ten-year floor, were not traced today | **Mostly done. Open, waits on Robert:** question seven, in a sitting |
+| L2753, the overnight of 2026-09-23 | A pointer to `docs/overnight-2026-09-23.md` (1,257 lines) and its questions | **Not confirmed:** the document's questions were not read item by item |
+| L2847, the production sitting of 2026-09-24 | A pointer to `docs/production-sitting-2026-09-24.md`, a checklist for one sitting two months ago | **Not confirmed** |
+| L3347, the overnight of 2026-09-24 | A pointer to `docs/overnight-2026-09-24.md`. The rule disagreement it names, the engineer seeing money, was ruled on 2026-09-24 (CLAUDE.md 6b-i) | **Not confirmed** for the rest of the document |
+| L3373, the morning of 2026-10-15 | A pointer to `docs/MORNING-2026-10-15.md` and its numbered questions | **Not confirmed** |
+| L4714, the handoff of 2026-09-22 is the position; this file is the index | A pointer to `docs/HANDOFF-2026-09-22.md`, which its own text says is stale the moment anything moves. CLAUDE.md still tells a new session to read it first | **Not confirmed.** Whether it is still the position document is a question for Robert |
+| L5288, the site rebuild: approved copy, retargeted keywords, and the gate under it | Not read today | **Not confirmed** |
+
+**All 57 have now had a first read. Of the fifty-eight entries placed** (the 57 and L3180): **twelve done, two superseded, three ruled with nothing to build, five partly, mostly or nearly done, three open on nobody, eighteen on Robert, two on others, and thirteen not confirmed.** The thirteen are where a second pass starts. Six of them are dated documents whose questions were never read item by item, which is a session's work of its own.
+
 ## 8. Asked, and done: confirmed on main today
 
 | What | Where it was asked | The commit and file on main |
