@@ -28,7 +28,13 @@ check("it pages, reading one past the page to say whether more follow", /\.range
 check("a failed read is null, never an empty page", /if \(error\) \{[\s\S]*?return null;/.test(fn));
 check("and what a person may see is still filtered, page by page", /canSeeTask\(actor, \{ assigneeId: t\.assignee_id, createdBy: t\.created_by, fileId: t\.file_id \}\)/.test(fn));
 const read = lib.slice(lib.indexOf("export async function listTasksRead("), lib.indexOf("/** One page of tasks. */"));
-check("the dashboard's read is the first page of the same rule, so the two cannot drift", /const page = await listTasksPage\(actor, filters\);\s*return page \? page\.rows : null;/.test(read));
+/*
+ * Changed 2026-11-20 (master undone list N5): this asserted the dashboard read
+ * the FIRST PAGE, which capped its counts at 300. It reads every matching task
+ * now, through the same query, and a-task-count-reads-every-open-task.mjs
+ * proves the count past a page.
+ */
+check("the dashboard's read is every task of the same rule, not its first page", /return listEveryTask\(actor, filters\);/.test(read) && !/listTasksPage/.test(read));
 
 const page = readFileSync("src/app/portal/(app)/tasks/page.tsx", "utf8");
 /* Sort and direction since 2026-11-13 (office-ready table), passed to the same read. */
