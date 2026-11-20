@@ -243,6 +243,17 @@ Thirty-nine of the 57 re-checked: **eleven done, two superseded, two ruled with 
 
 Forty-three of the 57 re-checked: **eleven done, two superseded, three ruled with nothing to build, four partly or nearly done, three open on nobody, fourteen on Robert, two on others, and four not confirmed.** Fourteen remain unchecked.
 
+**Four more, against main `9d21740`:**
+
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L795, the workflow map is written and not walked: W2, W3 and W4 are open | All three happened. W2 is `scripts/w2-walk-audit.mjs` on the board's writers shard, W3 took its findings by severity (`feat/w3-walk-findings`), and W4's procedures screen is `src/app/portal/(app)/procedures/page.tsx` | **Done.** What each walk found is in the next two rows |
+| L807, W2 walked, 2026-10-28 | Its open item is speed: `/portal/accounts` and `/portal/review` over the two-second standard. Today's measurement (7036330039) has them at 2925 ms and 3311 ms, but under the gate's slowed phone profile, which is not the office-ready standard's "normal office connection" | **Open, waits on Robert:** question 7 of 7038485968, the office profile |
+| L394, W3 round 2: the walk's 28 missing and off-screen steps | Twenty-one are classed in its own table: off-screen by nature, wording corrected, no screen by design, a code edit by ruling, or built. Seven are "asked, not built" | **Open, waits on Robert:** the seven questions |
+| L54, the October 2026 product audit's records, indexed by path, not re-checked | A pointer to six documents under `docs/audit-2026-10/`, and it says itself that their items were not re-checked when it was written | **Not confirmed.** Reading the six documents item by item is a session's work of its own |
+
+Forty-seven of the 57 re-checked: **twelve done, two superseded, three ruled with nothing to build, four partly or nearly done, three open on nobody, sixteen on Robert, two on others, and five not confirmed.** Ten remain unchecked.
+
 ## 8. Asked, and done: confirmed on main today
 
 | What | Where it was asked | The commit and file on main |
