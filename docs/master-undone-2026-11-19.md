@@ -199,6 +199,17 @@ Twenty-two of the 57 re-checked: **seven done, one superseded, one ruled with no
 
 Twenty-seven of the 57 re-checked: **seven done, one superseded, two ruled with nothing to build, one nearly done, three open on nobody, nine on Robert, two on others, and two not confirmed.** Thirty remain unchecked.
 
+**Four more, against main `4fa2cce`:**
+
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L6172, six of the seven launch conditions are unmet | Written on 2026-09-11, when the gate had seven conditions; it has eleven now. The two it names as holding the gate are both met. `trading-name` has been met since TBPELS reissued F-29811 on 2026-09-21. `stripe` has been met since 2026-09-28, with the $1.00 charge `ch_3UKqulA2kbTZN5C30klBCW9j` and its refund recorded in `stripeAccount` in `src/config/launch-readiness.ts`. Production takes payment by Robert's ruling of 2026-11-14 | **Superseded.** The live state is `/portal/launch` |
+| L5973, Section 4's Section 0: four debts | All four are closed in the code: the queue door by `queue-audit`; the schema fingerprint's blind spots by the behaviour digest in `scripts/fingerprint-at.mjs` and `migration-audit`; the overflow audit's third verdict by `scripts/lib/reachable.mjs`, which `mobile-overflow-audit` imports; and line endings by `.gitattributes` | **Done** |
+| L5794, the paths that exist only for a failure that has not happened | Two now have exercises, `scripts/exercises/queue-resume.mjs` and `scripts/exercises/retention-execute.mjs`, but they are run by hand and are in no board shard. The restore is still proven by nothing, and the break glass is on the board | **Partly done.** Putting the two exercises on the board waits on nobody. The restore waits on Robert and the cutover |
+| L7254, the performance gate measured on a deployment | `REMOTE_LCP_TARGET` is still 2000 ms in `scripts/perf-budgets.mjs`, a target the file itself says nothing can enforce from here | **Open, waits on Robert:** the ceiling is his number |
+
+Thirty-one of the 57 re-checked: **eight done, two superseded, two ruled with nothing to build, two partly or nearly done, three open on nobody, ten on Robert, two on others, and two not confirmed.** Twenty-six remain unchecked.
+
 ## 8. Asked, and done: confirmed on main today
 
 | What | Where it was asked | The commit and file on main |
