@@ -312,7 +312,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
           empty={
             <EmptyState
               title="Nothing has been filed yet"
-              body="Sealed deliverables land here when the compliance gate lifts and a Professional Engineer seals one. Credentials and agreements are filed from onboarding."
+              body="Sealed deliverables land here when the engineer seals one. Credentials and agreements are filed from onboarding."
             />
           }
         />
