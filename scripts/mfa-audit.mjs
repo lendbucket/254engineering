@@ -71,6 +71,30 @@ const rec = (name, ok, note = "") => out.push({ name, ok, note });
 const cnt = (name, note) => out.push({ name, ok: null, note });
 
 /*
+ * A CLEANUP THAT FAILED IS ASKED AGAIN BEFORE IT IS CALLED A LEFTOVER. BACKLOG,
+ * "PHASE 14: mfa-audit REPORTS AN UNREACHABLE DATABASE AS A CONTENT FINDING",
+ * built on Robert's overnight order of 2026-11-19 (N10). A delete that answered
+ * "TypeError: fetch failed" printed "<role> is still on development", which is a
+ * sentence about the data written from a fault in the network: true when the
+ * delete never arrived, false when it arrived and only the answer was lost, and
+ * the same words both times. So the role is read back. Gone is a pass whatever
+ * the delete said; still there is the finding, with the delete's error; and a
+ * read back that cannot be made either is COULD NOT TELL, naming both faults.
+ */
+async function recordRoleCleanup(db, name, roleKey, deleteError) {
+  if (!deleteError) return rec(name, true);
+  const { data, error } = await db.from("eng_roles").select("key").eq("key", roleKey).maybeSingle();
+  if (error) {
+    return cnt(
+      name,
+      `the delete of ${roleKey} failed (${deleteError.message}) and reading it back failed too (${error.message}), so whether it is still on development is not known`,
+    );
+  }
+  if (!data) return rec(name, true, `the delete answered ${deleteError.message}, and ${roleKey} is gone`);
+  return rec(name, false, `${roleKey} is still on development: ${deleteError.message}`);
+}
+
+/*
  * HOW LONG THE ENROLMENT SCREEN TOOK, PRINTED ON EVERY RUN. Operator ruling,
  * 2026-10-13: the 15 second wait below is a diagnostic, not a looser pass.
  * The QR or the form's error is timed from the click, and anything over
@@ -1385,22 +1409,12 @@ else process.env.OPS_SESSION_SECRET = HAD;
               /* Grants reference the role too, so they go before it. */
               await db.from("eng_role_grants").delete().eq("role_key", REQUIRED_ROLE);
               const removed = await db.from("eng_roles").delete().eq("key", REQUIRED_ROLE);
-              rec(
-                "the throwaway required role was cleaned up",
-                !removed.error,
-                removed.error
-                  ? `${REQUIRED_ROLE} is still on development: ${removed.error.message}`
-                  : "",
-              );
+              await recordRoleCleanup(db, "the throwaway required role was cleaned up", REQUIRED_ROLE, removed.error);
             }
             if (optionalRoleMade) {
               await db.from("eng_role_grants").delete().eq("role_key", OPTIONAL_ROLE);
               const removedOptional = await db.from("eng_roles").delete().eq("key", OPTIONAL_ROLE);
-              rec(
-                "the throwaway optional role was cleaned up",
-                !removedOptional.error,
-                removedOptional.error ? `${OPTIONAL_ROLE} is still on development: ${removedOptional.error.message}` : "",
-              );
+              await recordRoleCleanup(db, "the throwaway optional role was cleaned up", OPTIONAL_ROLE, removedOptional.error);
             }
           }
         }
