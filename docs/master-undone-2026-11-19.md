@@ -187,6 +187,18 @@ Seventeen of the 57 re-checked, recounted with the night's changes (UTM moved to
 
 Twenty-two of the 57 re-checked: **seven done, one superseded, one ruled with nothing to build, one nearly done, three open on nobody, six on Robert, one on others, and two not confirmed.** Thirty-five remain unchecked.
 
+**And five more the same morning, against main `4f29be7`:**
+
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L6680, two self-comparing checks left as recorded | Both are still there as described: `scripts/jobs-audit.mjs:338` asserts the backoff floor as `BASE_DELAY_MS / 2`, and `scripts/db-guard-audit.mjs:448` asserts `PRODUCTION_GUARD_FIX.includes(PRODUCTION_EXPECTED_REF)`. The ruling of 2026-09-08 keeps both, because both are mitigated | **Ruled, with nothing to build** |
+| L937, IndexNow submits from the production build: watch its first log line | Built: `scripts/indexnow-after-build.mjs` runs as npm's `postbuild`. The first production build log's line has not been recorded as read. The entry's premise that "Vercel's bot checkpoint answers a script with 403" was overturned by the ruling of 2026-10-31: the site has no firewall rule, and a 403 is burst mitigation | **Open, waits on others:** the chat reads the line on Vercel |
+| L5468, stored files: a backup proposal, and the map is nine places not six | `docs/storage-backup-proposal.md` (`f094c01`, 2026-09-15) is unchanged, a proposal only. Nothing has been built or bought | **Open, waits on Robert:** vendor, retention of deleted objects, and the `bucket` migration |
+| L7381, disaster recovery | Point in time recovery is enabled on the shared production project (`pointInTimeRecovery` in `src/config/launch-readiness.ts`, stated by Robert on 2026-09-10) as a stopgap that rewinds all five applications or none. No restore has been rehearsed; that is step 15 of the deferred cutover | **Open, waits on Robert:** the cutover |
+| L5697, Phase 14 rank 1: the schema rebuilds, the data restore is untested | Unchanged. Supabase restores only into the project that made the backup, so the data half can be proven only at the cutover | **Open, waits on Robert:** the cutover |
+
+Twenty-seven of the 57 re-checked: **seven done, one superseded, two ruled with nothing to build, one nearly done, three open on nobody, nine on Robert, two on others, and two not confirmed.** Thirty remain unchecked.
+
 ## 8. Asked, and done: confirmed on main today
 
 | What | Where it was asked | The commit and file on main |
