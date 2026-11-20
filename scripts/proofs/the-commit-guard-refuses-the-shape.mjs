@@ -34,7 +34,8 @@ const ALLOW = [
     'git ' + 'commit -m "fix: scripts/queue-audit.mjs, run npm run audit after"'],
   ["heredoc commit message naming npm run",
     'git ' + 'commit -F - <<EOF\nfix: npm run audit is now its own command\nEOF'],
-  ["standalone audit", "npx tsx scripts/queue-audit.mjs"],
+  /* A reader. This case named queue-audit until rule six (2026-11-20): it is a writer, and is now refused below. */
+  ["standalone audit", "npx tsx scripts/backlog-audit.mjs"],
   ["git add then commit", 'git add -A && git ' + 'commit -m "x"'],
   ["git status", "git status --short"],
 ];
@@ -327,7 +328,48 @@ for (const [name, state, shouldRefuse] of GIT_CASES) {
   }
 }
 
+/*
+ * RULE SIX, A WRITER RUN LOCALLY UNANNOUNCED, through the hook's own entry
+ * point and against the real files on disk. Drafted 2026-11-20 (7043792114).
+ * The first refusal is the command that ran on 2026-11-20 (7043130403), with
+ * its worktree cd taken off so it resolves in this checkout.
+ */
+const WRITER_RUN_CASES = [
+  ["refused: the proof run locally on 2026-11-20",
+    "node node_modules/tsx/dist/cli.mjs --conditions=react-server scripts/proofs/credential-tasks-refresh-" + "every-day.mjs", true],
+  ["refused: an audit on the board's writers list",
+    "npx tsx --conditions=react-server scripts/mfa-" + "audit.mjs", true],
+  ["refused: queue-audit run standalone, which was an allow case until this rule",
+    "npx tsx scripts/queue-" + "audit.mjs", true],
+  ["refused: a writer handed to a runner as an argument",
+    "node C:/scratch/run-one-audit.mjs . scripts/perf-" + "audit.mjs C:/scratch/perf.log", true],
+  ["allowed: the same writer, announced",
+    "ANNOUNCED_RUN=7033374692 node node_modules/tsx/dist/cli.mjs --conditions=react-server scripts/proofs/credential-tasks-refresh-" + "every-day.mjs", false],
+  ["allowed: a stub proof that reaches no database",
+    "node node_modules/tsx/dist/cli.mjs --conditions=react-server scripts/proofs/a-money-list-reads-every-row-past-the-transport-limits.mjs", false],
+  ["allowed: preflight", "node scripts/preflight.mjs", false],
+  ["allowed: a commit message naming a writer",
+    "git " + 'commit -m "run scripts/mfa-' + 'audit.mjs on the board"', false],
+  ["allowed: reading a writer is not running it", "grep -n probe scripts/mfa-" + "audit.mjs", false],
+  ["allowed: a script that is not on disk", "node scripts/proofs/not-a-real-proof.mjs", false],
+];
+for (const [name, command, shouldRefuse] of WRITER_RUN_CASES) {
+  const refused = ask(command).includes('"permissionDecision":"deny"');
+  const ok = refused === shouldRefuse;
+  if (!ok) wrong += 1;
+  console.log(`${ok ? "PASS" : "WRONG"}  ${name}`);
+}
+{
+  /* The list is read from shards.mjs, so a list that read as empty would allow every audit. */
+  const { writersFromShards } = await import("../hooks/commit-guard.mjs");
+  const { readFileSync } = await import("node:fs");
+  const writers = writersFromShards(readFileSync("scripts/ci/shards.mjs", "utf8")) ?? [];
+  const ok = writers.length >= 20 && writers.includes("mfa-" + "audit") && writers.includes("proofs-" + "audit");
+  if (!ok) wrong += 1;
+  console.log(`${ok ? "PASS" : "WRONG"}  the writers list is read from scripts/ci/shards.mjs (${writers.length} audits)`);
+}
+
 console.log(wrong === 0
-  ? `\nAll ${REFUSE.length + ALLOW.length + WRITE_CASES.length + GIT_CASES.length + 4} cases correct.`
+  ? `\nAll ${REFUSE.length + ALLOW.length + WRITE_CASES.length + GIT_CASES.length + WRITER_RUN_CASES.length + 5} cases correct.`
   : `\n${wrong} case(s) wrong.`);
 process.exit(wrong === 0 ? 0 : 1);
