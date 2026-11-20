@@ -96,6 +96,7 @@
  */
 import lighthouse from "lighthouse";
 import * as chromeLauncher from "chrome-launcher";
+import puppeteer from "puppeteer-core";
 import { chromium } from "playwright";
 import {
   METRIC_BUDGETS,
@@ -520,6 +521,27 @@ const chrome = await chromeLauncher.launch({
   chromeFlags: ["--headless=new", "--no-sandbox", "--disable-gpu"],
 });
 
+/*
+ * Put a probe's session cookie into the Chrome Lighthouse drives, for this
+ * host only. Lighthouse's storage reset leaves cookies alone by default
+ * (clearStorageTypes is file systems, shader cache, service workers and cache
+ * storage), so the cookie survives into the run while every run stays cold.
+ * `cookie` is "name=value" as settingsFor builds it.
+ */
+async function setBrowserCookie(cookie) {
+  const at = cookie.indexOf("=");
+  const name = cookie.slice(0, at);
+  const value = cookie.slice(at + 1);
+  const browser = await puppeteer.connect({ browserURL: `http://127.0.0.1:${chrome.port}` });
+  try {
+    const page = await browser.newPage();
+    await page.setCookie({ name, value, url: BASE });
+    await page.close();
+  } finally {
+    await browser.disconnect();
+  }
+}
+
 const rows = [];
 
 const MEASURED = ONLY ? SUBJECTS.filter((r) => r.path.includes(ONLY)) : SUBJECTS;
@@ -575,6 +597,19 @@ for (const route of MEASURED) {
     rows.push({ ...route, failed: true });
     continue;
   }
+
+  /*
+   * THE SESSION IS ALSO PUT IN THE BROWSER ITSELF, before Lighthouse navigates.
+   * Robert's overnight order of 2026-11-19, item 2. The run of 2026-11-20 found
+   * every signed-in screen landing on /portal/login on 3 of 3 runs while the
+   * same probe cookie, sent by fetch to /portal/tasks, answered 200: the header
+   * in `extraHeaders` was not reaching the page in this Lighthouse and Chrome.
+   * Lighthouse's own way for a signed-in page is the cookie in the browser it
+   * drives, so it is set there through the DevTools protocol, scoped to this
+   * host, and the header stays as well. Whether it took is still decided by
+   * where each run LANDED, below, never by this step having run.
+   */
+  if (cookie) await setBrowserCookie(cookie);
 
   const runs = [];
   for (let i = 0; i < RUNS; i++) {
