@@ -320,6 +320,8 @@ const EXPECTED = {
   "quotes.manage":                { admin: true,  engineer: false, field_tech: false },
   /* Where the office's alerts go, Robert's addendum of 2026-10-25, item 8b (0099): the owner alone. */
   "alerts.manage":                { admin: true,  engineer: false, field_tech: false },
+  /* Recording a payment received outside the platform, Robert's answer 2 of the night of 2026-11-18 (0138): the owner alone. */
+  "payments.record_outside":      { admin: true,  engineer: false, field_tech: false },
   /* Reading careers applications, Robert's answer 3 of 2026-10-28 (0104): the owner and the office. */
   "applications.read":            { admin: true,  engineer: false, field_tech: false },
   "pricing.override_at_intake":   { admin: true,  engineer: false, field_tech: false },
@@ -454,6 +456,7 @@ const EXPECTED_NINE = {
   "partners.manage":              "Y . . . . . . . . .",
   "payments.charge":              "Y . . . . . . . . .",
   "payments.reconcile":           "Y . . . . . . . . .",
+  "payments.record_outside":      "Y . . . . . . . . .",
   "payments.refund":              "Y . . . . . . . . .",
   "payments.send_link":           "Y . . . Y Y . Y Y .",
   "pricing.override_at_intake":   "Y . . . . . . . . .",

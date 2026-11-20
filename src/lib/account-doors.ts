@@ -169,8 +169,29 @@ export function doorFor(origin: AccountOrigin): AccountDoor {
  * THE REFUSAL SAYS THE SAME THING WHETHER OR NOT THE ADDRESS EXISTS, which is
  * the property that makes the limit worth having. A limit that only triggers on
  * addresses that exist is an oracle with a rate limit attached.
+ *
+ * SINCE ROBERT'S RULING 18 OF 2026-11-19, THIS IS THE CEILING PER CONNECTION.
+ * The limiter refused once an ADDRESS had been named five times from anywhere,
+ * so five requests naming somebody's address locked that person out of their
+ * own sign up for an hour, while the comment beside it promised the opposite
+ * (BACKLOG, "THE SIGN-UP AND RESET LIMITERS DO NOT DO WHAT THEIR COMMENT
+ * SAYS"). The ruling: refuse on the connection, which is what slows a script
+ * walking a list from one place, and keep a much higher ceiling on the address,
+ * SIGN_UP_ADDRESS_CEILING_PER_HOUR, so a list walked from many places is still
+ * slowed and one person can no longer lock another out. Four people signing up
+ * from one office in an afternoon are four of the five.
  */
 export const SIGN_UP_ATTEMPTS_PER_HOUR = 5;
+
+/**
+ * THE CEILING ON ONE ADDRESS, FROM EVERY CONNECTION TOGETHER, IN AN HOUR.
+ * Ruling 18 of 2026-11-19: "a much higher address ceiling". Twenty means a
+ * person whose address is named by strangers is locked out only once four or
+ * more connections have each spent their own allowance on it, and an attempt a
+ * connection was already refused for never counts against the address at all.
+ * Pinned by accounts-audit.
+ */
+export const SIGN_UP_ADDRESS_CEILING_PER_HOUR = 20;
 
 /**
  * HOW MANY PASSWORD RESET LINKS ONE ADDRESS MAY ASK FOR IN A WINDOW.
@@ -194,8 +215,21 @@ export const SIGN_UP_ATTEMPTS_PER_HOUR = 5;
  * makes this worth having at all. A limit that answers differently for
  * addresses that exist is the enumeration oracle it was meant to close,
  * wearing a delay.
+ *
+ * SINCE RULING 18 OF 2026-11-19, THE CEILING PER CONNECTION, for the reason
+ * written above SIGN_UP_ATTEMPTS_PER_HOUR: three requests naming somebody's
+ * address used to lock that person out of resetting their own password for an
+ * hour, which is precisely when they need it.
  */
 export const RESET_ATTEMPTS_PER_HOUR = 3;
+
+/**
+ * THE CEILING ON ONE ADDRESS, FROM EVERY CONNECTION TOGETHER, IN AN HOUR, for
+ * a reset. Ruling 18. Ten, half the sign up ceiling, because every reset beyond
+ * what a person needs is mail to somebody who did not ask for it. Pinned by
+ * accounts-audit.
+ */
+export const RESET_ADDRESS_CEILING_PER_HOUR = 10;
 
 /**
  * How long a verification link lasts, in hours, and in words for the email.

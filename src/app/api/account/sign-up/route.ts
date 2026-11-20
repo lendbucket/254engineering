@@ -115,7 +115,7 @@ async function handlePOST(request: NextRequest) {
    * RATE LIMITED PER ADDRESS, and the refusal is indistinguishable from
    * success. The ceiling and the reasoning are in src/lib/account-doors.ts.
    */
-  if (!takeSignUpAttempt(address, clientKey(request.headers))) {
+  if (!(await takeSignUpAttempt(address, clientKey(request.headers)))) {
     return NextResponse.json({ ok: true, message: SENT });
   }
 

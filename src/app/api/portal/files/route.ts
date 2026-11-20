@@ -1,5 +1,5 @@
 import { takeJob, searchClients, openFilesAtAddress, type TakeJobInput } from "@/lib/ops-job-intake";
-import { sendPaymentLink, resendPaymentLink, sendTripFeeLink, invoiceAccount, setTravel, requestTravel } from "@/lib/ops-job-billing";
+import { sendPaymentLink, resendPaymentLink, sendTripFeeLink, invoiceAccount, setTravel, requestTravel, recordOutsidePayment } from "@/lib/ops-job-billing";
 import { requestOutstanding } from "@/lib/ops-file-inputs";
 import { dispatchContext, coveragePreview } from "@/lib/ops-field";
 import { addCoverageCounty } from "@/lib/tech-coverage";
@@ -179,6 +179,28 @@ async function handlePOST(request: NextRequest) {
             ? await sendTripFeeLink(actor, fileId)
             : await invoiceAccount(actor, fileId);
 
+    return result.ok
+      ? NextResponse.json(result)
+      : NextResponse.json({ ok: false, error: result.error }, { status: 400 });
+  }
+
+  /*
+   * A payment received outside the platform, recorded on its job (0138). The
+   * administrator alone, asked here and again inside recordOutsidePayment, so
+   * a second caller of that function cannot skip the check.
+   */
+  if (action === "record_outside_payment") {
+    if (!can(actor, "payments.record_outside")) {
+      return NextResponse.json({ ok: false, error: "Not permitted." }, { status: 403 });
+    }
+    const dollars = Number(String(body?.amount ?? "").trim());
+    const result = await recordOutsidePayment(actor as never, {
+      fileId: String(body?.fileId ?? ""),
+      amountCents: Number.isFinite(dollars) ? Math.round(dollars * 100) : NaN,
+      reference: String(body?.reference ?? ""),
+      paidOn: String(body?.paidOn ?? ""),
+      reason: String(body?.reason ?? ""),
+    });
     return result.ok
       ? NextResponse.json(result)
       : NextResponse.json({ ok: false, error: result.error }, { status: 400 });

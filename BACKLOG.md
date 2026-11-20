@@ -11293,7 +11293,24 @@ only Robert can make, and those already answered with their comment ids. Five en
 confirmed done on main that day (at `428fb36`, lines 1997, 2084, 5244, 6616 and 6761); their headings are
 corrected separately.
 
-## THE SIGN-UP AND RESET LIMITERS DO NOT DO WHAT THEIR COMMENT SAYS, AND MOVING THEM TO THE DATABASE WAITS ON A RULING
+## THE SIGN-UP AND RESET LIMITERS DID NOT DO WHAT THEIR COMMENT SAID: RULED 18 AND BUILT ON `fix/limiter-ruling-18`, STAGED FOR ROBERT'S SITTING
+
+**Ruled and built, 2026-11-19 into 2026-11-20.** Robert's ruling 18, yes: refuse
+on the connection, keep a much higher ceiling on the address, and count in the
+database. Built on `fix/limiter-ruling-18`: a connection is refused past 5 sign
+ups or 3 resets an hour, an address past 20 sign ups or 10 resets from every
+connection together (`SIGN_UP_ADDRESS_CEILING_PER_HOUR`,
+`RESET_ADDRESS_CEILING_PER_HOUR` in `src/lib/account-doors.ts`, pinned in
+`accounts-audit`), and an attempt a connection was refused for never counts
+against the address. The count goes through the existing
+`eng_take_sign_in_attempt` under `signup:` and `reset:` keys, with the address
+as a sha256 and never as text, so **no migration was needed**; the instance's
+own count answers only when the database cannot be asked. All three routes
+await the limiter; a Promise is truthy, so an unawaited call refuses nobody
+and the type checker does not say so. Proof
+`nobody-can-lock-another-person-out-of-signing-up.mjs`. Staged, not merged, by
+Robert's word; the numbers 20 and 10 are the session's, for him to move in the
+sitting. The account below is the record of the finding.
 
 Found 2026-11-19 while working row N6 of `docs/master-undone-2026-11-19.md`
 (the limiters count in each server's memory; `APPLIED: 0071` above). Read in

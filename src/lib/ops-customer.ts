@@ -7,6 +7,7 @@ import { money, type Cents } from "./ops-money";
 import { REFUND_ISSUED_SENTENCE } from "./refund-update";
 import { customerLettersRead, type CustomerLetter } from "./letter-delivery";
 import { isOpen } from "./launch";
+import { TERMS_AFTER_PAYMENT_EVENT } from "./outside-payment-words";
 import { targetDateLine } from "./turnaround-target";
 import { requestedDocuments } from "./status-uploads";
 import type { UploadSlot } from "./status-upload-rules";
@@ -38,6 +39,12 @@ export type CustomerView = {
   placedAt: string | null;
   /** What they were told before paying, verbatim, still available afterwards. */
   refundDisclosure: string | null;
+  /**
+   * Set when the payment was received outside the platform and the terms were
+   * stated after it (0138): the sentence to show above them, and the page must
+   * not head them "What you were told before you paid". Null for every other order.
+   */
+  termsAfterPayment: string | null;
   lines: { label: string; amount: string }[];
   total: string;
   /** Only the events marked for them, oldest first. */
@@ -157,7 +164,7 @@ export async function customerView(token: string, opts: { asCustomer?: boolean }
 
   const { data: events, error: eventsError } = await db
     .from("eng_order_events")
-    .select("created_at, summary")
+    .select("created_at, summary, event")
     .eq("order_id", order.id)
     .eq("customer_visible", true)
     .order("created_at", { ascending: true });
@@ -262,12 +269,16 @@ export async function customerView(token: string, opts: { asCustomer?: boolean }
     county: order.county as string,
     placedAt: (order.placed_at as string | null) ?? null,
     refundDisclosure: (order.refund_disclosure as string | null) ?? null,
+    /* Shown above the terms, not in the timeline (0138). */
+    termsAfterPayment: ((events ?? []).find((e) => e.event === TERMS_AFTER_PAYMENT_EVENT)?.summary as string | undefined) ?? null,
     lines,
     total: money(cents(order.total_cents)),
-    timeline: (events ?? []).map((e) => ({
-      at: e.created_at as string,
-      summary: e.summary as string,
-    })),
+    timeline: (events ?? [])
+      .filter((e) => e.event !== TERMS_AFTER_PAYMENT_EVENT)
+      .map((e) => ({
+        at: e.created_at as string,
+        summary: e.summary as string,
+      })),
     receives: entry?.receives ?? [],
     notes: entry?.notes ?? [],
     refunded:

@@ -414,6 +414,11 @@ export type Action =
   // Send a customer the card link for a job somebody took on the telephone.
   // Not payments.charge: that one also runs the proving charge.
   | "payments.send_link"
+  // Record on a job a payment received outside the platform (a Stripe
+  // dashboard invoice), so revenue, the refund terms and the letter are tied to
+  // it. The administrator alone: Robert's answer 2 of the night of 2026-11-18,
+  // because it moves money on the record with no card behind it (0138).
+  | "payments.record_outside"
   // Read orders and look them up. Changes nothing about money.
   | "orders.read"
   // Send the customer a fresh link to their order's status page.
@@ -570,6 +575,8 @@ const MATRIX: Record<Role, Action[]> = {
     "quotes.manage",
     /* Where the office's alerts go, seeded by 0099: the owner alone. */
     "alerts.manage",
+    /* Recording a payment received outside the platform, seeded by 0138: the owner alone. */
+    "payments.record_outside",
     /* Reading careers applications, seeded by 0104: the owner and the office. */
     "applications.read",
     /* The staff level actions, 0079, so an administrator can do anything a rep

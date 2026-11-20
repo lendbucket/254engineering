@@ -5018,6 +5018,39 @@ export const APPLIED = [
       "(6931443522, version 20261116223503, as predicted). Additive: nullable columns, checks that every existing " +
       "row satisfies, indexes, and one table with row level security on and no grant.",
   },
+  {
+    file: "0138_a_payment_received_outside_the_platform_is_recorded.sql", appliedBy: "apply_migration",
+    fingerprint: "14bdcbc9c50eb3706f17af611dc44735",
+    behaviour: "debee15615fed047a9722c65fd601045",
+    /*
+     * Production: applied 2026-11-20 21:49 UTC through apply_migration by the
+     * chat counterpart, on Robert's word "go 0138" given in chat at 15:48
+     * Central (issue #1, 7051433971), from stage/sitting-2026-11-20; the file
+     * 2,986 bytes, sha256 c6d93d3e, the same file sat on development;
+     * schema_migrations version 20261120214915. Read back (7051446460): shape
+     * 14bdcbc9 at 1729 columns and 130 tables before and after, unchanged as
+     * predicted; role grants 203 to 204, payments.record_outside held by admin
+     * alone; eng_payment_events_source_known admitting stripe_webhook,
+     * reconcile and staff_recorded; eng_payment_events 0 rows before and after,
+     * digest unchanged. Every prediction met. It was pending by Robert's answer
+     * 5 of the night of 2026-11-18 until this sitting.
+     */
+    production: "2026-11-20",
+    proves: { table: "eng_role_grants", match: { role_key: "admin", action: "payments.record_outside" } },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-19 on the chain to 0138. Shape unchanged, " +
+      "14bdcbc9 at 1729 columns: a check constraint and a grant row add no column. Behaviour 1716 to 1717 facts.",
+    because:
+      "WRITTEN 2026-11-19 ON feat/record-outside-payment, FOR ROBERT'S ANSWERS 2, 3 AND 5 OF THE NIGHT OF " +
+      "2026-11-18: a payment received outside the platform (Peter Bulatao's Stripe dashboard invoice) is recorded on " +
+      "its job through markPaid. eng_payment_events.source admits staff_recorded, and the administrator alone holds " +
+      "payments.record_outside. The source check is dropped and re-added wider, as 0121 did for event_type, so every " +
+      "existing row still satisfies it. ON PRODUCTION SINCE 2026-11-20 (7051446460, version 20261120214915, grants " +
+      "204, shape unchanged, as predicted). ON DEVELOPMENT SINCE 2026-11-19 (issue #1, " +
+      "7006862329, on request 7004644931: version 20261119104610, the file's sha256 c6d93d3e, shape 14bdcbc9 at 1729 " +
+      "columns and 130 tables unchanged, eng_role_grants 203 to 204 with payments.record_outside held by admin alone, " +
+      "the source check admitting staff_recorded, and eng_payment_events' one row untouched, as predicted).",
+  },
 ];
 
 /*
