@@ -90,7 +90,7 @@ async function handlePOST(request: NextRequest) {
 
   const address = normaliseAddress(email);
 
-  if (!takeResetAttempt(address, clientKey(request.headers))) {
+  if (!(await takeResetAttempt(address, clientKey(request.headers)))) {
     return NextResponse.json({ ok: true, message: SENT });
   }
 

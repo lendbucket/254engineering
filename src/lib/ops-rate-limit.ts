@@ -52,7 +52,13 @@ import { DEVELOPMENT_REF, refOf } from "./db-guard";
  * waiting: see releaseLock and src/app/api/portal/unlock/route.ts.
  */
 
-import { RESET_ATTEMPTS_PER_HOUR, SIGN_UP_ATTEMPTS_PER_HOUR } from "./account-doors";
+import { createHash } from "node:crypto";
+import {
+  RESET_ADDRESS_CEILING_PER_HOUR,
+  RESET_ATTEMPTS_PER_HOUR,
+  SIGN_UP_ADDRESS_CEILING_PER_HOUR,
+  SIGN_UP_ATTEMPTS_PER_HOUR,
+} from "./account-doors";
 import { supabaseAdmin } from "./supabase";
 
 const WINDOW_MS = 15 * 60 * 1000;
@@ -239,54 +245,117 @@ export function inspectLockInMemory(address: string, identity?: string, now: num
  * the same sentence whether this returned true or false, because a refusal that
  * only happens for addresses which exist is an oracle with a delay attached.
  */
-export function takeSignUpAttempt(
-  address: string,
-  identity: string,
-  now: number = Date.now(),
-): boolean {
-  prune(now);
+export async function takeSignUpAttempt(address: string, identity: string): Promise<boolean> {
+  return takeDoorAttempt("signup", address, identity, SIGN_UP_ATTEMPTS_PER_HOUR, SIGN_UP_ADDRESS_CEILING_PER_HOUR);
+}
 
-  const key = `signup:${address}`;
-  const existing = buckets.get(key);
-
-  if (!existing || now - existing.first > SIGN_UP_WINDOW_MS) {
-    buckets.set(key, { count: 1, first: now });
-    return true;
-  }
-
-  existing.count += 1;
-  if (existing.count > SIGN_UP_ATTEMPTS_PER_HOUR) return false;
-
-  /*
-   * AND THE CONNECTION, so one address cannot be used to lock another person's
-   * sign up out from somewhere else.
-   *
-   * A limit keyed only on the address is a denial of service anybody can aim:
-   * five requests naming somebody's address, and that person cannot sign up for
-   * an hour. Keying the second bucket on both means an attacker burns their own
-   * connection's allowance rather than the victim's.
-   */
-  const byConnection = buckets.get(`signup:${address}:${identity}`);
-  if (!byConnection || now - byConnection.first > SIGN_UP_WINDOW_MS) {
-    buckets.set(`signup:${address}:${identity}`, { count: 1, first: now });
-    return true;
-  }
-  byConnection.count += 1;
-  return byConnection.count <= SIGN_UP_ATTEMPTS_PER_HOUR;
+/**
+ * THE SAME RULE IN THIS INSTANCE'S MEMORY, for when the database cannot be
+ * reached, and for the proofs that exercise the rule itself.
+ */
+export function takeSignUpAttemptInMemory(address: string, identity: string, now: number = Date.now()): boolean {
+  return takeDoorAttemptInMemory("signup", address, identity, SIGN_UP_ATTEMPTS_PER_HOUR, SIGN_UP_ADDRESS_CEILING_PER_HOUR, now);
 }
 
 const SIGN_UP_WINDOW_MS = 60 * 60 * 1000;
 
+/*
+ * =============================================================================
+ * THE CONNECTION FIRST, THE ADDRESS SECOND. Robert's ruling 18 of 2026-11-19.
+ * =============================================================================
+ * The rule this replaces refused once an ADDRESS had been named N times from
+ * anywhere, and returned before it read the connection's bucket, so five
+ * requests naming somebody's address locked that person out of their own sign
+ * up for an hour while the comment above it promised the opposite. Confirmed
+ * by calling it, not only by reading it (BACKLOG, "THE SIGN-UP AND RESET
+ * LIMITERS DO NOT DO WHAT THEIR COMMENT SAYS").
+ *
+ * Now a connection is refused past its own ceiling, which is what slows one
+ * script walking a list, and an attempt that connection was refused for never
+ * reaches the address at all. The address has its own, much higher ceiling,
+ * so a list walked from many places is still slowed, and locking a person out
+ * takes several connections each spending their whole allowance on them.
+ *
+ * AND THE COUNT IS SHARED. It counted in each server's memory, so every warm
+ * instance gave a script a fresh allowance; sign in moved into the database in
+ * 0071 for exactly that reason. These count through the same function,
+ * eng_take_sign_in_attempt, under keys that cannot meet a sign in's: the door,
+ * then `connection:` and the connection key, or `address:` and a sha256 of the
+ * lowercased address, so no email address is stored in that table. A key with
+ * no identity and no reset row counts plainly within the window. When the
+ * database cannot be asked, the instance's own count answers, as it does for
+ * sign in: the protection there was before, not none.
+ */
+type Door = "signup" | "reset";
+
+function addressDigest(address: string): string {
+  return createHash("sha256").update(address.trim().toLowerCase()).digest("hex");
+}
+
+/** True or false from the shared count, or null when it could not be asked. */
+async function takeSharedCount(key: string, max: number): Promise<boolean | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const { data, error } = await db.rpc("eng_take_sign_in_attempt", {
+    p_address: key,
+    p_identity: null,
+    p_max_address: max,
+    p_max_identity: max,
+    p_window_seconds: Math.round(SIGN_UP_WINDOW_MS / 1000),
+  });
+  if (error || !data) {
+    console.error(`[rate-limit] the shared door count failed, counting in this instance: ${error?.message ?? "no answer"}`);
+    return null;
+  }
+  return (data as { allowed: boolean }).allowed === true;
+}
+
+async function takeDoorAttempt(
+  door: Door,
+  address: string,
+  identity: string,
+  perConnection: number,
+  perAddress: number,
+): Promise<boolean> {
+  const byConnection = await takeSharedCount(`${door}:connection:${identity}`, perConnection);
+  if (byConnection === false) return false;
+  if (byConnection === null) return takeDoorAttemptInMemory(door, address, identity, perConnection, perAddress, Date.now());
+  const byAddress = await takeSharedCount(`${door}:address:${addressDigest(address)}`, perAddress);
+  if (byAddress === null) return takeDoorAttemptInMemory(door, address, identity, perConnection, perAddress, Date.now());
+  return byAddress;
+}
+
+function bump(key: string, now: number): number {
+  const existing = buckets.get(key);
+  if (!existing || now - existing.first > SIGN_UP_WINDOW_MS) {
+    buckets.set(key, { count: 1, first: now });
+    return 1;
+  }
+  existing.count += 1;
+  return existing.count;
+}
+
+function takeDoorAttemptInMemory(
+  door: Door,
+  address: string,
+  identity: string,
+  perConnection: number,
+  perAddress: number,
+  now: number,
+): boolean {
+  prune(now);
+  if (bump(`${door}:connection:${identity}`, now) > perConnection) return false;
+  return bump(`${door}:address:${addressDigest(address)}`, now) <= perAddress;
+}
+
 /**
  * HOW MANY PASSWORD RESET LINKS ONE ADDRESS MAY ASK FOR IN AN HOUR.
  *
- * The same two bucket shape as `takeSignUpAttempt`, and for the same two
- * reasons, so the comment above that function is the explanation for this one
- * as well. The second bucket keyed on the connection is what stops a limit
- * keyed on an address alone from being a denial of service anybody can aim at
- * anybody: three requests naming somebody's address would otherwise lock that
- * person out of resetting their own password for an hour, which is precisely
- * when they need it.
+ * The same rule as `takeSignUpAttempt` since ruling 18 of 2026-11-19, the
+ * connection first and the address second, counted in the database, so the
+ * comment above takeDoorAttempt is the explanation for this one as well. Three
+ * requests naming somebody's address used to lock that person out of resetting
+ * their own password for an hour, which is precisely when they need it.
  *
  * THE CEILING IS ITS OWN, declared in account-doors.ts and pinned by
  * accounts-audit. Reusing the sign up number would mean tuning one silently
@@ -297,31 +366,13 @@ const SIGN_UP_WINDOW_MS = 60 * 60 * 1000;
  * refusal visible only for addresses that exist is an enumeration oracle with
  * a delay attached.
  */
-export function takeResetAttempt(
-  address: string,
-  identity: string,
-  now: number = Date.now(),
-): boolean {
-  prune(now);
+export async function takeResetAttempt(address: string, identity: string): Promise<boolean> {
+  return takeDoorAttempt("reset", address, identity, RESET_ATTEMPTS_PER_HOUR, RESET_ADDRESS_CEILING_PER_HOUR);
+}
 
-  const key = `reset:${address}`;
-  const existing = buckets.get(key);
-
-  if (!existing || now - existing.first > SIGN_UP_WINDOW_MS) {
-    buckets.set(key, { count: 1, first: now });
-    return true;
-  }
-
-  existing.count += 1;
-  if (existing.count > RESET_ATTEMPTS_PER_HOUR) return false;
-
-  const byConnection = buckets.get(`reset:${address}:${identity}`);
-  if (!byConnection || now - byConnection.first > SIGN_UP_WINDOW_MS) {
-    buckets.set(`reset:${address}:${identity}`, { count: 1, first: now });
-    return true;
-  }
-  byConnection.count += 1;
-  return byConnection.count <= RESET_ATTEMPTS_PER_HOUR;
+/** The reset rule in this instance's memory, for an unreachable database and for the proofs. */
+export function takeResetAttemptInMemory(address: string, identity: string, now: number = Date.now()): boolean {
+  return takeDoorAttemptInMemory("reset", address, identity, RESET_ATTEMPTS_PER_HOUR, RESET_ADDRESS_CEILING_PER_HOUR, now);
 }
 
 /*
