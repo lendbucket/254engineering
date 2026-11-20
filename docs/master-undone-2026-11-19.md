@@ -98,7 +98,7 @@ Ordered as job two works them: orders, payments, refunds, dispatch and customer 
 | R30 | The review request's delay | `BACKLOG.md` L1323 | Pinned in the proof as the run's default | Robert |
 | R31 | The sign-up and insurance override screens: shown, not switchable | `BACKLOG.md` L616 | Awaiting a ruling | Robert |
 | R32 | 0073's open half: public schema default privileges still grant a new function to `anon` | `BACKLOG.md` L1333 | For a ruling | Robert |
-| R33 | One portal gate decided by a role name, not a grant (`/portal/certification`) | `BACKLOG.md` L5908; `docs/overnight-report.md` 7.2 | `src/app/portal/(app)/layout.tsx:34` and the certification gate compare `role === "field_tech"` | Robert |
+| R33 | One portal gate decided by a role name, not a grant (`/portal/certification`) | `BACKLOG.md` L5908; `docs/overnight-report.md` 7.2 | **CORRECTED 2026-11-20: done since `fe9c586` (2026-09-10).** The page reads `if (!can(actor, "evidence.capture")) notFound();` (`src/app/portal/(app)/certification/page.tsx:79`). This row was written from the BACKLOG entry without reading the page; `layout.tsx:34` is a heading label, not a gate | done |
 | R34 | May the firm seal something that is not one job's deliverable | `BACKLOG.md` L1912 | Nobody has ruled | Robert and Aman |
 | R35 | The 641 probe client rows on development, deferred by ruling | `BACKLOG.md` L2130 | Deferred | Robert |
 | R36 | `wattsmith-dedicated`, a project in the organisation no 254 document accounts for | `BACKLOG.md` L5747 | Needs his ruling | Robert |
@@ -148,7 +148,7 @@ L11142; the cutover (R7) on L5697, L7121 and L7381; nobody on the other 33.
 | --- | --- | --- |
 | L5733, an audit that cannot open a screen must not report it as passing | `contrast-audit` reports a combination that never loaded as COULD NOT TELL and lists it (`scripts/contrast-audit.mjs` lines 509 and 587), from `0946bf7` (2026-09-20) | **Done**; the entry still reads "Not yet fixed" |
 | L10913, `/portal/accounts` renders in 50 seconds | The board of 2026-11-19 (44552289997) served it in 1.7 to 2.5 seconds of application code; the cliff was fixed and recorded in `775746d` (2026-09-24) | **The 50 seconds is done.** Whether 2.5 seconds on development meets the office-ready two-second standard is N1's measurement, not this entry's |
-| L8915, UTM parameters are not captured on `/api/lead` | Still not: `src/app/api/lead/route.ts` reads no `utm_` field. The order routes and `/start` (0137) carry their own attribution | **Open, waits on nobody**; it needs a lead column, so a migration, staged not merged |
+| L8915, UTM parameters are not captured on `/api/lead` | **CORRECTED 2026-11-20: captured since `c4dc17e` (2026-11-15).** The route passes the 0137 click cookie to `insertLead`, which writes `utm_source` to `utm_content` through `utmColumns` (`src/lib/intake.ts:132`, `src/lib/ad-click.ts:127`) into `eng_leads`' columns from the legacy intake table. The afternoon reading looked only at the route file | **Done**; no migration needed |
 | L9077, the onboarding stepper is outside two audits | Still outside `mobile-overflow-audit`: nothing in it or `forms-audit` walks `/onboarding/[token]` at 360 or 390 | **Open, waits on nobody**; a writer-audit change, so it is built in a night run |
 | L927, the letterhead prints the registrant until the board confirms "254 Engineering" | `letterheadBrand()` (`src/lib/letter-seal.ts:118`) prints the brand only when `dbas` holds `business.shortName`; `dbas` (`src/config/credentials.ts:288`) holds Sealed Engineering, Stamp My Plans and 254 Engineering Services | **Open, waits on Robert**: whether the board holds "254 Engineering" itself |
 | L1578, a partner's approved logo on the partner order page | `src/app/(order)/order/referred/[code]/page.tsx` renders no logo | **Open, waits on Robert**: a partner's mark on a 254 order page is a branding question beside the "own name only" ruling |
@@ -217,6 +217,10 @@ Each has a recommendation, so the answer can be "1 yes, 2 no". None of these is 
     cutover, with the board's replay check as the guard. **Recommendation: leave as is.**
 11. **The certification screen's role-name gate** (R33): replace `actor?.role !== "admin"` with a new read grant,
     `certification.read`, held by the administrator, seeded by a one-row migration. **Recommendation: yes.**
+    **Answered yes, and NOT BUILT, because its premise was wrong (2026-11-20).** The role-name check was removed on
+    2026-09-10 (`fe9c586`). `/portal/certification` shows the signed-in technician's OWN certifications, so a read
+    grant would open an empty page of the administrator's own; every technician's certifications are already on
+    `/portal/techs`. Withdrawing it is a departure from his answer, so it goes back to him as a numbered question.
 12. **May the firm seal something that is not one job's deliverable** (R34): no, until you and Aman rule a case.
     **Recommendation: no.**
 13. **The internal audit report, day list item 7** (N16): treat this document as that report.
