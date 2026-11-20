@@ -948,7 +948,15 @@ production's sitemap answered 403". That line is owed a look in the first
 deploy's build log, by Robert's counterpart on Vercel. If it says so, the
 previous sitemap needs another source, which is a ruling.
 
-## THE KEYWORD REGISTRY STILL NAMES FORM 20-18, IN ALL THREE REPOSITORIES
+## THE KEYWORD REGISTRY NAMED FORM 20-18: CORRECTED IN THIS REPOSITORY 2026-11-20, THE TWO SIBLINGS OWE THE SAME EDIT
+
+**Ruled 2026-11-19** (Robert's ruling 8, yes: 20-19 in all three repositories,
+each by its own window). This repository's `data/keyword-registry.ts` names
+20-19 in all five angles that named 20-18; this entry said two, and a
+`grep` found five (the buyer's inspection, the free inspection, the provider
+comparison, the roof certification signer and the agents' roof post). **Open
+until Sealed and StampMyPlans take the same five edits**, because the file is
+synchronized verbatim and differs between the three until they do.
 
 `data/keyword-registry.ts` describes two angles in terms of "TREC form 20-18"
 (the buyer's inspection post and the agents' roof post). The rendered posts
