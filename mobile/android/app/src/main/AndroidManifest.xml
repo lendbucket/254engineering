@@ -38,4 +38,8 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- The web view's location for a job photograph (offline-queue.ts reads navigator.geolocation); Android asks the
+         technician, and a photograph is taken whether or not they allow it. Question 27 of 2026-11-14. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 </manifest>

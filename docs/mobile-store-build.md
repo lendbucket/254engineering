@@ -195,11 +195,15 @@ Robert answered all five T8 questions on 2026-11-08 (6725968716, 6725977818):
 - **Firebase:** 254 Engineering's Google account, Robert as owner. The steps
   above say so.
 - **The iPhone:** Codemagic, planned above.
-- **Secure storage:** the debug build keeps the web view's cookie. The device
-  session (a keystore token, revoked on sign out and when the session epoch
-  moves) is its own full-lane item, with its migration and proof, **before the
-  first store submission.** It is in BACKLOG.md.
-- **The privacy section:** drafted in `docs/store-listing.md`. It goes on
-  `/privacy` as its own full-lane change only after Robert's word.
+- **Secure storage:** built. The device session (a keystore token, revoked on
+  sign out and when the session epoch moves) is 0125, `src/lib/device-token.ts`
+  and the keystore bridge in `src/lib/native-shell.ts`, on production since
+  2026-11-12. Corrected 2026-11-14; this read "before the first store
+  submission" after it was done.
+- **The privacy section:** on `/privacy` since 2026-11-08, Robert's approved
+  paragraph (`5ac9fa6`). It does not yet mention the sign-in session; question
+  26 on issue #1.
+
+**What Robert does in each console, in one list:** `docs/store-console-steps.md`.
 - **Signing out on a shared phone:** turns off that phone's offer alerts first,
   then ends the session. Built.

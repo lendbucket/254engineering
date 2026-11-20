@@ -3096,7 +3096,7 @@ export function allTemplatesForAudit(): RenderedEmail[] {
       reference: "Q-SAMPLE-0001",
       deliverableName: "custom foundation and framing package",
       amount: "$2,400.00",
-      scope: "Foundation plan and framing plan for a single storey addition, with the calculations they rest on.",
+      scope: "Foundation plan and framing plan for a single story addition, with the calculations they rest on.",
       expiresOn: "November 26, 2026",
       quoteUrl: "https://254engineering.com/order/quote/Q-SAMPLE-0001?token=SAMPLE",
     }),

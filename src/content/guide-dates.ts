@@ -12,7 +12,7 @@ export const GUIDE_DATES: Record<string, { datePublished: string; dateModified: 
   "/what-is-a-structural-engineer": { datePublished: "2026-09-18T14:39:28-05:00", dateModified: "2026-10-25T21:01:08-05:00" },
   "/structural-engineer": { datePublished: "2026-08-31T11:07:45-05:00", dateModified: "2026-11-16T00:59:35-06:00" },
   "/structural-engineer/cost": { datePublished: "2026-09-18T13:25:00-05:00", dateModified: "2026-10-25T21:01:08-05:00" },
-  "/structural-engineer/when-you-need-one": { datePublished: "2026-08-31T11:07:45-05:00", dateModified: "2026-10-07T09:08:43-05:00" },
+  "/structural-engineer/when-you-need-one": { datePublished: "2026-08-31T11:07:45-05:00", dateModified: "2026-11-19T23:51:50-06:00" },
   "/structural-engineer/inspection": { datePublished: "2026-09-18T13:25:00-05:00", dateModified: "2026-11-14T19:45:14-06:00" },
   "/structural-engineer/how-to-choose": { datePublished: "2026-08-31T11:07:45-05:00", dateModified: "2026-10-29T13:00:29-05:00" },
   "/structural-engineer/pier-and-beam": { datePublished: "2026-11-15T09:41:39-06:00", dateModified: "2026-11-15T09:41:39-06:00" },
@@ -28,8 +28,8 @@ export const GUIDE_DATES: Record<string, { datePublished: string; dateModified: 
 };
 
 export const POST_DATES: Record<string, { datePublished: string; dateModified: string }> = {
-  "texas-professional-services-procurement-act": { datePublished: "2026-08-23", dateModified: "2026-11-01" },
-  "texas-engineering-firm-registration": { datePublished: "2026-08-23", dateModified: "2026-11-01" },
+  "texas-professional-services-procurement-act": { datePublished: "2026-08-23", dateModified: "2026-11-19" },
+  "texas-engineering-firm-registration": { datePublished: "2026-08-23", dateModified: "2026-11-19" },
   "engineer-of-record-texas": { datePublished: "2026-08-23", dateModified: "2026-11-02" },
   "texas-pe-license-lookup": { datePublished: "2026-08-23", dateModified: "2026-11-14" },
   "foundation-inspection-cost": { datePublished: "2026-10-16", dateModified: "2026-11-14" },

@@ -119,7 +119,7 @@ export const QUOTE_FORM_STEPS: Readonly<Record<string, readonly OrderingStep[]>>
       id: "brief",
       name: "Describe the project",
       /* forms.ts designInquirySchema. */
-      text: "The design brief asks your role, the kind of work, the deliverable, the address and jurisdiction, size and storeys, whether drawings or a soil report exist, permit status, any deadline, and three questions about claims, litigation and earlier adverse reports.",
+      text: "The design brief asks your role, the kind of work, the deliverable, the address and jurisdiction, size and stories, whether drawings or a soil report exist, permit status, any deadline, and three questions about claims, litigation and earlier adverse reports.",
     },
     {
       id: "reply",

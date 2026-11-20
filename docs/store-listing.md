@@ -61,6 +61,7 @@ what the app does today, read from the code (`src/lib/offline-queue.ts`,
 | **Name, email address, phone number** (the technician's account) | Yes | Yes | App functionality: the account | No | No |
 | **User ID** (the account's id) | Yes | Yes | App functionality | No | No |
 | **Device ID** (the push token, if offer alerts are on) | Yes | Yes | App functionality: offer alerts | Sent to Apple or Google to deliver the alert. That is the delivery itself, not sharing. | No |
+| **The sign-in session** (0125, row added 2026-11-14): a random token kept in the phone's keystore; the firm keeps only its sha256, the platform (android or ios), when it was issued, when it expires (30 days at most) and when it was last used | Yes | Yes | App functionality: keeping the technician signed in. Sign out revokes it | No | No |
 
 - **Not collected:** contacts, browsing history, search history, health,
   financial information, advertising data, crash or usage analytics.
@@ -77,12 +78,13 @@ what the app does today, read from the code (`src/lib/offline-queue.ts`,
 - **Support URL:** https://254engineering.com/contact
 - **Support email:** support@254engineering.com
 
-**The published privacy page does not yet describe the app**: photographs taken
-on a job, their location, and the push token. Both stores check the policy
-against the answers above. A section is drafted below for Robert to approve.
-Robert's answer 3 of 2026-11-08 (6725977818): the chat counterpart reads it
-first and sends it to him, and it goes on `/privacy` as its own full-lane
-change only after his word. Nothing has been changed on the live page.
+**The published privacy page has described the app since 2026-11-08** (`5ac9fa6`,
+Robert's approved paragraph as written, answer 3, 6726511272): photographs taken
+on a job, their location, and the push token. Corrected 2026-11-14; this said
+"does not yet" after it did. **It does not describe the sign-in session** in the
+row added above, which both stores check the policy against. That is question
+26 on issue #1, with a drafted sentence, and it goes on `/privacy` only on
+Robert's word. The section as approved and published:
 
 > **The field app.** Technicians who work jobs for the firm use the 254 Field
 > app. In it they take photographs of the property they are assigned to, and
@@ -103,14 +105,17 @@ densities and the adaptive foreground, on a navy background. iOS has the 1024
 icon.
 
 - **Google Play also asks for a 512 icon:** `public/icons/icon-512.png`.
-- **Google Play's feature graphic** (1024 by 500): to be made from the same mark
-  when the listing is created. It is not needed for testing.
+- **Google Play's feature graphic** (1024 by 500): `mobile/resources/play-feature-graphic.png`,
+  made 2026-11-14 by `mobile/scripts/make-feature-graphic.mjs` from the same
+  `master()` as the icons: the mark centred on the footer navy, no words added.
 
 ## Screenshots
 
-From the debug build: `docs/store-screens/`, taken on an Android emulator
-against a development server, with a probe technician on the development
-database and no real job or person. The stores' sizes:
+**Not taken yet.** This said they were in `docs/store-screens/`; on 2026-11-14
+that folder does not exist (corrected then). They come from the debug build on
+an Android emulator against a development server, with a probe technician on
+the development database and no real job or person, which needs the Android
+build on this PC (`docs/mobile-store-build.md`). The stores' sizes:
 
 - **Google Play:** at least two phone screenshots, 16:9 or 9:16.
 - **Apple:** 6.9 inch display screenshots, taken on a Mac once the iOS build
