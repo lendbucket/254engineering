@@ -289,6 +289,12 @@ Fifty-one entries re-checked: **twelve done, two superseded, three ruled with no
 
 Twelve of the thirteen unconfirmed remain for the second pass.
 
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L2847, `docs/production-sitting-2026-09-24.md`, three items | **Item 1**, Aman's approval in the register, is overtaken by ruling 11: approval is read from the signed record in the database, and the typed list is gone. **Item 2**, 0058, is on production (`supabase/applied.mjs`, version 20260924004442). **Item 3**, the shared session secrets: `CUSTOMER_SESSION_SECRET`, `PARTNER_SESSION_SECRET`, `MFA_ENCRYPTION_KEY` and `OPS_SESSION_SECRET` all read `preview: "absent"` in `src/config/credential-inventory.ts`, closed by taking them off Preview rather than by a split, so a preview cannot mint or read a production session | **Done** |
+
+Eleven of the thirteen unconfirmed remain.
+
 ## 8. Asked, and done: confirmed on main today
 
 | What | Where it was asked | The commit and file on main |
