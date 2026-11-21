@@ -1,8 +1,11 @@
 @AGENTS.md
 
-**READ `docs/HANDOFF-2026-09-22.md` FIRST.** It is where the firm, the gate, the
-blockers and the work in flight stand, written for a session with no memory of
-anything. This file is the law; that one is the position.
+**READ `docs/master-undone-2026-11-19.md` FIRST.** It is every open item, where
+it was asked, its status checked against the code, and who it waits on, kept
+current through its re-check tables. This file is the law; that one is the
+position. Robert's answer 16 of 2026-11-20 (issue #1, 7051433971) moved this line
+there from `docs/HANDOFF-2026-09-22.md`, which says itself that it goes stale the
+moment anything moves; it is kept as the September record.
 
 # 254 Engineering Services: standing law
 
