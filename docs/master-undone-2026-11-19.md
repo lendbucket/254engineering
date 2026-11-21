@@ -317,7 +317,7 @@ Six of the thirteen unconfirmed remain: L54, L2561's three untraced questions, L
 
 | Entry at `428fb36` | What the code says today | Status |
 | --- | --- | --- |
-| L7857, left by Phase 9, its four untraced subsections | **The report export queues the record, not the file:** a design that was ruled, with nothing owed. **One development client was written by a script nobody can name:** no action is possible by its own text, and `demo-audit` names the next one. **Orders attributed before 0022:** unrecoverable by its own text, the dispute screen says so, and production has no partner. **Retention, the inventory:** the telemetry floors are set (30 days, `eng_cron_runs` and `eng_jobs` only, `src/lib/retention-policy.ts`, pinned in CLAUDE.md 6c), but no retention period is stated for the regulatory and financial records the privacy policy promises are kept "for the periods Texas requires" | **Done, apart from the regulatory retention period, which waits on Robert and counsel** |
+| L7857, left by Phase 9, its four untraced subsections | **The report export queues the record, not the file:** a design that was ruled, with nothing owed. **One development client was written by a script nobody can name:** no action is possible by its own text, and `demo-audit` names the next one. **Orders attributed before 0022:** unrecoverable by its own text, the dispute screen says so, and production has no partner. **Retention, the inventory:** the telemetry floors are set (30 days, `eng_cron_runs` and `eng_jobs` only, `src/lib/retention-policy.ts`, pinned in CLAUDE.md 6c), but no retention period is stated for the regulatory and financial records the privacy policy promises are kept "for the periods Texas requires". **CORRECTED 2026-11-21, an hour after it was written:** the engineer's own protocols do state one for job files, ten years from the letter or from the last determination where there is no letter, as the firm's floor (RC-001 section 13, v1.1, and the other protocols in `src/content/protocols/`). What is unstated is a period for the records outside a job file, such as payments and accounts | **Done, apart from a retention period for records outside the job file, which waits on Robert and counsel** |
 
 Five of the thirteen unconfirmed remain: L54, L2561's three untraced questions, L7449, L8348 and L8458's engineer flow.
 
@@ -326,6 +326,12 @@ Five of the thirteen unconfirmed remain: L54, L2561's three untraced questions, 
 | L8348, engineering, its four untraced subsections | **The forms round trip:** `forms-audit` runs on the board's writers shard against development, where the round trip's database is configured, and passes every board; it still reports SKIP rather than PASS wherever one is not. **"Resend has not sent anything":** overtaken; production has taken payment and sent order email since Robert's ruling of 2026-11-14, though this was not re-read against Resend's console. **County pages are a later tier:** an assertion that stands by design, with nothing owed. **The waitlist route's planned death:** still owes an eventual decision on a permanent redirect to `/contact` once links have decayed | **Done or by design, apart from the waitlist redirect, a later decision for Robert** |
 
 Four of the thirteen unconfirmed remain: L54, L2561's three untraced questions, L7449 and L8458's engineer flow.
+
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L2561's three untraced questions (`docs/overnight-2026-09-22.md` section 3) | **Two, a registered DBA in partner copy:** `partner-audit` keeps the narrower rule, that a partner contract names the registrant rather than a trade name. **Three, audit action wording:** `/portal/audit` renders through the deterministic `actionLabel` in `src/lib/portal-labels.ts`. **Five, ten years or longer:** answered by the engineer in RC-001 v1.1 section 13, where ten years is the firm's floor and he raises it where the board or the liability policy requires | **Done**. With seven still open on Robert, the row above for L2561 is now settled but for that one |
+
+Three of the thirteen unconfirmed remain: L54, L7449 and L8458's engineer flow.
 
 ## 8. Asked, and done: confirmed on main today
 
