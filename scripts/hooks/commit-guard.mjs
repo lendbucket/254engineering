@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 /**
  * LAYER ONE OF THE COMMIT GUARD. Operator ruling, 2026-09-15.
  *
@@ -439,6 +440,111 @@ export function lossyContentVerdict(command) {
 }
 
 /**
+ * RULE SIX: A SCRIPT THAT WRITES TO DEVELOPMENT IS NOT RUN LOCALLY UNANNOUNCED.
+ *
+ * Drafted 2026-11-20 on the chat's recommendation to Robert (7043792114), after
+ * the second local writer run in two days (7010344148 on 2026-11-19, 7043130403
+ * on 2026-11-20). Both times the rule was written down, and the second time a
+ * memory note written for the first one was in force. Neither stopped it,
+ * because each run was picked as a "reader" of a changed file and nothing looked
+ * at what the script itself does.
+ *
+ * WHAT IT REFUSES. A command that runs `node`, `tsx` or `npx` and names a script
+ * under `scripts/` that is a WRITER:
+ *   - an audit on the cloud board's writers list in `scripts/ci/shards.mjs`, read
+ *     from that file rather than typed here, so the two cannot disagree; or
+ *   - any script whose own text calls one of WRITER_CALLS: a development client,
+ *     a created auth user, a probe, or a probe sweep.
+ *
+ * WHAT LETS IT THROUGH. `ANNOUNCED_RUN=<digits>` in the command, naming the
+ * issue #1 comment that announced the run, which is how Robert's standing rule
+ * allows a local writer: with the turn lock, and with him told first. The
+ * number is not checked against GitHub, because a hook that calls the network
+ * on every Bash command is a hook that times out; what it buys is that a writer
+ * run can no longer happen by accident, only on purpose, with the evidence
+ * named in the command itself.
+ *
+ * WHAT IT DOES NOT SEE, said rather than implied. A script it cannot find on
+ * disk is not refused: a path in a commit message or an echo is not a run, and
+ * a new file the command is about to create cannot be read yet. A script that
+ * writes only through product code it imports (no client of its own) is not
+ * recognised; the writers list covers the audits that do that today. And
+ * `npm run audit`, the board, is npm rather than node and is rule one's subject.
+ */
+export const WRITER_CALLS = [
+  "auditClient(",
+  "createUser(",
+  "createProbe(",
+  "createPartnerProbe(",
+  "createCustomerProbe(",
+  "destroyProbes(",
+];
+const ANNOUNCED = /\bANNOUNCED_RUN=\d{6,}\b/;
+const EXECUTOR = /(^|[\s;&|(])(node|tsx|npx)(\s|$)/;
+const SCRIPT_PATH = /(?:[A-Za-z]:)?[\w./\\:-]*scripts\/[\w./-]+\.mjs/g;
+
+/** The writers list as `scripts/ci/shards.mjs` states it, or null when it cannot be read. */
+export function writersFromShards(text) {
+  if (typeof text !== "string") return null;
+  const at = text.indexOf("writers:");
+  if (at < 0) return null;
+  const open = text.indexOf("audits: [", at);
+  const close = open < 0 ? -1 : text.indexOf("]", open);
+  if (open < 0 || close < 0) return null;
+  return [...text.slice(open, close).matchAll(/"([a-z0-9-]+)"/g)].map((m) => m[1]);
+}
+
+/**
+ * The verdict, with the file system handed in so the proof can exercise it
+ * without real writers on disk: `read(path)` returns a file's text or null, and
+ * `cwdOf(command)` says where a relative path resolves.
+ */
+export function writerRunVerdict(command, { read, resolve }) {
+  if (typeof command !== "string" || command.trim() === "") return null;
+  const stripped = stripQuoted(command) ?? command;
+  if (!EXECUTOR.test(stripped)) return null;
+  if (ANNOUNCED.test(command)) return null;
+  const writers = writersFromShards(read(resolve(command, "scripts/ci/shards.mjs"))) ?? [];
+  for (const m of command.matchAll(SCRIPT_PATH)) {
+    const path = m[0];
+    if (path.includes("/hooks/")) continue;
+    const text = read(resolve(command, path));
+    if (text === null) continue;
+    const name = path.split("/").pop().replace(/\.mjs$/, "");
+    const call = WRITER_CALLS.find((c) => text.includes(c));
+    const listed = writers.includes(name);
+    if (call || listed) {
+      return [
+        `This command runs ${path}, which writes to development`,
+        listed ? "(it is on the board's writers list in scripts/ci/shards.mjs)." : `(it calls ${call.slice(0, -1)}).`,
+        "A writer runs on the cloud board's writers shard, or locally only with the",
+        "turn lock and after Robert is told on issue #1. If this run was announced,",
+        "put ANNOUNCED_RUN=<the comment id> in front of the command. This rule exists",
+        "because a writer was run locally as a reader twice in two days, on",
+        "2026-11-19 and 2026-11-20, with the rule written down both times.",
+      ].join(" ");
+    }
+  }
+  return null;
+}
+
+/** Where a path in the command resolves: after a `cd <dir> &&`, else the hook's own directory. */
+function resolveIn(command, path) {
+  if (/^[A-Za-z]:[\\/]|^\//.test(path)) return path;
+  const cd = command.match(/(?:^|[;&|]\s*)cd\s+("([^"]+)"|'([^']+)'|(\S+))/);
+  const dir = cd ? cd[2] ?? cd[3] ?? cd[4] : process.cwd();
+  return `${dir.replace(/[\\/]+$/, "")}/${path}`;
+}
+
+function readOrNull(path) {
+  try {
+    return readFileSync(path, "utf8");
+  } catch {
+    return null;
+  }
+}
+
+/**
  * The git state this hook needs, read from the repository.
  *
  * ON FAILING OPEN HERE, WHICH IS THE OPPOSITE OF THE OTHER RULES. The two rules
@@ -527,7 +633,11 @@ async function main() {
     return;
   }
 
-  let refusal = verdict(command) ?? sourceWriteVerdict(command) ?? lossyContentVerdict(command);
+  let refusal =
+    verdict(command) ??
+    sourceWriteVerdict(command) ??
+    lossyContentVerdict(command) ??
+    writerRunVerdict(command, { read: readOrNull, resolve: resolveIn });
   if (!refusal) {
     const state = readGitState();
     // The ledger is read only when a migration is staged on main, so every
