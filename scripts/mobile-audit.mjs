@@ -18,7 +18,9 @@
  * still in use.
  */
 import { chromium } from "playwright";
-import { startNextServer } from "./lib/dev-server.mjs";
+import { startNextServer, dumpRouteState } from "./lib/dev-server.mjs";
+/* The nested-page 404 diagnostic runs once a run, on the first page that answers 404. */
+let routeStateDumped = false;
 
 import {
   createProbe,
@@ -192,6 +194,16 @@ async function measurePage(base, browser, path, width, probe = null, session = "
       return { unreachable: true, hscroll: null, taps: null, clip: null, phone: null, note: "bounced to sign in, not measured" };
     }
     if (!res || res.status() >= 400) {
+      /*
+       * Every path measured here is a page from the inventory, so it exists on
+       * disk; a 404 is the nested-page 404 recorded in BACKLOG. The first one in
+       * a run dumps the dev server's route state beside its log (Robert's
+       * answer 3 of 2026-11-18). The FAIL below is unchanged.
+       */
+      if (res && res.status() === 404 && !routeStateDumped) {
+        routeStateDumped = true;
+        dumpRouteState({ port: PORT, failedPath: path });
+      }
       return { hscroll: false, taps: false, clip: false, phone: false, note: `HTTP ${res ? res.status() : "no response"}` };
     }
 
