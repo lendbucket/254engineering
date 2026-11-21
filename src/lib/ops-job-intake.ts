@@ -619,7 +619,7 @@ export async function takeJob(
       action: "job.no_charge",
       entityType: "file",
       entityId: null,
-      summary: `No-charge ${entry.name} authorised for ${input.propertyAddress}, ${resolved.county} County`,
+      summary: `No-charge ${entry.name} authorized for ${input.propertyAddress}, ${resolved.county} County`,
       diff: {
         reason: decision.overridden ? decision.reason : (input.priceOverrideReason ?? "").trim(),
         catalog_price_cents: catalogCents,

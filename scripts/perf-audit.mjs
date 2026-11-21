@@ -198,6 +198,32 @@ const BASE_SETTINGS = {
 };
 
 /*
+ * THE OFFICE PROFILE, Robert's answer 7 of 2026-11-20 (issue #1, 7051433971):
+ * staff screens measured a second time under Lighthouse's own desktop
+ * constants, as the office-ready standard's "normal office connection", and
+ * the phone profile above stays the gate. PERF_PROFILE=desktop selects it. It
+ * is a REPORT: the run prints every signed-in screen against two seconds and
+ * gates nothing new, because two seconds has never been ruled a ceiling, only
+ * the standard the screens are measured against.
+ */
+const OFFICE = process.env.PERF_PROFILE === "desktop";
+const DESKTOP_SETTINGS = {
+  formFactor: "desktop",
+  screenEmulation: { mobile: false, width: 1350, height: 940, deviceScaleFactor: 1, disabled: false },
+  throttlingMethod: "simulate",
+  throttling: {
+    rttMs: 40,
+    throughputKbps: 10240,
+    cpuSlowdownMultiplier: 1,
+    requestLatencyMs: 0,
+    downloadThroughputKbps: 0,
+    uploadThroughputKbps: 0,
+  },
+};
+const OFFICE_STANDARD_MS = 2000;
+const PROFILE_SETTINGS = OFFICE ? DESKTOP_SETTINGS : BASE_SETTINGS;
+
+/*
  * A SESSION RIDES WITH THE REQUEST, WHICH IS THE WHOLE REASON THIS FILE CHANGED.
  *
  * Lighthouse drives its own Chrome and does not share Playwright's context, so
@@ -206,8 +232,8 @@ const BASE_SETTINGS = {
  * portal screen needs: the document and the route handlers it calls.
  */
 function settingsFor(cookie) {
-  if (!cookie) return BASE_SETTINGS;
-  return { ...BASE_SETTINGS, extraHeaders: { Cookie: cookie } };
+  if (!cookie) return PROFILE_SETTINGS;
+  return { ...PROFILE_SETTINGS, extraHeaders: { Cookie: cookie } };
 }
 
 /*
@@ -1033,6 +1059,24 @@ if (!IS_LOCAL && rows.some((r) => !r.failed)) {
   console.log(
     `  ${meeting.length} of ${measured.length} routes meet the target at the median. The gate is ${CEILINGS.lcp}ms and is a different number for a reason: see perf-budgets.mjs.`,
   );
+}
+
+/*
+ * THE OFFICE REPORT. Every screen measured under a session, slowest first,
+ * against two seconds of LCP at the median. Printed, not gated (see OFFICE).
+ */
+if (OFFICE) {
+  const staff = rows.filter((r) => r.median && r.session && r.session !== "none");
+  staff.sort((a, b) => b.median.lcp - a.median.lcp);
+  const over = staff.filter((r) => r.median.lcp > OFFICE_STANDARD_MS);
+  console.log("");
+  console.log(`OFFICE PROFILE (Lighthouse desktop constants), ${staff.length} signed-in screen(s) measured, ${over.length} over ${OFFICE_STANDARD_MS}ms LCP at the median:`);
+  for (const r of staff) {
+    console.log(
+      `  ${r.median.lcp > OFFICE_STANDARD_MS ? "over " : "meets"}  ${String(Math.round(r.median.lcp)).padStart(5)}ms  TBT ${String(Math.round(r.median.tbt)).padStart(4)}ms  ${r.path}`,
+    );
+  }
+  console.log("");
 }
 
 if (failed.length === 0) {

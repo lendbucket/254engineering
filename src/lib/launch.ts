@@ -213,7 +213,7 @@ export const LAUNCH_CONDITIONS: LaunchCondition[] = [
       if (value === "live") return null;
       if (value === "" || value === "prelaunch") return "LAUNCH_MODE is not live.";
       return (
-        `LAUNCH_MODE is ${JSON.stringify(raw)}, which this gate does not recognise. ` +
+        `LAUNCH_MODE is ${JSON.stringify(raw)}, which this gate does not recognize. ` +
         "It reads live, prelaunch, or unset, so this value holds the gate shut exactly " +
         "as prelaunch would and may be a typo."
       );

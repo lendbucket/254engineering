@@ -220,3 +220,108 @@ function stopTree(child) {
     setTimeout(resolve, 5000).unref?.();
   });
 }
+
+/*
+ * THE NESTED-PAGE 404 DIAGNOSTIC. Robert's ruling of 2026-11-18, answer 3:
+ * "if it recurs a third time on any commit, build a diagnostic that dumps the
+ * dev server's route state when a page that exists on disk answers 404, and
+ * never loosen the check." It recurred a third time on board 44874371813
+ * (2026-11-21, batch/day-1121 at 1851b22): mobile-audit's next dev on 4301
+ * answered `/` with 200 and every nested page and nested API route with 404,
+ * from its first request, minutes after doors-audit's next dev in the same
+ * checkout had stopped cleanly.
+ *
+ * WHAT IT WRITES, beside the server's own log so the board seals it with that
+ * log: the `.next` tree (path, size, modified time) to a bounded depth; every
+ * routes manifest found under `.next`, with whether the failing route's page
+ * key appears in it; and every running `next` process with its age, its
+ * parent and its command line. That is the state that would tell a stale or
+ * half-written dev cache, a second server on the same checkout, and a missing
+ * route entry apart. It CHANGES NOTHING and decides nothing: the audit's FAIL
+ * stands exactly as it was, which is the second half of the ruling.
+ */
+export function dumpRouteState({ port, failedPath, logDir = process.env.AUDIT_LOG_DIR || os.tmpdir() }) {
+  const out = [];
+  const say = (line) => out.push(line);
+  say(`ROUTE STATE at ${new Date().toISOString()}, port ${port}, after ${failedPath} answered 404`);
+  say(`cwd ${process.cwd()}`);
+  say("");
+  say("== the .next tree (depth 5, at most 1500 entries) ==");
+  let listed = 0;
+  const walk = (dir, depth) => {
+    if (depth > 5 || listed >= 1500) return;
+    let entries = [];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch (e) {
+      say(`  (could not read ${dir}: ${e.message})`);
+      return;
+    }
+    for (const e of entries) {
+      if (listed >= 1500) return;
+      const p = path.join(dir, e.name);
+      let st = null;
+      try {
+        st = fs.statSync(p);
+      } catch {
+        /* removed between readdir and stat */
+      }
+      listed += 1;
+      say(`  ${e.isDirectory() ? "d" : "f"} ${String(st ? st.size : "?").padStart(10)} ${st ? st.mtime.toISOString() : "?"} ${path.relative(process.cwd(), p)}`);
+      if (e.isDirectory() && e.name !== "node_modules" && !/^(cache|turbopack)$/.test(e.name)) walk(p, depth + 1);
+    }
+  };
+  walk(path.join(process.cwd(), ".next"), 1);
+  say("");
+  say("== routes manifests ==");
+  const manifests = [];
+  const findManifests = (dir, depth) => {
+    if (depth > 6) return;
+    let entries = [];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) findManifests(p, depth + 1);
+      else if (/(app-paths-manifest|routes-manifest|pages-manifest|app-path-routes-manifest)\.json$/.test(e.name)) manifests.push(p);
+    }
+  };
+  findManifests(path.join(process.cwd(), ".next"), 1);
+  if (!manifests.length) say("  none found under .next");
+  const firstSegment = failedPath.split("?")[0].split("/").filter(Boolean)[0] ?? "";
+  for (const m of manifests) {
+    let text = "";
+    try {
+      text = fs.readFileSync(m, "utf8");
+    } catch (e) {
+      say(`  ${path.relative(process.cwd(), m)}: could not read (${e.message})`);
+      continue;
+    }
+    const keys = text.match(/"\/[^"]*"/g) ?? [];
+    const near = keys.filter((k) => firstSegment && k.includes(`/${firstSegment}`)).slice(0, 40);
+    say(`  ${path.relative(process.cwd(), m)}: ${text.length} bytes, ${keys.length} quoted paths, ${near.length} under /${firstSegment}`);
+    for (const k of near) say(`    ${k}`);
+  }
+  say("");
+  say("== running next processes ==");
+  const ps =
+    process.platform === "win32"
+      ? spawnSync("tasklist", ["/v"], { encoding: "utf8" })
+      : spawnSync("ps", ["-eo", "pid,ppid,etime,args"], { encoding: "utf8" });
+  const lines = String(ps.stdout || "").split("\n").filter((l) => /next|turbopack/i.test(l) && !/\bps -eo\b/.test(l));
+  for (const l of lines.slice(0, 40)) say(`  ${l.trim().slice(0, 300)}`);
+  if (!lines.length) say("  none matched");
+  try {
+    fs.mkdirSync(logDir, { recursive: true });
+    const file = path.join(logDir, `route-state-${port}-${Date.now()}.txt`);
+    fs.writeFileSync(file, out.join("\n") + "\n");
+    console.log(`  [dev-server] a page that exists answered 404; route state written to ${file}`);
+    return file;
+  } catch (e) {
+    console.log(`  [dev-server] a page that exists answered 404, and the route state could not be written: ${e.message}`);
+    return null;
+  }
+}

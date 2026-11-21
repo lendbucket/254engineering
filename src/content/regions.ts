@@ -159,8 +159,8 @@ export const regions: Region[] = [
       "Tornado exposure is real across the whole area and concentrated in the spring. It affects how a repair specification is written after an event more than it affects routine residential design.",
     ],
     soils: [
-      "The Blackland Prairie runs south southwest through Dallas, Collin, Ellis, Hunt, and Navarro counties, and the Houston Black clay under it is a textbook expansive soil with plasticity indices commonly in the thirties and forties. The Eagle Ford and Taylor formations beneath it behave similarly where they are shallow.",
-      "West of Fort Bend of the Metroplex the picture changes. Tarrant, Parker, and Palo Pinto counties sit on the Fort Worth Prairie and the Cross Timbers, with shallower soils over limestone and sandstone and, in places, rock close enough to the surface to change a foundation entirely.",
+      "The Blackland Prairie runs south southwest through Dallas, Collin, Ellis, Hunt, and Navarro counties, and the Houston Black clay under it is a textbook expansive soil with high plasticity. The Eagle Ford and Taylor formations beneath it behave similarly where they are shallow.",
+      "West of the Metroplex the picture changes. Tarrant, Parker, and Palo Pinto counties sit on the Fort Worth Prairie and the Cross Timbers, with shallower soils over limestone and sandstone and, in places, rock close enough to the surface to change a foundation entirely.",
       "The eastern counties are a different problem. The piney woods of the East Texas and Deep East Texas counties carry sandy soils with low plasticity, high groundwater in places, and slopes that introduce erosion and slope stability questions that the Blackland Prairie never raises.",
     ],
     permitting: [

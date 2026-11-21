@@ -336,7 +336,7 @@ export async function binderFor(actor: Actor | null, fileId: string): Promise<Bi
   const { data: engineers, error: engineersError } = engineerIds.length
     ? await db.from("eng_profiles").select("id, display_name, license_number").in("id", engineerIds)
     : { data: [], error: null };
-  if (engineersError) unreadable.push(`the deciding engineers' names and licences (${engineersError.message})`);
+  if (engineersError) unreadable.push(`the deciding engineers' names and licenses (${engineersError.message})`);
   const engineerById = new Map((engineers ?? []).map((e) => [e.id as string, e]));
 
   /*
