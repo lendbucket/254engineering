@@ -301,6 +301,12 @@ Eleven of the thirteen unconfirmed remain.
 
 Ten of the thirteen unconfirmed remain.
 
+| Entry at `428fb36` | What the code says today, question by question | Status |
+| --- | --- | --- |
+| L2753, `docs/overnight-2026-09-23.md`, five questions in its section 9 | **Q1:** 0058 is on production, and `a-signed-protocol-is-not-a-draft` is in `proofs-audit`, which passes on every board. **Q3:** sign-up's shared secret is settled, since `CUSTOMER_SESSION_SECRET` is off Preview. **Q4:** `mfa-audit` names its faults now (N10, `987622f`). **Q5:** the two en dashes in a historical table were recommended left; not traced. **Q2 IS OPEN AND HAS A DEADLINE:** Aman has until **2026-12-21** to submit TDI form AQI-1 (`BACKLOG.md`, "AQI-1, AND IT HAS A DEADLINE"). His windstorm appointment 143295 has been held since 2026-10-08 (`verifiedCredentials` in `src/config/credentials.ts`), but nothing records the AQI-1 submission itself, and the dated item that would go red was not built, by instruction | **Mostly done. Q2 goes to Robert** (issue #1, 2026-11-21): whether the AQI-1 is in, and his word recorded with its date |
+
+Nine of the thirteen unconfirmed remain.
+
 ## 8. Asked, and done: confirmed on main today
 
 | What | Where it was asked | The commit and file on main |
