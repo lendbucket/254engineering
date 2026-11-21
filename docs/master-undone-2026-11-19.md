@@ -295,6 +295,12 @@ Twelve of the thirteen unconfirmed remain for the second pass.
 
 Eleven of the thirteen unconfirmed remain.
 
+| Entry at `428fb36` | What the code says today, question by question | Status |
+| --- | --- | --- |
+| L3347, `docs/overnight-2026-09-24.md`, questions R7.1 to R7.8 and 1.1 to 1.8 | **Settled in the code:** R7.1, the production report scoped to the reader's own pay through `pricing.read_own_pay` (`src/lib/ops-reports.ts:571`). R7.2, 0059 and 0060 are on main, so on production. R7.3, 0060 records production's own `eng-messages` limits and that `eng-partner-assets` does not exist there. R7.6, the proving charge, met on 2026-09-28. 1.1, the engineer-and-money ruling of 2026-09-24 (CLAUDE.md 6b-i). 1.3, `self-service-signup` gates `open`. 1.6, `eng-uploads` is in 0060. R7.4 and 1.7, mostly: `src/lib/firm-calendar.ts` and its proofs (`a-business-date-is-the-firms-calendar`, `every-date-names-its-zone` and four more), though 21 files still slice a UTC date and whether each is a display site was not read. **Still open:** R7.5, no `eng_now()` function in any migration, so the SOC 2 pack's "generated on" date is still a stale row's time; R7.7, the browser audit called "item 6", not traced; 1.5, whether TBPELS requires professional liability cover, a question for Robert. 1.8 and section 3.5, the three declared tables nothing reads, were not traced | **Mostly done.** R7.5 waits on a migration in a sitting; 1.5 waits on Robert |
+
+Ten of the thirteen unconfirmed remain.
+
 ## 8. Asked, and done: confirmed on main today
 
 | What | Where it was asked | The commit and file on main |
