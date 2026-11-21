@@ -315,6 +315,12 @@ Nine of the thirteen unconfirmed remain.
 
 Six of the thirteen unconfirmed remain: L54, L2561's three untraced questions, L7449, L7857, L8348 and L8458's engineer flow.
 
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L7857, left by Phase 9, its four untraced subsections | **The report export queues the record, not the file:** a design that was ruled, with nothing owed. **One development client was written by a script nobody can name:** no action is possible by its own text, and `demo-audit` names the next one. **Orders attributed before 0022:** unrecoverable by its own text, the dispute screen says so, and production has no partner. **Retention, the inventory:** the telemetry floors are set (30 days, `eng_cron_runs` and `eng_jobs` only, `src/lib/retention-policy.ts`, pinned in CLAUDE.md 6c), but no retention period is stated for the regulatory and financial records the privacy policy promises are kept "for the periods Texas requires" | **Done, apart from the regulatory retention period, which waits on Robert and counsel** |
+
+Five of the thirteen unconfirmed remain: L54, L2561's three untraced questions, L7449, L8348 and L8458's engineer flow.
+
 ## 8. Asked, and done: confirmed on main today
 
 | What | Where it was asked | The commit and file on main |
