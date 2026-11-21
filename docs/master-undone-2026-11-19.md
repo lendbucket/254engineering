@@ -281,6 +281,14 @@ Fifty-one entries re-checked: **twelve done, two superseded, three ruled with no
 
 **All 57 have now had a first read. Of the fifty-eight entries placed** (the 57 and L3180): **twelve done, two superseded, three ruled with nothing to build, five partly, mostly or nearly done, three open on nobody, eighteen on Robert, two on others, and thirteen not confirmed.** The thirteen are where a second pass starts. Six of them are dated documents whose questions were never read item by item, which is a session's work of its own.
 
+**Second pass, 2026-11-21, against main `986efbc`:**
+
+| Entry at `428fb36` | What the code says today, question by question | Status |
+| --- | --- | --- |
+| L3373, `docs/MORNING-2026-10-15.md`, fourteen numbered questions | **Q1:** all of MH, SL, PL, RS and DS are registered, beside RC, FC, WP and WS. **Q6:** `cancelAndRefund` reads through `refundableOn`, which refuses when either read fails, by Robert's ruling of 2026-10-15. **Q7:** `settleDecision` reads through `refundableOn` too, where a pending refund counts as given back. **Q11:** the account-scoped order page exists (`src/app/account/orders/[reference]/page.tsx`). **Q13:** no question by its own text. **Q5 is OPEN and was never answered or indexed:** `src/lib/ops-job-billing.ts` around line 438 queues the payment link without reading the queue's answer, then writes "Payment link sent to ..." into `payment_note` and the audit summary. A failed queue would therefore read as a sent link, on a money path. Q8 and Q14 are billing rulings. Q2 to Q4, Q9, Q10 and Q12 were not traced today | **Partly done.** Q5 goes back to Robert as a question (morning report of 2026-11-21); Q8 and Q14 wait on him |
+
+Twelve of the thirteen unconfirmed remain for the second pass.
+
 ## 8. Asked, and done: confirmed on main today
 
 | What | Where it was asked | The commit and file on main |
