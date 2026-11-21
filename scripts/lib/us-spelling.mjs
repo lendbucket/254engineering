@@ -214,16 +214,73 @@ export function usSpellingSweep() {
    */
   const COLUMN_LIST = /^[a-z_]+(?:!\w+)?(?:\([a-z_,\s!]*\))?(?:\s*,\s*[a-z_]+(?:!\w+)?(?:\([a-z_,\s!]*\))?)*$/;
 
+  /*
+   * WIDENED 2026-11-20, Robert's answer 15 (issue #1, 7051433971): the two
+   * shapes the note at the foot of this function said it could not read.
+   *
+   * TEMPLATE: a backtick string on one line that carries `${...}`. Each
+   * interpolation is blanked to a space and what is left is read as prose,
+   * because what is left is the rendered sentence around the values.
+   *
+   * JSX TEXT, in .tsx files only, two shapes: text between a `>` and the next
+   * `<` on one line, and a line that is nothing but words, the shape a JSX text
+   * node takes when it wraps. The second is held narrow on purpose: no `;`,
+   * `=`, braces or angle brackets, and at least three words, so a code line or
+   * a typed field (`organisation: string`) is never read as copy.
+   */
+  const TEMPLATE = /`((?:[^`\\]|\\.)*\$\{(?:[^`\\]|\\.)*)`/g;
+  const JSX_TEXT = />([^<>{}]*[A-Za-z][^<>{}]*)</g;
+  const WORDS_ONLY = /^[A-Za-z][A-Za-z0-9 ,.'"()?!:’-]*$/;
+  const read = { template: 0, jsx: 0 };
+  /*
+   * Each candidate says whether it came from the widened shapes. Those are
+   * matched STRICTLY: the British word must stand as a word in a sentence, not
+   * joined by `-`, `?`, `=`, `/`, `_` or `.` to something else, because a
+   * template carries URLs and keys (`?cancelled=1`, `payment-on-cancelled`)
+   * that are code with letters in them. The first widened run read 50
+   * findings and most were exactly that, or comment prose; the literal sweep
+   * keeps its old test unchanged.
+   */
+  const candidates = (file, line) => {
+    const out = [];
+    LITERAL.lastIndex = 0;
+    let m;
+    while ((m = LITERAL.exec(line)) !== null) out.push({ s: m[1] ?? m[2] ?? m[3], strict: false });
+    TEMPLATE.lastIndex = 0;
+    while ((m = TEMPLATE.exec(line)) !== null) {
+      read.template += 1;
+      out.push({ s: m[1].replace(/\$\{[^}]*\}/g, " "), strict: true });
+    }
+    if (file.endsWith(".tsx")) {
+      JSX_TEXT.lastIndex = 0;
+      while ((m = JSX_TEXT.exec(line)) !== null) {
+        read.jsx += 1;
+        out.push({ s: m[1], strict: true });
+      }
+      const t = line.trim();
+      if (WORDS_ONLY.test(t) && t.split(/\s+/).length >= 3) {
+        read.jsx += 1;
+        out.push({ s: t, strict: true });
+      }
+    }
+    return out;
+  };
+  const strictWord = (british) => new RegExp(`(^|[\\s,;:("'])${british}($|[\\s,;:!?)"']|\\.(\\s|$))`);
+  /*
+   * BLOCK COMMENTS ARE BLANKED BEFORE ANY LINE IS READ, line count kept. The
+   * old line test skipped a comment line only when it began with `*` or `//`,
+   * which a JSX comment's continuation lines and a wrapped block comment often
+   * do not, and the WORDS_ONLY shape would read that prose as copy.
+   */
+  const blankComments = (text) => text.replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, " "));
+
   const spelt = [];
   let columnLists = 0;
   for (const file of composedFiles) {
-    const lines = readSrc(file, "utf8").split("\n");
+    const lines = blankComments(readSrc(file, "utf8")).split("\n");
     lines.forEach((line, i) => {
       if (/^\s*(\*|\/\/)/.test(line)) return;
-      LITERAL.lastIndex = 0;
-      let m;
-      while ((m = LITERAL.exec(line)) !== null) {
-        const s = m[1] ?? m[2] ?? m[3];
+      for (const { s, strict } of candidates(file, line)) {
         /* Prose only: a literal with no space is a key, a class name or a path. */
         if (!s || !/\s/.test(s.trim())) continue;
         /* And a comma separated list of snake_case names is a column list. */
@@ -238,8 +295,11 @@ export function usSpellingSweep() {
         }
         const lower = s.toLowerCase();
         for (const [british, american] of BRITISH) {
-          if (new RegExp(`\\b${british}\\b`).test(lower)) {
-            spelt.push({ file, line: i + 1, british, american, text: s.trim().slice(0, 90) });
+          if ((strict ? strictWord(british) : new RegExp(`\\b${british}\\b`)).test(lower)) {
+            /* One finding per line and word, since a JSX node can also hold a quoted literal. */
+            if (!spelt.some((p) => p.file === file && p.line === i + 1 && p.british === british)) {
+              spelt.push({ file, line: i + 1, british, american, text: s.trim().slice(0, 90) });
+            }
             break;
           }
         }
@@ -291,9 +351,22 @@ export function usSpellingSweep() {
    * run would produce another round of edits nobody has reviewed. What changes
    * now is that the output stops implying coverage it does not have. Widening
    * it is in the morning report under Rulings owed.
+   *
+   * WIDENED 2026-11-20 by Robert's answer 15: both shapes are read now (see
+   * TEMPLATE and JSX_TEXT above), and the summary counts each. What is still
+   * not read is said below instead: a JSX node that is one word, which the
+   * prose rule skips like any one-word literal; JSX text broken across lines by
+   * an inline element; and a template literal spanning lines.
    */
+  if (read.template === 0 || read.jsx === 0) {
+    record(
+      "spelling",
+      "us-spelling-sweep",
+      `the widened sweep read ${read.template} interpolated template(s) and ${read.jsx} JSX text node(s); a shape read zero times is a matcher that matches nothing`,
+    );
+  }
   summary.push(
-    `US SPELLING: string literals in ${composedFiles.length} composed file(s) swept, ` +
+    `US SPELLING: string literals, ${read.template} interpolated template(s) and ${read.jsx} JSX text node(s) in ${composedFiles.length} composed file(s) swept, ` +
       `${protocolFiles.length} protocol file(s) exempt as the signed document's own text ` +
       `(${protocolFiles.map((f) => f.slice(PROTOCOL_DIR.length)).join(", ")}), ` +
       `${columnLists} column list(s) skipped as schema identifiers rather than prose, ` +
@@ -301,8 +374,8 @@ export function usSpellingSweep() {
       `(${standingExempt.map((e) => `${e.file.slice(LETTERS_DIR.length)}:${e.line}`).join(", ")}).`,
   );
   summary.push(
-    "  NOT READ BY THIS CHECK: JSX text nodes, and template literals carrying an " +
-      "interpolation. Both hold rendered copy. Its green covers string literals only.",
+    "  NOT READ BY THIS CHECK: a one-word JSX node, JSX text broken across lines by an " +
+      "inline element, and a template literal spanning lines.",
   );
   return { findings, summary, composedFiles, protocolFiles };
 }

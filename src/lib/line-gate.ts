@@ -105,7 +105,7 @@ async function rc001Signed(documentNumber: string): Promise<Sellable> {
   if (!row) return closed(`${documentNumber} v${entry.declaration.version} is not approved in the platform.`);
   if (!row.approved_by) return closed(`${documentNumber} v${entry.declaration.version} names no approver.`);
   if (!verifiedEngineers.some((e) => e.licenseNumber === row.approved_by_license)) {
-    return closed(`${documentNumber} was approved under a licence that is not on the firm's register.`);
+    return closed(`${documentNumber} was approved under a license that is not on the firm's register.`);
   }
   if (row.document_sha256 !== current.sha256) {
     return closed(`${documentNumber}'s approved record is for a different document than the one the platform runs.`);

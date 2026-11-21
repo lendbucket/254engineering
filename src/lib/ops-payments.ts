@@ -499,7 +499,7 @@ export async function markBatchPaid(input: {
       const said = await unexpectedPaymentOnce(
         o.id,
         input.chargeRef,
-        `A payment for ${batch.reference} arrived while this order was cancelled: ${money(input.amountCents)} under ${input.chargeRef}. Nothing was released for it.`,
+        `A payment for ${batch.reference} arrived while this order was canceled: ${money(input.amountCents)} under ${input.chargeRef}. Nothing was released for it.`,
       );
       if (!said.ok) return { ok: false, error: said.error };
     }
@@ -766,9 +766,9 @@ export async function markPaid(input: {
   if (!releases && order.status === "cancelled" && applied.detail.amount_differs !== true) {
     await raiseRefundTask({
       key: `payment-on-cancelled:${input.orderId}:${input.chargeRef}`,
-      title: `${order.reference}: a payment of ${money(input.amountCents)} arrived on a cancelled order`,
+      title: `${order.reference}: a payment of ${money(input.amountCents)} arrived on a canceled order`,
       description:
-        `${input.provider} took ${money(input.amountCents)} under ${input.chargeRef} after ${order.reference} was cancelled, ` +
+        `${input.provider} took ${money(input.amountCents)} under ${input.chargeRef} after ${order.reference} was canceled, ` +
         `so the work was not released. Decide whether to reopen the order or refund the charge.`,
     });
   }
@@ -2482,7 +2482,7 @@ async function settleRefundRow(
     .from("eng_order_payments")
     .update({ status: "cancelled", failure_reason: `Superseded: the provider's answer ${result.ref} could not be written to this row (${error.message}).` })
     .eq("id", id);
-  if (cancelError) console.error(`[payments] the reserved refund row ${id} could not be settled or cancelled: ${cancelError.message}`);
+  if (cancelError) console.error(`[payments] the reserved refund row ${id} could not be settled or canceled: ${cancelError.message}`);
   return { error };
 }
 
