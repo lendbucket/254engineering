@@ -339,6 +339,12 @@ Three of the thirteen unconfirmed remain: L54, L7449 and L8458's engineer flow.
 
 Two of the thirteen unconfirmed remain: L54, the October audit's six documents, and L8458's engineer flow, which needs storage on the checking machine.
 
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L54, the October 2026 product audit's records: the REPORT's list of defects still open (13 to 26) | **Done in the code:** 13, the account's order rows link to `/account/orders/<reference>`; 16, the partner Referrals and Statements read a true total rather than "Showing all N" (`ops-partner-portal.ts:149`); 17, "most recent" reads the newest row (`ops-dashboard.ts` near 2170); 22, the order confirmation is tracked as queued or could not be queued (`ops-payments.ts` near 989); 25, merged as `ca71093`. 19, 20, 21, 23 and 24 are marked fixed in the report itself. **On Robert:** 14, the partner asset to re-approve; 15, a ruling per hand-typed public sentence; 26, a statement on a closed account, which is a billing ruling (also Q8 of the morning of 2026-10-15). **Not traced:** 18, the administrator's Your pay with no person column. The three screen-notes files and the two finding documents were not read item by item | **Mostly done.** 14, 15 and 26 wait on Robert; 18 and the notes files are the remainder |
+
+One of the thirteen remains wholly unconfirmed: L8458's engineer flow, which needs storage on the checking machine. **The second pass is otherwise complete.**
+
 ## 8. Asked, and done: confirmed on main today
 
 | What | Where it was asked | The commit and file on main |
