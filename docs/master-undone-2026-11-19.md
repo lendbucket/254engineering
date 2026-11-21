@@ -333,6 +333,12 @@ Four of the thirteen unconfirmed remain: L54, L2561's three untraced questions, 
 
 Three of the thirteen unconfirmed remain: L54, L7449 and L8458's engineer flow.
 
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L7449, recorded elsewhere and indexed here, its seven untraced subsections | **Messaging edit and delete:** blocked by the ruling of 2026-09-05 until `eng_messages` can carry the record of a change. **Messaging export and retention:** half built, as its own text says. **Sentry:** wired, with no `SENTRY_DSN` set in Vercel. **Metric charts** and **uptime as a number:** not built by recorded decision. **Telemetry retention:** `eng_error_events` still grows, because the set of tables retention may delete from is pinned to `eng_cron_runs` and `eng_jobs` (CLAUDE.md 6c), and widening it is a ruling. **The prototype surfaces:** the search, settings and reports screens now exist under `src/app/portal/(app)/`; the rest were not traced | **By decision or on Robert:** the Sentry DSN, and whether `eng_error_events` joins the retention set |
+
+Two of the thirteen unconfirmed remain: L54, the October audit's six documents, and L8458's engineer flow, which needs storage on the checking machine.
+
 ## 8. Asked, and done: confirmed on main today
 
 | What | Where it was asked | The commit and file on main |
