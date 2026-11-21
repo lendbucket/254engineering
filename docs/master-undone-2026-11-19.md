@@ -321,6 +321,12 @@ Six of the thirteen unconfirmed remain: L54, L2561's three untraced questions, L
 
 Five of the thirteen unconfirmed remain: L54, L2561's three untraced questions, L7449, L8348 and L8458's engineer flow.
 
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L8348, engineering, its four untraced subsections | **The forms round trip:** `forms-audit` runs on the board's writers shard against development, where the round trip's database is configured, and passes every board; it still reports SKIP rather than PASS wherever one is not. **"Resend has not sent anything":** overtaken; production has taken payment and sent order email since Robert's ruling of 2026-11-14, though this was not re-read against Resend's console. **County pages are a later tier:** an assertion that stands by design, with nothing owed. **The waitlist route's planned death:** still owes an eventual decision on a permanent redirect to `/contact` once links have decayed | **Done or by design, apart from the waitlist redirect, a later decision for Robert** |
+
+Four of the thirteen unconfirmed remain: L54, L2561's three untraced questions, L7449 and L8458's engineer flow.
+
 ## 8. Asked, and done: confirmed on main today
 
 | What | Where it was asked | The commit and file on main |
