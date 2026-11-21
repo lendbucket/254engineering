@@ -307,6 +307,14 @@ Ten of the thirteen unconfirmed remain.
 
 Nine of the thirteen unconfirmed remain.
 
+| Entry at `428fb36` | What the code says today | Status |
+| --- | --- | --- |
+| L4714, the handoff of 2026-09-22 is the position | CLAUDE.md's first-read line points at this list since `986efbc`, by Robert's answer 16 of 2026-11-20. The handoff is kept as the September record | **Superseded** |
+| L6709, the email port waits until a reply to support@ is proven | Robert's answer 14 of 2026-11-20: treat it as not confirmed; one test email from the platform, and his reply closes it. This machine cannot send one, having no Resend key; the two ways to send it are in 7054566065 | **Open, waits on Robert:** the send |
+| L5288, the site rebuild: approved copy, retargeted keywords, and the gate under it | Partly overtaken. Prices are set: `src/config/prices.ts` holds every line's price, and the catalogue derives from it. The city-term conflict is settled by the location ruling of 2026-10-29 (CLAUDE.md section 2). Not traced today: the per-line turnaround, which by its own words renders as nothing until supplied; the expanded five process steps; and the TWIA keyword split between the service page and the articles | **Partly done, the rest not confirmed** |
+
+Six of the thirteen unconfirmed remain: L54, L2561's three untraced questions, L7449, L7857, L8348 and L8458's engineer flow.
+
 ## 8. Asked, and done: confirmed on main today
 
 | What | Where it was asked | The commit and file on main |
