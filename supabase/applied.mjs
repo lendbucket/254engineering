@@ -5056,14 +5056,18 @@ export const APPLIED = [
     fingerprint: "14bdcbc9c50eb3706f17af611dc44735",
     behaviour: "0cea3058768ebdfe13f5742f48e41802",
     /*
-     * PENDING BY RULING: Robert's answer 12 of 2026-11-21 (issue #1,
-     * 7072967992) says build it and stage it for his next sitting, and do not
-     * merge it. So it stays on stage/eng-now-0139, production: null is his
-     * decision, and it reaches production in a sitting he runs. It is on
-     * development since 2026-11-22, applied by the chat on request 7075073449
-     * (read back in 7076658908).
+     * Production: applied 2026-11-22 13:45 UTC through apply_migration by the
+     * chat counterpart, in the sitting Robert approved at 07:45 Central ("your
+     * recs yes", issue #1 7080044238), from stage/eng-now-0139 at 1ae44cd after
+     * board 45021198844 passed on it; version 20261122134533; the file 1,770
+     * bytes, sha256 45e93583, the same file sat on development. Read back:
+     * shape 14bdcbc9 at 1729 columns and 130 tables unchanged, grants 204
+     * unchanged, eng_now returning timestamptz with search_path pinned,
+     * EXECUTE false for anon and authenticated and true for service_role, 0.11 s
+     * from clock_timestamp. Every prediction met. It was staged by his answer
+     * 12 of 2026-11-21 until this sitting.
      */
-    production: null,
+    production: "2026-11-22",
     proves: { function: "eng_now" },
     note:
       "Both figures read off scripts/fingerprint-at.mjs on 2026-11-21 on the chain to 0139. Shape unchanged, " +
@@ -5072,7 +5076,8 @@ export const APPLIED = [
       "WRITTEN 2026-11-21 ON stage/eng-now-0139, FOR ROBERT'S ANSWER 12: eng_now() returns the database's now(), so " +
       "the SOC 2 pack, which has called rpc('eng_now') since it was written, is stamped with the database's clock " +
       "rather than the created_at of the newest job. Stable SQL, search_path pinned, EXECUTE revoked from PUBLIC, " +
-      "anon and authenticated in the same file (0073). Additive. Pending on production by his ruling. ON DEVELOPMENT SINCE " +
+      "anon and authenticated in the same file (0073). Additive. ON PRODUCTION SINCE 2026-11-22 (7080044238, version " +
+      "20261122134533, every prediction met). ON DEVELOPMENT SINCE " +
       "2026-11-22 (issue #1, 7076658908, on request 7075073449: apply_migration, version 20261122083947, the file's " +
       "sha256 45e93583, shape 14bdcbc9 at 1729 columns and 130 tables unchanged, role grants 204 unchanged, eng_now " +
       "returning timestamptz with search_path pinned, EXECUTE false for anon and authenticated and true for " +
