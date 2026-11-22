@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { STATUS_LABEL, type FileStatus } from "@/lib/ops-files";
+/* From file-status-labels, never ops-files: that module imports launch.ts, which would ship the protocol registry to the browser (answer 2, 2026-11-22). */
+import { STATUS_LABEL } from "@/lib/file-status-labels";
+import type { FileStatus } from "@/lib/ops-files";
 
 /**
  * The transition controls on a file.

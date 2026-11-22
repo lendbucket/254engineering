@@ -2,7 +2,9 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { KeyboardAwareComposer } from "@/components/portal/design";
+/* From its own file, never the design barrel: the barrel re-exports RestrictedMode, which imports launch.ts, and that
+ * shipped the protocol registry to the browser (answer 2, 2026-11-22). */
+import { KeyboardAwareComposer } from "@/components/portal/design/Composer";
 import type { RoleKey } from "@/lib/ops-authz";
 import { formatInFirmZone } from "@/lib/firm-calendar";
 

@@ -78,21 +78,9 @@ export const FILE_STATUSES: FileStatus[] = [
   "cancelled",
 ];
 
-export const STATUS_LABEL: Record<FileStatus, string> = {
-  intake: "Intake",
-  needs_dispatch: "Needs dispatch",
-  dispatched: "Dispatched",
-  evidence_in_progress: "Evidence in progress",
-  evidence_submitted: "Evidence submitted",
-  under_review: "Under review",
-  revisions_requested: "Revisions requested",
-  repairs_required: "Repairs required",
-  refused: "Declined to seal",
-  sealed: "Sealed",
-  delivered: "Delivered",
-  closed: "Closed",
-  cancelled: "Cancelled",
-};
+/* Moved to file-status-labels.ts so a client screen can read it without launch.ts (2026-11-22). */
+import { STATUS_LABEL } from "./file-status-labels";
+export { STATUS_LABEL };
 
 /** Where a status sits, for colouring a chip without a second lookup table. */
 export const STATUS_TONE: Record<FileStatus, "neutral" | "good" | "warn" | "bad"> = {
