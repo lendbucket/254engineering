@@ -255,7 +255,7 @@ export default async function PayPage() {
   /*
    * WHOSE ROW IT IS, ON THE FIRM'S VIEW ONLY. Robert's answer 9 of 2026-11-21:
    * the administrator reads every technician's rows, and none said whose it
-   * was. A technician's own page is unchanged, because every row is theirs.
+   * was. The page a technician reads is unchanged, because every row is theirs.
    * A failed read of the names is said once, above the list, rather than
    * leaving rows that name nobody as if that were known.
    */
