@@ -133,7 +133,7 @@ export function corpusChristiFoundationFaqs(): Faq[] {
     },
     {
       q: "Does the ground under Corpus Christi change the reading?",
-      a: "The visit is the same; the reading is not. On the bluff and in the older inland neighborhoods, Victoria and Orelia clays move seasonally enough to matter to a slab. Toward the bays, sandy deposits and a shallow water table make bearing the question instead. The engineer reads the measurements against the ground they sit on.",
+      a: "The visit is the same; the reading is not. On the bluff and in the older inland neighborhoods, the Victoria clay moves seasonally enough to matter to a slab. Toward the bays, sandy deposits and a shallow water table make bearing the question instead. The engineer reads the measurements against the ground they sit on.",
     },
   ];
 }
