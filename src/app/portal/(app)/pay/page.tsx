@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentActor } from "@/lib/ops-auth";
 import { can } from "@/lib/ops-authz";
-import { payLedger } from "@/lib/ops-field";
+import { payLedger, techNamesRead } from "@/lib/ops-field";
 import { ownProductionPay } from "@/lib/ops-engineer";
 import { isKnown } from "@/lib/ops-money";
 import { payFigures } from "@/lib/pay-figures";
@@ -252,9 +252,29 @@ export default async function PayPage() {
    */
   const unpriced = rows.filter((r) => !isKnown(r.amount_cents)).length;
 
+  /*
+   * WHOSE ROW IT IS, ON THE FIRM'S VIEW ONLY. Robert's answer 9 of 2026-11-21:
+   * the administrator reads every technician's rows, and none said whose it
+   * was. A technician's own page is unchanged, because every row is theirs.
+   * A failed read of the names is said once, above the list, rather than
+   * leaving rows that name nobody as if that were known.
+   */
+  const firmView = copy === FIRM_COPY;
+  const names = firmView ? await techNamesRead(rows.map((r) => r.tech_id)) : null;
+  const whose = (techId: string) => {
+    if (!firmView || names === null) return null;
+    return names.get(techId) || "A technician with no profile name on file";
+  };
+
   return (
     <>
       <PageHead eyebrow={copy.eyebrow} title={copy.title} lede={copy.lede} />
+      {firmView && names === null && rows.length > 0 ? (
+        <p role="alert" className="text-[13.5px] leading-[1.55] text-[var(--ink)]">
+          The technicians&rsquo; names could not be read, so the rows below do not say whose pay each one is. The amounts
+          and totals are unaffected. Reload the page in a moment.
+        </p>
+      ) : null}
 
       <RestrictedMode />
 
@@ -297,6 +317,11 @@ export default async function PayPage() {
               };
               return (
                 <li key={row.id} className="py-3 first:pt-0 last:pb-0">
+                  {whose(row.tech_id) ? (
+                    <p data-pay-person className="mb-1 text-[13.5px] font-semibold text-[var(--navy)]">
+                      {whose(row.tech_id)}
+                    </p>
+                  ) : null}
                   <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1.5">
                     <span className="text-[13.5px] font-semibold text-[var(--ink)]">
                       {row.note ?? "Job"}
