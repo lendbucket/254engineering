@@ -12,6 +12,7 @@ import {
   ORDER_CARRY_KEY,
   stepsFor,
   withCarry,
+  type FlowEntry,
   type FlowState,
   type StepId,
 } from "@/lib/order-flow";
@@ -62,7 +63,8 @@ export function OrderFlow({
 }: {
   serviceSlug: string;
   serviceName: string;
-  deliverables: CatalogEntry[];
+  /** Each with its questions, derived on the server by `withIntakeFields` (Robert's answer 5, 2026-11-22). */
+  deliverables: FlowEntry[];
   trust: TrustFacts;
   /**
    * The other letters that can be ordered now, as /order offers them (item 7,

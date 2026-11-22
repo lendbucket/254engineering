@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { OrderFlow } from "@/components/order/OrderFlow";
 import { deliverablesFor, orderBlockedReason } from "@data/catalog";
+/* The questions are derived here, on the server, so the protocol registry stays out of the flow's bundle (Robert's answer 5, 2026-11-22). */
+import { withIntakeFields } from "@data/intake-fields";
 import { serviceBySlug } from "@/content/services";
 import { isTrading, launchMode, peInResponsibleCharge, registrationLine } from "@/lib/launch";
 import { displayPhone, postalAddressLine } from "@/config/contact";
@@ -185,7 +187,7 @@ export default async function OrderStartPage({ params }: { params: Promise<{ slu
               <OrderFlow
                 serviceSlug={slug}
                 serviceName={service.name}
-                deliverables={available}
+                deliverables={withIntakeFields(available)}
                 signedIn={Boolean(await currentCustomer())}
                 trust={{
                   registration: registrationLine(),

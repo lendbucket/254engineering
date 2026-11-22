@@ -45,7 +45,8 @@ check("contacts that could not be saved stop the link", /if \(input\.paymentInte
 check("an empty New job is told what to choose, not that the catalog lacks it", take.indexOf('error: "Choose the service line."') > 0 && take.indexOf('error: "Choose the service line."') < take.indexOf("catalogFor(input.serviceSlug, input.tier)"));
 
 const screen = codeOf(readFileSync("src/app/portal/(app)/intake/IntakeClient.tsx", "utf8"));
-check("New job does not ask copy_to as well", /fieldsFor\(serviceSlug, tier\)\.filter\(\(f\) => f\.id !== "copy_to"\)/.test(screen));
+/* The fields arrive as entry.intakeFields since Robert's answer 5 of 2026-11-22, derived on the server by fieldsFor. */
+check("New job does not ask copy_to as well", /entry\.intakeFields\.filter\(\(f\) => f\.id !== "copy_to"\)/.test(screen));
 check("it asks for contacts with a role, a name and an email", /id=\{`contact-role-\$\{i\}`\}/.test(screen) && /id=\{`contact-email-\$\{i\}`\}/.test(screen));
 check("and who pays", /<legend className=\{label\}>Who pays<\/legend>/.test(screen) && /pays: payer === i/.test(screen));
 check("the due-date hint does not ask for the closing date twice", /A closing or permit date the caller gives below becomes the due date/.test(screen));

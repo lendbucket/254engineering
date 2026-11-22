@@ -823,15 +823,32 @@ console.log("");
   /*
    * THE OPERATOR SCREEN RENDERS THE DEFINITION AND NOT A LIST OF ITS OWN.
    *
-   * This is the assertion the whole section is for. The screen must call
-   * fieldsFor, and it must not carry hardcoded field ids that the definition
-   * does not know about.
+   * This is the assertion the whole section is for. The screen must render
+   * what fieldsFor returns, and it must not carry hardcoded field ids that the
+   * definition does not know about.
+   *
+   * SINCE 2026-11-22 THE DEFINITION IS CALLED ON THE SERVER (Robert's answer 5,
+   * 7082475108), so the protocol registry under it stays out of the browser.
+   * The check used to read `fieldsFor(` and `missingFor(` in the screen. It now
+   * reads both halves of the new shape, each of which can fail alone: the page
+   * fills every deliverable's `intakeFields` from fieldsFor, and the screen
+   * renders and judges `entry.intakeFields` and nothing else. The screen calling
+   * fieldsFor again is refused too, because that is the import that carried the
+   * registry.
    */
   const screen = codeOnly("src/app/portal/(app)/intake/IntakeClient.tsx");
+  const intakePage = codeOnly("src/app/portal/(app)/intake/page.tsx");
   rec(
     "the operator intake renders the shared definition",
-    /fieldsFor\(/.test(screen) && /missingFor\(/.test(screen),
+    /intakeFields: fieldsFor\(entry\.serviceSlug, entry\.tier\)/.test(intakePage) &&
+      /entry \? entry\.intakeFields\.filter\(/.test(screen) &&
+      /missingAmong\(entry\.intakeFields, answers, "order"\)/.test(screen) &&
+      /missingAmong\(entry\.intakeFields, answers, "seal"\)/.test(screen),
     "a telephoned job capturing less than a web job fails the acceptance test on the primary path",
+  );
+  rec(
+    "and the screen does not call the definition itself, which would carry the protocol registry into the browser",
+    !/fieldsFor\(/.test(screen) && !/missingFor\(/.test(screen),
   );
 
   const defined = new Set(INTAKE_FIELDS.map((f) => f.id));

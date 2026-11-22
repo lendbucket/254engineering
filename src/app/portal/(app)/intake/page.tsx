@@ -5,6 +5,7 @@ import { can } from "@/lib/ops-authz";
 import { TEXAS_COUNTIES } from "@/lib/ops-counties";
 import { services } from "@/content/services";
 import { CATALOG } from "@data/catalog";
+import { fieldsFor } from "@data/intake-fields";
 import { refundDisclosure } from "@/lib/ops-orders";
 import { isOpen } from "@/lib/launch";
 import { isOwnerAdmin } from "@/lib/owner-override";
@@ -65,6 +66,12 @@ export default async function IntakePage() {
     coastalSurchargeCents: entry.coastalSurchargeCents,
     /* The refund terms the order will store (createOrderForFile), read back to the caller. */
     refundTerms: refundDisclosure(entry),
+    /*
+     * Its questions, from the single definition, derived HERE on the server so
+     * the protocol registry under fieldsFor stays out of the screen's bundle
+     * (Robert's answer 5, 2026-11-22, 7082475108).
+     */
+    intakeFields: fieldsFor(entry.serviceSlug, entry.tier),
   }));
 
   const lines = services
