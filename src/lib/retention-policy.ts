@@ -463,7 +463,29 @@ export const RETENTION_POLICY: RetentionEntry[] = [
       ruledBy: "operator, 2026-09-09, and 0032",
     },
   },
-  { table: "eng_error_events", rule: { kind: "kept_pending_counsel", because: "Telemetry in shape. A floor is defensible and none has been ruled, and this section's scope is the two tables below. " + COUNSEL } },
+  /*
+   * RULED 2026-11-21, Robert's answer 7 (issue #1, 7072967992): the third table
+   * retention may delete from, at the same 30-day floor as the other two. It was
+   * "telemetry in shape, a floor is defensible and none has been ruled", and
+   * nothing aged it, so it grew forever. Its count per day is already rolled up
+   * as errors.recorded (ops-metrics), which is the rollup the executor
+   * reconciles against before it deletes a day, and nothing reads it further
+   * back than the alert and rate windows. The fault's own row, eng_error_types,
+   * keeps its first and last seen times and its occurrence count, and stays.
+   */
+  {
+    table: "eng_error_events",
+    rule: {
+      kind: "delete_after",
+      floorDays: 30,
+      ageColumn: "occurred_at",
+      because:
+        "Machine telemetry: one row per occurrence of a fault, read only within the alert and rate windows. " +
+        "The daily count survives as errors.recorded and each fault's totals survive on eng_error_types.",
+      ruledBy: "operator, 2026-11-21 (answer 7, issue #1 7072967992)",
+      rollupRequired: "errors.recorded",
+    },
+  },
   { table: "eng_error_types", rule: { kind: "kept_pending_counsel", because: COUNSEL } },
   {
     table: "eng_evidence_items",
