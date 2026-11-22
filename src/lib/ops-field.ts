@@ -2906,6 +2906,32 @@ export async function payLedger(
   };
 }
 
+/**
+ * WHO EACH LEDGER ROW PAYS, for the firm's view of the Pay screen. Robert's
+ * answer 9 of 2026-11-21 (issue #1, 7072967992), on Q10 of the morning of
+ * 2026-10-15: the administrator's Pay screen lists every technician's rows,
+ * and no row said whose it was.
+ *
+ * Read for the ids on the rows, chunked, every row. Null when the read failed,
+ * so the screen says the names could not be read rather than showing rows with
+ * nobody against them as if that were the answer. An id with no profile maps
+ * to nothing, and the screen says so for that row.
+ */
+export async function techNamesRead(techIds: string[]): Promise<Map<string, string> | null> {
+  const db = supabaseAdmin();
+  if (!db) return null;
+  const ids = [...new Set(techIds.filter(Boolean))];
+  if (ids.length === 0) return new Map();
+  const read = await readEveryIn<{ id: string; display_name: string | null }>(ids, (chunk, from, to) =>
+    db.from("eng_profiles").select("id, display_name").in("id", [...chunk]).order("id", { ascending: true }).range(from, to),
+  );
+  if (!read.ok) {
+    console.error(`[field] the technicians' names could not be read: ${read.error}`);
+    return null;
+  }
+  return new Map(read.rows.map((p) => [p.id, (p.display_name ?? "").trim()]));
+}
+
 export async function setLedgerStatus(
   actor: Actor & { email: string },
   ids: string[],

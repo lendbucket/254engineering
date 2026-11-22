@@ -3016,7 +3016,7 @@ asking whether you meant it.
 | Sister intake rate | **20 a minute** | `src/lib/sister-intake.ts` | `scripts/sister-intake-audit.mjs` |
 | TOTP digits and period | **6 digits, 30 seconds** | `src/lib/totp.ts` | `scripts/proofs/totp-matches-the-rfc.mjs` |
 | Telemetry retention floor | **30 days** | `src/lib/retention-policy.ts` | `scripts/retention-audit.mjs` |
-| Tables retention may delete from | **`eng_cron_runs`, `eng_jobs`** | `src/lib/retention-policy.ts` | `scripts/retention-audit.mjs` |
+| Tables retention may delete from | **`eng_cron_runs`, `eng_error_events`, `eng_jobs`** (`eng_error_events` added 2026-11-21, Robert's answer 7) | `src/lib/retention-policy.ts` | `scripts/retention-audit.mjs` |
 
 The last two joined on 2026-09-09, and retention is the sharpest case this
 table has. Every other ruling here costs money or locks somebody out, and both

@@ -229,14 +229,15 @@ rec(
 
 {
   /*
-   * The set that may be deleted, pinned. Two tables today, both machine
-   * telemetry, and a third appearing here without the operator ruling on it is
-   * the failure this line exists to catch.
+   * The set that may be deleted, pinned. Three tables since Robert's answer 7
+   * of 2026-11-21 added eng_error_events (issue #1, 7072967992), all machine
+   * telemetry, and a fourth appearing here without the operator ruling on it
+   * is the failure this line exists to catch.
    */
-  const ALLOWED_TO_DELETE = ["eng_cron_runs", "eng_jobs"];
+  const ALLOWED_TO_DELETE = ["eng_cron_runs", "eng_error_events", "eng_jobs"];
   const actual = sweepable().sort();
   rec(
-    "exactly two tables may be deleted from, and they are the two that were ruled",
+    "exactly three tables may be deleted from, and they are the three that were ruled",
     actual.length === ALLOWED_TO_DELETE.length && actual.every((t, i) => t === ALLOWED_TO_DELETE[i]),
     `deletable: ${actual.join(", ") || "none"}`,
   );
@@ -263,14 +264,15 @@ rec(
    * recoverable by reading a record. A floor moved down destroys the record, and
    * no later audit can tell a deleted row from a row that never existed.
    */
-  const RULED_FLOORS = { eng_cron_runs: 30, eng_jobs: 30 };
+  /* eng_error_events joined at 30 days on 2026-11-21, Robert's answer 7. */
+  const RULED_FLOORS = { eng_cron_runs: 30, eng_error_events: 30, eng_jobs: 30 };
   const wrong = deletableEntries()
     .filter((e) => e.rule.floorDays !== RULED_FLOORS[e.table])
     .map((e) => `${e.table} is ${e.rule.floorDays}d and the ruling is ${RULED_FLOORS[e.table] ?? "no floor at all"}`);
   rec(
     "the floors are the ones the operator ruled, to the day",
     wrong.length === 0 && deletableEntries().length === Object.keys(RULED_FLOORS).length,
-    wrong.length ? wrong.join("; ") : "30 days on eng_cron_runs and on eng_jobs, ruled 2026-09-09",
+    wrong.length ? wrong.join("; ") : "30 days on eng_cron_runs and on eng_jobs, ruled 2026-09-09, and on eng_error_events, ruled 2026-11-21",
   );
 }
 
