@@ -1,6 +1,7 @@
 import "server-only";
 import { DB_NOW } from "./db-now";
 import { supabaseAdmin } from "./supabase";
+import { readEvery, readEveryIn } from "./bounded-read";
 
 /**
  * The payment event ledger (0075, operator rulings 2026-10-12).
@@ -113,33 +114,57 @@ export async function unreleasedPayments(now: number = Date.now()): Promise<Unre
   const db = supabaseAdmin();
   if (!db) return null;
 
+  /*
+   * EVERY UNRELEASED PAYMENT, AND EVERY REFERENCE, AT ANY COUNT. Master list
+   * N15 and the .in() survey (BACKLOG "SCREEN READS THAT STILL HIDE A
+   * FAILURE"), 2026-11-22. This read the oldest 200 with nothing saying more
+   * existed, so the dashboard's count and the payments alert stopped at 200;
+   * and it sent their order ids in one .in(), which the transport refuses past
+   * 150, so from 151 unreleased payments the whole read failed and the alert
+   * said it could not read at the moment it mattered most. Paged and chunked,
+   * as the other money lists of 2026-11-19 are, and still null on any failure.
+   */
   const cutoff = new Date(now - UNRELEASED_AFTER_MINUTES * 60_000).toISOString();
-  const { data, error } = await db
-    .from("eng_payment_events")
-    .select("event_id, order_id, batch_id, claimed_at, release_attempts, last_error")
-    .eq("status", "claimed")
-    .lt("claimed_at", cutoff)
-    .order("claimed_at", { ascending: true })
-    .limit(200);
-  if (error) {
-    console.error(`[payments] the unreleased payments could not be read: ${error.message}`);
+  const read = await readEvery<{
+    event_id: string;
+    order_id: string | null;
+    batch_id: string | null;
+    claimed_at: string;
+    release_attempts: number | null;
+    last_error: string | null;
+  }>((from, to) =>
+    db
+      .from("eng_payment_events")
+      .select("event_id, order_id, batch_id, claimed_at, release_attempts, last_error")
+      .eq("status", "claimed")
+      .lt("claimed_at", cutoff)
+      .order("claimed_at", { ascending: true })
+      .order("event_id", { ascending: true })
+      .range(from, to),
+  );
+  if (!read.ok) {
+    console.error(`[payments] the unreleased payments could not be read: ${read.error}`);
     return null;
   }
-  const rows = data ?? [];
+  const rows = read.rows;
   if (rows.length === 0) return [];
 
-  const orderIds = rows.map((r) => r.order_id).filter(Boolean) as string[];
-  const batchIds = rows.map((r) => r.batch_id).filter(Boolean) as string[];
+  const orderIds = [...new Set(rows.map((r) => r.order_id).filter(Boolean) as string[])];
+  const batchIds = [...new Set(rows.map((r) => r.batch_id).filter(Boolean) as string[])];
   const refs = new Map<string, string>();
   if (orderIds.length) {
-    const { data: orders, error: oErr } = await db.from("eng_service_orders").select("id, reference").in("id", orderIds);
-    if (oErr) return null;
-    for (const o of orders ?? []) refs.set(o.id as string, o.reference as string);
+    const orders = await readEveryIn<{ id: string; reference: string }>(orderIds, (chunk, from, to) =>
+      db.from("eng_service_orders").select("id, reference").in("id", [...chunk]).order("id", { ascending: true }).range(from, to),
+    );
+    if (!orders.ok) return null;
+    for (const o of orders.rows) refs.set(o.id, o.reference);
   }
   if (batchIds.length) {
-    const { data: batches, error: bErr } = await db.from("eng_order_batches").select("id, reference").in("id", batchIds);
-    if (bErr) return null;
-    for (const b of batches ?? []) refs.set(b.id as string, b.reference as string);
+    const batches = await readEveryIn<{ id: string; reference: string }>(batchIds, (chunk, from, to) =>
+      db.from("eng_order_batches").select("id, reference").in("id", [...chunk]).order("id", { ascending: true }).range(from, to),
+    );
+    if (!batches.ok) return null;
+    for (const b of batches.rows) refs.set(b.id, b.reference);
   }
 
   return rows.map((r) => ({
