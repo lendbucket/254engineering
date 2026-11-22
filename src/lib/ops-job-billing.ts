@@ -435,7 +435,19 @@ export async function sendPaymentLink(actor: Author, fileId: string): Promise<Bi
    * plaintext part, the 375px layout, the signed sender. A template the audit
    * cannot see is a template nothing checks.
    */
-  await queueEmail(
+  /*
+   * THE QUEUE'S ANSWER IS READ, AND THE RECORD SAYS QUEUED, NOT SENT. Robert's
+   * answer 4 of 2026-11-21 (issue #1, 7072967992), on Q5 of the morning of
+   * 2026-10-15: this wrote "Payment link sent to ..." whatever the queue said,
+   * so a link that never left read as sent on the file and in the audit trail.
+   * Queued is what is known here; delivery is known only when the provider
+   * accepts it, which the handler writes to the order's own timeline (the
+   * orderId below, as the resend path already passes). On a failed queue the
+   * order and its checkout still exist, so the file says so, says "Nothing was
+   * sent", and points at Resend, which finds that waiting order; a second Send
+   * stays refused by secondOrderRefusal above.
+   */
+  const queued = await queueEmail(
     jobPaymentLink({
       customerName: client.name,
       customerEmail: client.email,
@@ -447,14 +459,19 @@ export async function sendPaymentLink(actor: Author, fileId: string): Promise<Bi
       payUrl: checkout.url,
       takenBy: actor.email,
     }),
+    { orderId: order.orderId },
   );
+
+  const notSent = queued.ok
+    ? null
+    : `Order ${order.reference} was raised and its payment link could not be queued: ${queued.error}. Nothing was sent. Use Resend on this file.`;
 
   const db = supabaseAdmin();
   await db
     ?.from("eng_files")
     .update({
       payment_intent: "link_sent",
-      payment_note: `Payment link sent to ${client.email} against ${order.reference}.`,
+      payment_note: notSent ?? `Payment link queued to ${client.email} against ${order.reference}.`,
     })
     .eq("id", fileId);
 
@@ -463,9 +480,12 @@ export async function sendPaymentLink(actor: Author, fileId: string): Promise<Bi
     action: "file.payment_link_sent",
     entityType: "file",
     entityId: fileId,
-    summary: `${file.file_number}: a payment link was sent to ${client.email} against ${order.reference}.`,
+    summary: notSent
+      ? `${file.file_number}: ${notSent}`
+      : `${file.file_number}: a payment link was queued to ${client.email} against ${order.reference}.`,
   });
 
+  if (notSent) return { ok: false, error: notSent };
   return { ok: true, orderId: order.orderId, reference: order.reference, checkoutUrl: checkout.url };
 }
 
@@ -527,14 +547,15 @@ export async function resendPaymentLink(actor: Author, fileId: string): Promise<
     order_id: order.id,
     event: "payment_link.resent",
     customer_visible: false,
-    summary: `The payment link was sent again to ${order.customer_email}.`,
+    /* Queued, not sent: delivery is written by the email handler when the provider accepts it (answer 4, 2026-11-21). */
+    summary: `The payment link was queued again to ${order.customer_email}.`,
   });
   await writeAudit({
     actor,
     action: "file.payment_link_resent",
     entityType: "file",
     entityId: fileId,
-    summary: `${file.file_number}: the payment link for ${order.reference} was sent again to ${order.customer_email}.`,
+    summary: `${file.file_number}: the payment link for ${order.reference} was queued again to ${order.customer_email}.`,
   });
 
   return { ok: true, orderId: order.id as string, reference: order.reference as string, checkoutUrl: checkout.url };
