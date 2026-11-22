@@ -122,7 +122,7 @@ export const location = {
 
   /** Ground conditions, kept to what is specific rather than regional boilerplate. */
   ground: [
-    "The ground under the city changes character over short distances. The bluff and the older inland neighborhoods sit on clays with real shrink swell potential, the Victoria and Orelia soils that move seasonally enough to matter to a slab. Move toward the bays and the problem inverts into sandy and silty deposits with a shallow water table, where bearing capacity and buoyancy replace expansion as the governing question.",
+    "The ground under the city changes character over short distances. The bluff and the older inland neighborhoods sit on clays with real shrink swell potential, the Victoria clay that moves seasonally enough to matter to a slab. Move toward the bays and the problem inverts into sandy and silty deposits with a shallow water table, where bearing capacity and buoyancy replace expansion as the governing question.",
     "Salt is the constant across all of it. Within a few miles of open water, concrete cover, reinforcement corrosion, and connector coatings are specified more conservatively than the same details would be inland, because the failure mode is slow and invisible until it is structural.",
   ],
 
