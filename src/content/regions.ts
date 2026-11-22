@@ -403,8 +403,8 @@ export const regions: Region[] = [
     ],
     sources: [
       {
-        label: "City of Amarillo, Residential Codes, R403.1.4 (2021 IRC with city amendments)",
-        url: "https://www.amarillo.gov/?p=9070",
+        label: "City of Amarillo, Residential Code Information, R403.1.4 (2021 International Residential Code with City amendments)",
+        url: "https://www.amarillo.gov/building-safety/residential-permits/",
         supports: "The 24 inch minimum footing depth Amarillo sets for any structure over 600 square feet.",
       },
     ],
