@@ -3,7 +3,8 @@ import { money } from "@/lib/ops-money";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ACTION_LABEL, DETERMINATION_ACTION, MIN_REASON_LENGTH, type ReviewAction } from "@/lib/ops-review";
+/* From review-labels, never ops-review: that module imports launch.ts, which would ship the protocol registry to the browser (answer 2, 2026-11-22). */
+import { ACTION_LABEL, DETERMINATION_ACTION, MIN_REASON_LENGTH, type ReviewAction } from "@/lib/review-labels";
 import type { Determination, DeterminationRule } from "@/content/protocols";
 
 /**

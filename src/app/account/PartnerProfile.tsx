@@ -9,14 +9,19 @@ import {
   ROOFER_MONTHLY_VOLUME_LABEL,
   ROOFER_SECTIONS,
   ROOFER_SECTION_LABEL,
-  ROOFER_SECTION_SCHEMA,
   ROOFER_SERVICES,
   ROOFER_SERVICE_LABEL,
   ROOFER_WORK_MIX,
   ROOFER_WORK_MIX_LABEL,
-  rooferFieldErrors,
   type RooferSection,
-} from "@/lib/roofer-application";
+} from "@/lib/roofer-application-labels";
+/*
+ * NO STATIC IMPORT OF roofer-application.ts HERE. It carries zod, and /account
+ * is every customer's screen, most of whom never see this form. The schemas load
+ * when a roofer saves a section, the same schemas the route parses with (answer
+ * 3, 2026-11-22). `a-client-screen-carries-no-server-registry` keeps it so.
+ */
+const loadSchemas = () => import("@/lib/roofer-application");
 
 /**
  * "FINISH YOUR PROFILE", THE ROOFING PARTNER'S CHECKLIST. Robert's rework of
@@ -62,6 +67,14 @@ export function PartnerProfile({
   };
 
   async function save(section: RooferSection) {
+    let schemas: Awaited<ReturnType<typeof loadSchemas>>;
+    try {
+      schemas = await loadSchemas();
+    } catch {
+      setSaid({ section, text: "This section could not be checked just now. Check your connection and save again.", ok: false });
+      return;
+    }
+    const { ROOFER_SECTION_SCHEMA, rooferFieldErrors } = schemas;
     const parsed = ROOFER_SECTION_SCHEMA[section].safeParse(values[section]);
     if (!parsed.success) {
       setErrors(rooferFieldErrors(parsed.error));
