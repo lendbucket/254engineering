@@ -5059,8 +5059,9 @@ export const APPLIED = [
      * PENDING BY RULING: Robert's answer 12 of 2026-11-21 (issue #1,
      * 7072967992) says build it and stage it for his next sitting, and do not
      * merge it. So it stays on stage/eng-now-0139, production: null is his
-     * decision, and it is not on development either until a development
-     * sitting is asked for. It reaches production in a sitting he runs.
+     * decision, and it reaches production in a sitting he runs. It is on
+     * development since 2026-11-22, applied by the chat on request 7075073449
+     * (read back in 7076658908).
      */
     production: null,
     proves: { function: "eng_now" },
@@ -5071,7 +5072,11 @@ export const APPLIED = [
       "WRITTEN 2026-11-21 ON stage/eng-now-0139, FOR ROBERT'S ANSWER 12: eng_now() returns the database's now(), so " +
       "the SOC 2 pack, which has called rpc('eng_now') since it was written, is stamped with the database's clock " +
       "rather than the created_at of the newest job. Stable SQL, search_path pinned, EXECUTE revoked from PUBLIC, " +
-      "anon and authenticated in the same file (0073). Additive. Pending on production and on development by his ruling.",
+      "anon and authenticated in the same file (0073). Additive. Pending on production by his ruling. ON DEVELOPMENT SINCE " +
+      "2026-11-22 (issue #1, 7076658908, on request 7075073449: apply_migration, version 20261122083947, the file's " +
+      "sha256 45e93583, shape 14bdcbc9 at 1729 columns and 130 tables unchanged, role grants 204 unchanged, eng_now " +
+      "returning timestamptz with search_path pinned, EXECUTE false for anon and authenticated and true for " +
+      "service_role, and 0.04 s from the clock, every prediction met).",
   },
 ];
 
