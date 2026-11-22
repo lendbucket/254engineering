@@ -68,6 +68,8 @@ const AFTER_0123 = [
   "0137_an_ad_click_follows_the_lead_to_the_order.sql",
   /* A payment received outside the platform (2026-11-19): the payment source check and one grant; it names no eng_prospects, read by grep. */
   "0138_a_payment_received_outside_the_platform_is_recorded.sql",
+  /* The database clock (Robert's answer 12, 2026-11-21): one function; it names no eng_prospects, read by grep. */
+  "0139_eng_now_is_the_database_clock.sql",
 ];
 const following = at >= 0 ? files.slice(at + 1) : [];
 check(

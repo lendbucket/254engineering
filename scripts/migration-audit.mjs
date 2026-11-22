@@ -630,8 +630,10 @@ const EXPECTED_TRIGGERS = 114;
  * which are not new rows.
  * 81 since 0128, by Robert's X4 of 2026-11-10: eng_franchisee_certificate_guard and
  * eng_franchisee_certificate_audit, the two trigger functions of a franchisee's
- * certificates of insurance. */
-const EXPECTED_FUNCTIONS = 81;
+ * certificates of insurance.
+ * 82 since 0139, by Robert's answer 12 of 2026-11-21: eng_now, the database clock the
+ * SOC 2 pack stamps itself with. */
+const EXPECTED_FUNCTIONS = 82;
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });

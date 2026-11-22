@@ -5051,6 +5051,38 @@ export const APPLIED = [
       "columns and 130 tables unchanged, eng_role_grants 203 to 204 with payments.record_outside held by admin alone, " +
       "the source check admitting staff_recorded, and eng_payment_events' one row untouched, as predicted).",
   },
+  {
+    file: "0139_eng_now_is_the_database_clock.sql", appliedBy: "apply_migration",
+    fingerprint: "14bdcbc9c50eb3706f17af611dc44735",
+    behaviour: "0cea3058768ebdfe13f5742f48e41802",
+    /*
+     * Production: applied 2026-11-22 13:45 UTC through apply_migration by the
+     * chat counterpart, in the sitting Robert approved at 07:45 Central ("your
+     * recs yes", issue #1 7080044238), from stage/eng-now-0139 at 1ae44cd after
+     * board 45021198844 passed on it; version 20261122134533; the file 1,770
+     * bytes, sha256 45e93583, the same file sat on development. Read back:
+     * shape 14bdcbc9 at 1729 columns and 130 tables unchanged, grants 204
+     * unchanged, eng_now returning timestamptz with search_path pinned,
+     * EXECUTE false for anon and authenticated and true for service_role, 0.11 s
+     * from clock_timestamp. Every prediction met. It was staged by his answer
+     * 12 of 2026-11-21 until this sitting.
+     */
+    production: "2026-11-22",
+    proves: { function: "eng_now" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-21 on the chain to 0139. Shape unchanged, " +
+      "14bdcbc9 at 1729 columns: a function adds no column. Behaviour 1717 to 1718 facts.",
+    because:
+      "WRITTEN 2026-11-21 ON stage/eng-now-0139, FOR ROBERT'S ANSWER 12: eng_now() returns the database's now(), so " +
+      "the SOC 2 pack, which has called rpc('eng_now') since it was written, is stamped with the database's clock " +
+      "rather than the created_at of the newest job. Stable SQL, search_path pinned, EXECUTE revoked from PUBLIC, " +
+      "anon and authenticated in the same file (0073). Additive. ON PRODUCTION SINCE 2026-11-22 (7080044238, version " +
+      "20261122134533, every prediction met). ON DEVELOPMENT SINCE " +
+      "2026-11-22 (issue #1, 7076658908, on request 7075073449: apply_migration, version 20261122083947, the file's " +
+      "sha256 45e93583, shape 14bdcbc9 at 1729 columns and 130 tables unchanged, role grants 204 unchanged, eng_now " +
+      "returning timestamptz with search_path pinned, EXECUTE false for anon and authenticated and true for " +
+      "service_role, and 0.04 s from the clock, every prediction met).",
+  },
 ];
 
 /*
