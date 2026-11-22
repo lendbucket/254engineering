@@ -473,6 +473,18 @@ the Austin terms and the four records letters (R19); the truss answers with Aman
 | The parked production cutover | Acknowledged through 2027-03-31, the move planned for Q1 2027 | His ruling of 15:07 Central 2026-10-31, `src/config/parked-work.ts` |
 | An unsigned protocol and its line | An unsigned protocol no longer closes its line; only Aman seals | 6905345382 |
 | Truss wording | None until he confirms truss letters | His ruling of 2026-11-01, restated in 6884480717 |
+| The two region wordings (Coastal Bend names the Victoria clay only; Greater Houston drops Montgomery from the subsidence sentence) | Approved as drafted, on the fast lane | 7054566065; his overnight prompt of 2026-11-21, answer 1, recorded in 7072967992 |
+| The test email for the reply proof | He sends himself a password reset from People and replies from his phone; open until he confirms | Same, answer 2 |
+| The six screens over their byte budget | A report-only branch on what each ships beyond its budget; nothing cut | Same, answer 3 |
+| The payment link noted as sent when only queued | Fix it: read the queue's answer, say "Nothing was sent" on failure, say "queued" until delivery is known; full lane | Same, answer 4 |
+| AQI-1 | He asks Aman; it leads every morning report until he confirms it with a date | Same, answer 5 |
+| Sentry | Keep the wiring; `SENTRY_DSN` is on his list | Same, answer 6 |
+| `eng_error_events` retention | Joins the retention set at the same 30-day floor; the pinned ruling edited in both places on purpose | Same, answer 7 |
+| Retention for records outside a job file | Waiting on counsel | Same, answer 8 |
+| A person column on the admin pay screen | Yes | Same, answer 9 |
+| October audit items 14, 15 and 26 | On his next sitting list | Same, answer 10 |
+| Whether TBPELS requires professional liability cover | Waiting on counsel | Same, answer 11 |
+| `eng_now()` | Built and staged for his next sitting, not merged | Same, answer 12 |
 | His own accounts and a second factor | Exempt; never suggest enrolling them | 6470882290 |
 | Turnaround targets per line | Roof 10 business days and the others he gave; none for design or WPI-8 ongoing | 2026-10-27, `src/config/turnaround.ts` |
 | **Rulings 1 to 20 of section 9** | **All 20 as recommended**: 1 yes, 2 yes, 3 yes, 4 yes, 5 yes, 6 yes, 7 yes, 8 yes, 9 keep, 10 leave, 11 yes, 12 no, 13 yes, 14 yes, 15 yes, 16 yes, 17 yes, 18 yes, 19 yes, 20 yes. Rulings 1, 2 and 3 happen in his next sitting with him present: 0138 stays off production, the queue is not pruned, and the credentials drop is staged only, as a dry run, the drop and a verification read for his SQL editor. Ruling 20's sources are posted to him and nothing renders until he says so | His overnight prompt of 2026-11-19 into 2026-11-20, recorded in 7029872252 |

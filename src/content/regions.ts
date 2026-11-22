@@ -82,7 +82,7 @@ export const regions: Region[] = [
       "Hurricane Harvey made landfall near Rockport in 2017 and remains the reference event for this region. It reset expectations about opening protection, roof deck attachment, and the difference between a structure built to the windstorm code and one that merely looks the same.",
     ],
     soils: [
-      "Away from the barrier islands, the coastal prairie carries clays with meaningful shrink swell potential, and the Victoria and Orelia soils common through Nueces and San Patricio counties move enough seasonally to matter to a slab.",
+      "Away from the barrier islands, the coastal prairie carries clays with meaningful shrink swell potential, and the Victoria clay common through the Coastal Bend moves enough seasonally to matter to a slab.",
       "Nearer the bays the picture inverts. Sandy and silty deposits with a shallow water table bring bearing capacity and buoyancy questions rather than expansion questions, and pier foundations in that setting are designed for a very different failure mode.",
       "Salt exposure is a durability problem across the whole region. Concrete cover, reinforcement corrosion, and connector coatings are specified more conservatively within a few miles of open water than they would be inland.",
     ],
@@ -123,7 +123,7 @@ export const regions: Region[] = [
     soils: [
       "The Beaumont and Lake Charles clay formations under Harris, Fort Bend, Brazoria, Galveston, and the Golden Triangle include some of the most expansive soils in the United States. Plasticity indices in the forties and above are routine, and seasonal movement of an inch or more across a slab is normal behavior rather than a defect.",
       "That single fact shapes almost everything. Post tensioned slabs proportioned to the plasticity index are the standard residential foundation, moisture stability around the perimeter is a maintenance obligation rather than landscaping advice, and mature trees within their drip line of a slab are a recognized cause of differential movement.",
-      "Ground subsidence adds a second, slower motion. Groundwater withdrawal has lowered ground surface across parts of Harris, Fort Bend, and Montgomery counties by measurable amounts, and it is regulated by the Harris Galveston Subsidence District and the Fort Bend Subsidence District. Subsidence is regional rather than differential, so it rarely damages a slab directly, but it changes drainage and flood elevations and therefore changes what a site requires.",
+      "Ground subsidence adds a second, slower motion. Groundwater withdrawal has lowered ground surface across parts of Harris, Galveston, and Fort Bend counties by measurable amounts, and it is regulated there by the Harris Galveston Subsidence District and the Fort Bend Subsidence District. Subsidence is regional rather than differential, so it rarely damages a slab directly, but it changes drainage and flood elevations and therefore changes what a site requires.",
     ],
     permitting: [
       "The City of Houston has no zoning but does have a full building code and an active permitting and inspection department, which surprises people who conflate the two. Sealed structural documents are required for the alterations and the new construction the code lists, exactly as in any other large Texas city.",
