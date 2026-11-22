@@ -5051,6 +5051,28 @@ export const APPLIED = [
       "columns and 130 tables unchanged, eng_role_grants 203 to 204 with payments.record_outside held by admin alone, " +
       "the source check admitting staff_recorded, and eng_payment_events' one row untouched, as predicted).",
   },
+  {
+    file: "0139_eng_now_is_the_database_clock.sql", appliedBy: "apply_migration",
+    fingerprint: "14bdcbc9c50eb3706f17af611dc44735",
+    behaviour: "0cea3058768ebdfe13f5742f48e41802",
+    /*
+     * PENDING BY RULING: Robert's answer 12 of 2026-11-21 (issue #1,
+     * 7072967992) says build it and stage it for his next sitting, and do not
+     * merge it. So it stays on stage/eng-now-0139, production: null is his
+     * decision, and it is not on development either until a development
+     * sitting is asked for. It reaches production in a sitting he runs.
+     */
+    production: null,
+    proves: { function: "eng_now" },
+    note:
+      "Both figures read off scripts/fingerprint-at.mjs on 2026-11-21 on the chain to 0139. Shape unchanged, " +
+      "14bdcbc9 at 1729 columns: a function adds no column. Behaviour 1717 to 1718 facts.",
+    because:
+      "WRITTEN 2026-11-21 ON stage/eng-now-0139, FOR ROBERT'S ANSWER 12: eng_now() returns the database's now(), so " +
+      "the SOC 2 pack, which has called rpc('eng_now') since it was written, is stamped with the database's clock " +
+      "rather than the created_at of the newest job. Stable SQL, search_path pinned, EXECUTE revoked from PUBLIC, " +
+      "anon and authenticated in the same file (0073). Additive. Pending on production and on development by his ruling.",
+  },
 ];
 
 /*
