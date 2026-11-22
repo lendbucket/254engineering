@@ -57,7 +57,8 @@ export type Region = {
    * Operator ruling, 2026-10-17 (BACKLOG, "A REGION HAS NO SOURCES"): a
    * sentence on a region page that needs a primary source has to be able to
    * show it, so a region without this field could carry no such sentence.
-   * Optional and empty everywhere today: the page renders the list only when a
+   * Optional: Austin and the Panhandle carry one each since 2026-11-22 (Robert's
+   * answers 6 and 8 of 7080044238), and the page renders the list only when a
    * region has one, and citation-audit reads every `url:` under src/content,
    * so a source written here is loaded the day it is written.
    */
@@ -121,7 +122,7 @@ export const regions: Region[] = [
       "Straight line wind from thunderstorm outflow is an underrated peril across the northern counties of this region, and it damages structures that were never designed for anything a hurricane would bring.",
     ],
     soils: [
-      "The Beaumont and Lake Charles clay formations under Harris, Fort Bend, Brazoria, Galveston, and the Golden Triangle include some of the most expansive soils in the United States. Plasticity indices in the forties and above are routine, and seasonal movement of an inch or more across a slab is normal behavior rather than a defect.",
+      "The Beaumont and Lake Charles clay formations under Harris, Fort Bend, Brazoria, Galveston, and the Golden Triangle are highly expansive clays, and seasonal movement across a slab is normal behavior rather than a defect.",
       "That single fact shapes almost everything. Post tensioned slabs proportioned to the plasticity index are the standard residential foundation, moisture stability around the perimeter is a maintenance obligation rather than landscaping advice, and mature trees within their drip line of a slab are a recognized cause of differential movement.",
       "Ground subsidence adds a second, slower motion. Groundwater withdrawal has lowered ground surface across parts of Harris, Galveston, and Fort Bend counties by measurable amounts, and it is regulated there by the Harris Galveston Subsidence District and the Fort Bend Subsidence District. Subsidence is regional rather than differential, so it rarely damages a slab directly, but it changes drainage and flood elevations and therefore changes what a site requires.",
     ],
@@ -155,7 +156,7 @@ export const regions: Region[] = [
     anchors: ["Dallas", "Fort Worth", "Tyler", "Denton", "Wichita Falls", "Texarkana", "Longview", "Frisco"],
     wind: [
       "There is no coastal windstorm certification requirement anywhere in this region. Wind still governs plenty of design, but it arrives as thunderstorm outflow and tornado rather than as hurricane, and the design wind speeds are correspondingly lower than on the coast.",
-      "Hail is the dominant peril and it is not a close contest. The corridor running through the Metroplex and north to the Red River produces some of the highest hail loss totals in the United States, and it is why roof condition is the most commonly asked engineering question in this region.",
+      "Hail is the peril this region asks about most. Storms through the Metroplex and north to the Red River bring large hail often enough that roof condition is the most commonly asked engineering question here.",
       "Tornado exposure is real across the whole area and concentrated in the spring. It affects how a repair specification is written after an event more than it affects routine residential design.",
     ],
     soils: [
@@ -255,7 +256,7 @@ export const regions: Region[] = [
       "The Brazos Valley counties bring a third condition. Alluvial soils along the Brazos and its tributaries carry variable bearing and a shallow water table, and they can change materially over the length of a single site.",
     ],
     permitting: [
-      "The City of Austin operates one of the most demanding development review processes in Texas, with watershed regulations, tree ordinances, and impervious cover limits layered on top of the building code. Timelines there are set by review, not by design, and planning for that is part of doing the work honestly.",
+      "The City of Austin operates a demanding development review process, with watershed regulations, tree ordinances, and impervious cover limits layered on top of the building code. Timelines there are set by review, not by design, and planning for that is part of doing the work honestly.",
       "Travis, Williamson, and Hays counties, along with Round Rock, Cedar Park, Georgetown, San Marcos, and Pflugerville, each add their own requirements. Waco, Temple, Killeen, Bryan, and College Station operate conventional building departments with more predictable review.",
       "Outside the corridor, many Central Texas counties have minimal or no building permitting in unincorporated areas. In those places the engineering requirement comes from a lender, an insurer, or a subdivision covenant rather than from a plan reviewer.",
     ],
@@ -270,6 +271,13 @@ export const regions: Region[] = [
       "Falls", "Fayette", "Freestone", "Grimes", "Hamilton", "Hays", "Hill", "Lampasas", "Lee",
       "Leon", "Limestone", "Llano", "Madison", "McLennan", "Milam", "Mills", "Robertson", "San Saba",
       "Travis", "Washington", "Williamson",
+    ],
+    sources: [
+      {
+        label: "City of Austin, Watershed Protection Ordinance summary",
+        url: "https://www.austintexas.gov/sites/default/files/files/Watershed/watershed_ordinance/wpo_ordinance_summary.pdf",
+        supports: "That the City of Austin layers watershed regulations and impervious cover limits on top of the building code.",
+      },
     ],
   },
 
@@ -373,7 +381,7 @@ export const regions: Region[] = [
     soils: [
       "The Llano Estacado carries the Pullman and Sherm clay loams, which have moderate shrink swell potential: enough to matter to a slab, considerably less than the Blackland Prairie or the upper coast. Caliche layers are common and provide good bearing where they are continuous and a nuisance where they are not.",
       "Playa lakes are the distinctive feature of the region. These shallow ephemeral basins collect runoff across the plains, and building near one raises drainage, saturation, and soil moisture questions that the surrounding uniform terrain does not.",
-      "Frost depth is the assumption most commonly carried in wrongly from elsewhere in Texas. Footing depths in the northern Panhandle are set for meaningfully deeper frost penetration than anywhere else in the state, and a detail copied from a Dallas plan set is not correct in Dalhart.",
+      "Frost depth is an assumption that does not carry over from elsewhere in Texas. Amarillo sets a 24 inch minimum footing depth for any structure over 600 square feet, so a footing detail copied from a plan set drawn for the south of the state may not be correct here.",
     ],
     permitting: [
       "Amarillo, Lubbock, Plainview, and the larger incorporated cities operate full building departments with conventional requirements for sealed documents. Outside them, most of the forty one counties in this region have little or no building permitting in unincorporated areas.",
@@ -392,6 +400,13 @@ export const regions: Region[] = [
       "Hall", "Hansford", "Hartley", "Hemphill", "Hockley", "Hutchinson", "King", "Lamb",
       "Lipscomb", "Lubbock", "Lynn", "Moore", "Motley", "Ochiltree", "Oldham", "Parmer", "Potter",
       "Randall", "Roberts", "Sherman", "Swisher", "Terry", "Wheeler", "Yoakum",
+    ],
+    sources: [
+      {
+        label: "City of Amarillo, Residential Codes, R403.1.4 (2021 IRC with city amendments)",
+        url: "https://www.amarillo.gov/?p=9070",
+        supports: "The 24 inch minimum footing depth Amarillo sets for any structure over 600 square feet.",
+      },
     ],
   },
 ];
