@@ -20,13 +20,13 @@ import {
   type PaymentIntent,
 } from "@/lib/job-intake-rules";
 import type { CatalogEntry } from "@data/catalog";
-import {
-  fieldsFor,
-  missingFor,
-  INTAKE_GROUPS,
-  INTAKE_GROUP_LABEL,
-  type IntakeField,
-} from "@data/intake-fields";
+import type { IntakeField } from "@data/intake-fields";
+/*
+ * NOT fieldsFor. The page derives each deliverable's questions on the server
+ * and sends them as `intakeFields`, so the protocol registry stays out of this
+ * screen's bundle (Robert's answer 5, 2026-11-22, 7082475108).
+ */
+import { missingAmong, INTAKE_GROUPS, INTAKE_GROUP_LABEL } from "@data/intake-field-rules";
 import { DispatchPanel } from "../files/DispatchPanel";
 import { JoinedWithPhone } from "@/components/portal/PhoneLink";
 /*
@@ -51,6 +51,8 @@ type Deliverable = {
   coastalSurchargeCents: number | null;
   /** The refund terms the order will store, worked out on the server from the full entry. */
   refundTerms: string[];
+  /** Everything this deliverable asks, from `fieldsFor` on the server. */
+  intakeFields: IntakeField[];
 };
 
 type ClientMatch = {
@@ -419,8 +421,8 @@ export function IntakeClient({
      * On the telephone it is asked as contacts, each with a role and an email,
      * below (the Killeen call, item 2; 0132), so it is not asked twice here.
      */
-    () => (serviceSlug && tier ? fieldsFor(serviceSlug, tier).filter((f) => f.id !== "copy_to") : []),
-    [serviceSlug, tier],
+    () => (entry ? entry.intakeFields.filter((f) => f.id !== "copy_to") : []),
+    [entry],
   );
 
   /* Who else gets the letter, and who pays (item 2). */
@@ -435,17 +437,17 @@ export function IntakeClient({
    * field carries a stage.
    */
   const missingToOrder = useMemo(
-    () => (serviceSlug && tier ? missingFor(serviceSlug, tier, answers, "order") : []),
-    [serviceSlug, tier, answers],
+    () => (entry ? missingAmong(entry.intakeFields, answers, "order") : []),
+    [entry, answers],
   );
   const outstandingLater = useMemo(
     () =>
-      serviceSlug && tier
-        ? missingFor(serviceSlug, tier, answers, "seal").filter(
+      entry
+        ? missingAmong(entry.intakeFields, answers, "seal").filter(
             (f) => !missingToOrder.some((m) => m.id === f.id),
           )
         : [],
-    [serviceSlug, tier, answers, missingToOrder],
+    [entry, answers, missingToOrder],
   );
 
   /* The same floor the server holds an override to (operator ruling, 2026-10-22), so the screen says so first. */
