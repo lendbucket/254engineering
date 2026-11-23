@@ -1,12 +1,17 @@
-import {
-  fieldsFor,
-  INTAKE_GROUPS,
-  INTAKE_GROUP_LABEL,
-  type IntakeField,
-  type FieldStage,
-} from "@data/intake-fields";
+import type { IntakeField, FieldStage } from "@data/intake-fields";
+import { INTAKE_GROUPS, INTAKE_GROUP_LABEL, FIELD_STAGES, type WithIntakeFields } from "@data/intake-field-rules";
 import type { CatalogEntry } from "@data/catalog";
 import type { QualifierAnswer } from "./ops-orders";
+
+/**
+ * A deliverable as the flow receives it: its catalogue entry and the questions
+ * `fieldsFor` returned for it ON THE SERVER, by `withIntakeFields` in the order
+ * page. Robert's answer 5 of 2026-11-22 (7082475108): this module runs in the
+ * browser, and calling `fieldsFor` here carried the whole protocol registry
+ * into the order flow's bundle. It now reads `entry.intakeFields` and imports
+ * nothing that reaches the registry.
+ */
+export type FlowEntry = WithIntakeFields<CatalogEntry>;
 
 /**
  * The customer's path through an order, as a pure state machine.
@@ -79,7 +84,7 @@ const STEP: Record<StepId, Step> = {
  * `entry` is null before a deliverable is chosen, which is the only state in
  * which the first step can be shown.
  */
-export function stepsFor(entry: CatalogEntry | null, deliverableCount: number): Step[] {
+export function stepsFor(entry: FlowEntry | null, deliverableCount: number): Step[] {
   const steps: Step[] = [];
 
   if (deliverableCount > 1) steps.push(STEP.deliverable);
@@ -193,11 +198,10 @@ export function emptyState(tier: string | null = null): FlowState {
  * has their loan number now should be able to give it now, and only "order"
  * stops them proceeding.
  */
-export function customerFieldsFor(entry: CatalogEntry, upTo: FieldStage): IntakeField[] {
-  const order: FieldStage[] = ["order", "dispatch", "seal"];
-  const limit = order.indexOf(upTo);
-  return fieldsFor(entry.serviceSlug, entry.tier).filter(
-    (f) => f.audience === "customer" && order.indexOf(f.stage) <= limit,
+export function customerFieldsFor(entry: FlowEntry, upTo: FieldStage): IntakeField[] {
+  const limit = FIELD_STAGES.indexOf(upTo);
+  return entry.intakeFields.filter(
+    (f) => f.audience === "customer" && FIELD_STAGES.indexOf(f.stage) <= limit,
   );
 }
 
@@ -232,7 +236,7 @@ export type IntakePart = {
   fields: IntakeField[];
 };
 
-export function intakePartsFor(entry: CatalogEntry): IntakePart[] {
+export function intakePartsFor(entry: FlowEntry): IntakePart[] {
   /*
    * The SHOWN set, up to seal, exactly as the step rendered before the split.
    * Everything up to sealing is shown and only the order stage is enforced,
@@ -265,7 +269,7 @@ export function intakePartsFor(entry: CatalogEntry): IntakePart[] {
  * thing a split like this can silently get wrong.
  */
 export function blockersOnPart(
-  entry: CatalogEntry | null,
+  entry: FlowEntry | null,
   state: FlowState,
   part: IntakePart | null,
 ): string[] {
@@ -284,7 +288,7 @@ export function blockersOnPart(
   return missing;
 }
 
-export function blockersOn(step: StepId, entry: CatalogEntry | null, state: FlowState): string[] {
+export function blockersOn(step: StepId, entry: FlowEntry | null, state: FlowState): string[] {
   const missing: string[] = [];
 
   if (step === "deliverable") {
@@ -355,14 +359,14 @@ export function blockersOn(step: StepId, entry: CatalogEntry | null, state: Flow
 }
 
 /** Can the customer move on from this step? */
-export const canAdvance = (step: StepId, entry: CatalogEntry | null, state: FlowState): boolean =>
+export const canAdvance = (step: StepId, entry: FlowEntry | null, state: FlowState): boolean =>
   blockersOn(step, entry, state).length === 0;
 
 /**
  * The first step that is not complete, which is where a returning customer
  * belongs and where a submit attempt should send somebody back to.
  */
-export function firstIncomplete(steps: Step[], entry: CatalogEntry | null, state: FlowState): StepId | null {
+export function firstIncomplete(steps: Step[], entry: FlowEntry | null, state: FlowState): StepId | null {
   for (const step of steps) {
     if (step.id === "pay") continue;
     if (!canAdvance(step.id, entry, state)) return step.id;

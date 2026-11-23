@@ -59,6 +59,9 @@ import {
 import { isKnown, money } from "../src/lib/ops-money.ts";
 import { deploymentOrigin } from "../src/lib/site-url.ts";
 import { blockersOn, emptyState, firstIncomplete, stepsFor, customerFieldsFor } from "../src/lib/order-flow.ts";
+/* The flow reads each deliverable's questions off the entry, as the order page hands them over (Robert's answer 5, 2026-11-22). */
+import { withIntakeFields } from "../data/intake-fields.ts";
+const asFlow = (entry) => (entry ? withIntakeFields([entry])[0] : entry);
 import { judge } from "../src/lib/reconcile-rules.ts";
 import { attentionFor, CHECKOUT_SESSION_HOURS, worstLevel } from "../src/lib/order-attention.ts";
 import { creditDecision, outstandingOf } from "../src/lib/account-credit.ts";
@@ -1163,8 +1166,8 @@ const HELD_FOR_OWN_PROTOCOL = [];
 // 10. THE CUSTOMER'S PATH THROUGH AN ORDER
 // ===========================================================================
 {
-  const roof = catalogFor("roof-inspections");
-  const design = deliverablesFor("residential-light-commercial-design");
+  const roof = asFlow(catalogFor("roof-inspections"));
+  const design = withIntakeFields(deliverablesFor("residential-light-commercial-design"));
   const custom = design.find((d) => d.tier === "custom-package");
 
   /*
@@ -1228,7 +1231,7 @@ const HELD_FOR_OWN_PROTOCOL = [];
   );
 
   // Required files are demanded; optional ones are not.
-  const solar = catalogFor("solar-structural-letters");
+  const solar = asFlow(catalogFor("solar-structural-letters"));
   const noDocs = emptyState("standard");
   const need = blockersOn("requirements", solar, noDocs);
   /*

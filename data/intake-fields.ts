@@ -1,5 +1,6 @@
 import { catalogFor, type CatalogEntry, type RequiredInput } from "./catalog";
 import { allProtocolIntakeFields, supersededFields } from "./protocol-fields";
+import { INTAKE_GROUPS, INTAKE_GROUP_LABEL, missingAmong, type WithIntakeFields } from "./intake-field-rules";
 
 /**
  * WHAT A JOB NEEDS, DEFINED ONCE.
@@ -112,14 +113,12 @@ export type IntakeField = {
  * which groups are non empty depends on the service and this list is about all
  * of them.
  */
-export const INTAKE_GROUPS = ["document", "parties", "property", "access"] as const;
-
-export const INTAKE_GROUP_LABEL: Record<IntakeField["group"], string> = {
-  document: "The document",
-  parties: "The people",
-  property: "The property",
-  access: "Getting in",
-};
+/*
+ * They live in data/intake-field-rules.ts since 2026-11-22 (Robert's answer 5,
+ * 7082475108), which a client screen can import without the protocol registry,
+ * and are re-exported here so every server caller reads them where it always did.
+ */
+export { INTAKE_GROUPS, INTAKE_GROUP_LABEL };
 
 /**
  * THE PARTIES, WHICH ARE USUALLY NOT ONE PERSON.
@@ -559,13 +558,17 @@ export function missingFor(
   answers: Record<string, unknown>,
   upTo: FieldStage,
 ): IntakeField[] {
-  const order: FieldStage[] = ["order", "dispatch", "seal"];
-  const limit = order.indexOf(upTo);
+  return missingAmong(fieldsFor(serviceSlug, tier), answers, upTo);
+}
 
-  return fieldsFor(serviceSlug, tier).filter((f) => {
-    if (!f.required) return false;
-    if (order.indexOf(f.stage) > limit) return false;
-    const value = answers[f.id];
-    return value === undefined || value === null || value === "";
-  });
+/**
+ * The deliverables a client screen offers, each carrying its own questions.
+ *
+ * Called by the server pages that render the order flow and the operator
+ * intake form, so `fieldsFor`, and the protocol registry under it, run on the
+ * server and the browser receives only the answer (Robert's answer 5,
+ * 7082475108). See data/intake-field-rules.ts.
+ */
+export function withIntakeFields<T extends CatalogEntry>(entries: readonly T[]): WithIntakeFields<T>[] {
+  return entries.map((e) => ({ ...e, intakeFields: fieldsFor(e.serviceSlug, e.tier) }));
 }

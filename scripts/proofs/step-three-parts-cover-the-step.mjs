@@ -29,7 +29,7 @@
  */
 
 import { CATALOG } from "../../data/catalog.ts";
-import { INTAKE_GROUPS } from "../../data/intake-fields.ts";
+import { INTAKE_GROUPS, withIntakeFields } from "../../data/intake-fields.ts";
 import {
   customerFieldsFor,
   intakePartsFor,
@@ -58,7 +58,8 @@ const rec = (name, ok, note = "") => {
  * run is not a check, and this one proves it. It was committed, reported as
  * written, and was wrong in its second line.
  */
-const entries = CATALOG;
+/* Each with its questions, as the order page hands them to the flow since Robert's answer 5 of 2026-11-22. */
+const entries = withIntakeFields(CATALOG);
 
 /*
  * THE SUBJECT IS ASSERTED FIRST. A catalogue that failed to load would make

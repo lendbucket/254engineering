@@ -16,6 +16,11 @@
  *    labels moved to file-status-labels.ts and review-labels.ts, and
  *    MessagesClient imports the composer from its own file.
  *
+ * 5. (Robert's answer 5 of the same day, 7082475108.) The order flow and the
+ *    operator intake form still carried the protocol registry, through
+ *    fieldsFor and data/protocol-fields.ts. The two pages derive the questions
+ *    on the server now, and no client file may reach the registry at all.
+ *
  * 3. /account shipped zod to every signed in customer through PartnerProfile,
  *    which read the roofer form's choices from roofer-application.ts. The
  *    choices moved to roofer-application-labels.ts and the schemas now load
@@ -125,24 +130,30 @@ for (const f of ["src/app/portal/(app)/files/FileClient.tsx", "src/app/portal/(a
 }
 
 /*
- * THE CLIENTS THAT STILL CARRY THE PROTOCOL REGISTRY, COUNTED AND NAMED. The
- * order flow and the operator intake form ask each protocol's own intake
- * questions, which data/protocol-fields.ts derives in the browser from the
- * whole registry. That is outside answer 2 and is a question for Robert
- * (issue #1, 2026-11-22). Until he rules, the set is pinned: a new client file
- * reaching the registry turns this red, and so does one of these leaving it,
- * so the pin cannot outlive the thing it covers.
+ * NO CLIENT CARRIES THE PROTOCOL REGISTRY. Robert's answer 5 of 2026-11-22
+ * (issue #1, 7082475108). Until then the order flow and the operator intake
+ * form were pinned here as the two that did: each asked a protocol's own intake
+ * questions through fieldsFor, which data/protocol-fields.ts derives from the
+ * whole registry. The two pages now call fieldsFor on the server and hand each
+ * deliverable its questions as `intakeFields`, so the pin became the property.
+ *
+ * The premise that makes the property mean something: the two server pages
+ * still reach the registry, so the questions are still DERIVED from it rather
+ * than the clients having stopped asking them.
  */
-const KNOWN_PROTOCOL_CLIENTS = ["src/app/portal/(app)/intake/IntakeClient.tsx", "src/components/order/OrderFlow.tsx"];
-const protocolClients = clients.filter((c) => chain(c, ["src/content/protocols/index.ts"]) !== null).sort();
-const extra = protocolClients.filter((c) => !KNOWN_PROTOCOL_CLIENTS.includes(c));
-const gone = KNOWN_PROTOCOL_CLIENTS.filter((c) => !protocolClients.includes(c));
+const PROTOCOLS = "src/content/protocols/index.ts";
+for (const page of ["src/app/(order)/order/start/[slug]/page.tsx", "src/app/portal/(app)/intake/page.tsx"]) {
+  check(`${page} derives the questions from the registry on the server`, !isClient(page) && chain(page, [PROTOCOLS]) !== null);
+}
+for (const c of ["src/components/order/OrderFlow.tsx", "src/app/portal/(app)/intake/IntakeClient.tsx"]) {
+  check(`${c} is read as a client file`, clients.includes(c));
+}
+const protocolClients = clients.map((c) => chain(c, [PROTOCOLS])).filter(Boolean);
 check(
-  `the clients carrying the protocol registry are exactly the ${KNOWN_PROTOCOL_CLIENTS.length} named, awaiting Robert's ruling`,
-  extra.length === 0 && gone.length === 0,
-  [extra.length ? `new: ${extra.map((c) => chain(c, ["src/content/protocols/index.ts"]).join(" -> ")).join(" | ")}` : "", gone.length ? `no longer carrying, take off the list: ${gone.join(", ")}` : ""].filter(Boolean).join("; "),
+  "no client file reaches the protocol registry by a static import",
+  protocolClients.length === 0,
+  protocolClients.map((p) => p.join(" -> ")).join(" | "),
 );
-console.log(`  note: ${protocolClients.length} client file(s) carry the protocol registry by ruling pending: ${protocolClients.join(", ")}`);
 
 console.log("no client file on the account screen carries zod");
 const accountClients = clients.filter((f) => f.startsWith("src/app/account/"));
