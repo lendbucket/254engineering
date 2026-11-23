@@ -463,6 +463,44 @@ export const SURFACE_ROUTE_KB = {
 
 /*
  * ============================================================================
+ * ONE SCREEN WITH ITS OWN NUMBER, BECAUSE ITS WEIGHT IS ITS JOB.
+ * ============================================================================
+ *
+ * Robert's overnight list of 2026-11-22, item 2, on recommendation 3 of the
+ * byte report 7074090867: raise the /portal/protocols budget to what reading a
+ * protocol in full costs, with the measured figure and the reason beside it.
+ *
+ * WHY THIS IS NOT THE /account/login CASE BELOW. That ruling refused to budget
+ * an UNEXPLAINED outlier at its observed maximum. This one is explained, read
+ * in the source and in the byte split, and the operator asked for the number.
+ *
+ * THE REASON. /portal/protocols is where the engineer reads each protocol, word
+ * for word, before he signs it, so the server renders every transcribed
+ * protocol's full text into the page. That is 163KB of HTML against 9 to 33KB
+ * on every other staff screen. Its JavaScript is ordinary, 165KB against about
+ * 160KB on a light staff screen. Nothing on it is waste: cutting the text would
+ * stop the screen doing the one thing it is for.
+ *
+ * THE FIGURE. Measured median of three, local, under a real admin session:
+ *   2026-11-20, weekly phone run (7057904877)     456KB, HTML 163, JS 166
+ *   2026-11-22, announced run 7082713762, on main e13dae7, after the bundle
+ *     diet 8267ceb took about 100KB off files, review and messages
+ *                                                454KB, HTML 163, JS 165
+ * 460 is the observed maximum of 456 rounded up to the next five, the same
+ * rule the shell and the deltas above are set by. It keeps zero headroom on
+ * purpose: bytes do not vary between runs of one build, so this fails only
+ * when the screen really grows, which a new protocol transcribed into the
+ * registry will do. That red is the moment to look again, never to absorb.
+ *
+ * Its LCP is a separate question and nothing here moves it: the same run read
+ * 3611ms with a 684ms spread against the 3400ms local ceiling, COULD NOT TELL.
+ */
+export const SCREEN_KB = {
+  "/portal/protocols": 460,
+};
+
+/*
+ * ============================================================================
  * DECLARED OVER BUDGET, WITH THE REASON. NOT EXEMPT.
  * ============================================================================
  *
@@ -510,6 +548,7 @@ export const KNOWN_OVER_BUDGET = {
  */
 export function budgetKbFor(route) {
   if (typeof route.kb === "number") return route.kb;
+  if (typeof SCREEN_KB[route.path] === "number") return SCREEN_KB[route.path];
   if (!route.surface) return null;
   if (SURFACE_ROUTE_KB[route.surface]) return SURFACE_ROUTE_KB[route.surface];
   const delta = SURFACE_DELTA_KB[route.surface];
