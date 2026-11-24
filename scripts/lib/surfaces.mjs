@@ -194,8 +194,16 @@ export const SURFACES = [
     /*
      * No route group here: login and set-password sit beside the signed in
      * pages in one directory, so the public half is named rather than derived.
+     *
+     * /account/sign-up joined on 2026-11-23 (Robert's answer 4 of 7099393468).
+     * It is a page for somebody with no account, and it redirects a signed-in
+     * customer to /account (src/app/account/sign-up/page.tsx). Declared as
+     * signed in, every browser audit opened it with the customer probe's
+     * session and was sent to /account: perf-audit reported it NOT MEASURED on
+     * 3 of 3 runs in run 7082713762 and again in run 7121307050. security-audit
+     * has always listed it as a front door.
      */
-    publicRoutes: ["/account/login", "/account/set-password"],
+    publicRoutes: ["/account/login", "/account/set-password", "/account/sign-up"],
     apiDirs: ["src/app/api/account"],
     componentDirs: ["src/components/order"],
     session: "customer",
