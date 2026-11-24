@@ -568,6 +568,20 @@ async function setBrowserCookie(cookie) {
   }
 }
 
+/** Empty the cookie jar of the Chrome Lighthouse drives, for every host. */
+async function clearBrowserCookies() {
+  const browser = await puppeteer.connect({ browserURL: `http://127.0.0.1:${chrome.port}` });
+  try {
+    const page = await browser.newPage();
+    const cdp = await page.createCDPSession();
+    await cdp.send("Network.clearBrowserCookies");
+    await cdp.detach();
+    await page.close();
+  } finally {
+    await browser.disconnect();
+  }
+}
+
 const rows = [];
 
 const MEASURED = ONLY ? SUBJECTS.filter((r) => r.path.includes(ONLY)) : SUBJECTS;
@@ -635,6 +649,16 @@ for (const route of MEASURED) {
    * host, and the header stays as well. Whether it took is still decided by
    * where each run LANDED, below, never by this step having run.
    */
+  /*
+   * AND EVERY ROUTE STARTS WITH NO COOKIE BUT ITS OWN. Robert's answer 4 of
+   * 7099393468, 2026-11-23. A cookie put in the browser stays there, so a
+   * signed-out route measured after a signed-in one ran SIGNED IN: on run
+   * 7082713762 the login pages and /account/sign-up each redirected their
+   * still-signed-in browser to its home screen on 3 of 3 runs and were NOT
+   * MEASURED. The jar is emptied first, so a route with no session is measured
+   * with none, and a route with one carries only its own.
+   */
+  await clearBrowserCookies();
   if (cookie) await setBrowserCookie(cookie);
 
   const runs = [];
@@ -692,14 +716,22 @@ for (const route of MEASURED) {
    * same defect: the numbers describe a page nobody asked about. Comparing the
    * path subsumes the login case rather than enumerating the ways to leave.
    */
+  /*
+   * The QUERY is part of what was asked for. Until 2026-11-23 the landed
+   * PATHNAME was compared with the whole requested path, so
+   * /start?letter=foundation, which never redirects, read as landing on /start
+   * and was NOT MEASURED on every run (Robert's answer 4 of 7099393468). Both
+   * sides are now pathname plus search, read the same way.
+   */
   const landedPathOf = (value) => {
     try {
-      return new URL(value).pathname.replace(/\/+$/, "") || "/";
+      const u = new URL(value, BASE);
+      return (u.pathname.replace(/\/+$/, "") || "/") + u.search;
     } catch {
       return null;
     }
   };
-  const wanted = route.path.replace(/\/+$/, "") || "/";
+  const wanted = landedPathOf(route.path);
   const bounced = ok.filter((r) => {
     const landedPath = r.landed ? landedPathOf(r.landed) : null;
     return landedPath !== null && landedPath !== wanted;

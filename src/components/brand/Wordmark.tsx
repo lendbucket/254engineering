@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { WORDMARK_RATIO, wordmarkSrc } from "./wordmark-sizes";
 
 /**
  * The brand mark.
@@ -54,7 +55,15 @@ import Image from "next/image";
  * any other size both differ.
  */
 
-const RATIO = 2262 / 1147;
+/*
+ * THE FILE SERVED IS A RESIZED COPY. Robert's answer 3 of 7099393468,
+ * 2026-11-23: the 2262 by 1147 original was 52,290 bytes on screens that draw
+ * it 20 pixels tall. `wordmarkSrc` picks the copy at twice the smallest tier at
+ * or above `height`; the tiers and the reasoning are in ./wordmark-sizes.ts.
+ * A caller whose CSS height can exceed `height` must pass the largest value
+ * the CSS can reach, which every responsive caller here already does.
+ */
+const RATIO = WORDMARK_RATIO;
 
 export function Wordmark({
   onDark = false,
@@ -83,7 +92,7 @@ export function Wordmark({
   priority?: boolean;
   className?: string;
 }) {
-  const src = onDark ? "/brand/logo-dark.png" : "/brand/logo.png";
+  const src = wordmarkSrc(height, onDark);
   const width = Math.round(height * RATIO);
   return (
     <Image
