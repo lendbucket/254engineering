@@ -27,7 +27,7 @@
  * Pure. No server, no database, no network, so it runs in phase zero.
  */
 
-import { readdirSync, statSync, existsSync } from "node:fs";
+import { readdirSync, statSync, existsSync, readFileSync } from "node:fs";
 import { readSource } from "./lib/read-source.mjs";
 import { measurableSurfaces, sourceDirsOf } from "./lib/surfaces.mjs";
 import { join } from "node:path";
@@ -1622,10 +1622,61 @@ for (const [standard, site] of TWINS) {
   const layout = readSource("src/app/layout.tsx");
   const italicPath = layout.match(/\{ path: "(\.\.\/fonts\/[^"]+\.woff2)", weight: "400 700", style: "italic" \}/)?.[1] ?? null;
   rec(
-    "the italic face is loaded for the absent data chip",
+    "the italic face is loaded for the portal's italic text",
     italicPath !== null && existsSync(join("src/app", italicPath)),
-    italicPath ? `a synthesised oblique on a 12px chip is the mush this system exists to avoid (${italicPath})` : "no italic file declared in the layout's localFont src",
+    italicPath ? `a synthesised oblique on small text is the mush this system exists to avoid (${italicPath})` : "no italic file declared in the layout's localFont src",
   );
+  /*
+   * THE ABSENT DATA CHIP IS UPRIGHT. Robert's answer 2 of 7099393468,
+   * 2026-11-23: it was italic, so every screen showing one loaded the 51,636
+   * byte italic face, which was all of /partner's excess over its budget. It
+   * keeps the secondary colour, which contrast-audit already measures.
+   */
+  {
+    const primitives = readSource("src/components/portal/design/Primitives.tsx");
+    const chip = primitives.match(/export function AbsentChip[\s\S]*?className="([^"]*)"/)?.[1] ?? null;
+    rec(
+      "the absent data chip is upright and in the secondary text colour",
+      chip !== null && !/\bitalic\b/.test(chip) && chip.includes("text-[var(--secondary)]"),
+      chip === null ? "AbsentChip's className was not found" : `className is "${chip}"`,
+    );
+  }
+  /*
+   * THE LOCKUP IS SERVED AT TWICE ITS DRAWN HEIGHT. Robert's answer 3 of
+   * 7099393468, 2026-11-23. The tiers are the declaration in wordmark-sizes.ts;
+   * every file it names must exist at exactly that size, read off the PNG's
+   * own header, because a missing file would render a broken image on every
+   * screen and a wrong one would be soft or heavy with nothing else noticing.
+   */
+  {
+    const sizes = readSource("src/components/brand/wordmark-sizes.ts");
+    const tiers = (sizes.match(/WORDMARK_TIERS = \[([^\]]*)\]/)?.[1] ?? "")
+      .split(",").map((s) => Number(s.trim())).filter((n) => Number.isInteger(n) && n > 0);
+    const wrong = [];
+    for (const base of ["logo", "logo-dark"]) {
+      for (const tier of tiers) {
+        const h = tier * 2;
+        const w = Math.round((h * 2262) / 1147);
+        const file = join("public", "brand", `${base}-h${h}.png`);
+        if (!existsSync(file)) { wrong.push(`${file} is missing`); continue; }
+        const head = readFileSync(file);
+        const fw = head.readUInt32BE(16);
+        const fh = head.readUInt32BE(20);
+        if (fw !== w || fh !== h) wrong.push(`${file} is ${fw} x ${fh}, not ${w} x ${h}`);
+      }
+    }
+    rec(
+      `the lockup is served at twice each drawn height (${tiers.length} tiers, ${tiers.length * 2} files)`,
+      tiers.length > 0 && wrong.length === 0,
+      tiers.length === 0 ? "no tiers read from wordmark-sizes.ts" : wrong.join("; ") + (wrong.length ? ". Run npx tsx scripts/wordmark-sizes.mjs" : ""),
+    );
+    const wordmark = readSource("src/components/brand/Wordmark.tsx");
+    rec(
+      "and the Wordmark serves the resized copy, not the delivered original",
+      wordmark.includes("wordmarkSrc(height, onDark)") && !/"\/brand\/logo(-dark)?\.png"/.test(wordmark),
+      "Wordmark.tsx must take its src from wordmarkSrc",
+    );
+  }
   const declared = [...layout.matchAll(/\{ path: "(\.\.\/fonts\/[^"]+\.woff2)"/g)].map((m) => m[1]);
   rec(
     "the upright and italic files are both declared and both on disk",

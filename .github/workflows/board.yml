@@ -179,6 +179,11 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: PDF, archive and port tools
         run: |
+          # Robert's answer 5 of 7099393468: the image's packages.microsoft.com
+          # source answered 403 on 2026-11-23 and board 45125739596 measured no
+          # writers. Nothing installed here comes from it, so it is removed first
+          # and the step says which files it removed.
+          for f in $(sudo grep -rl packages.microsoft.com /etc/apt/sources.list.d/ 2>/dev/null); do echo "removing apt source $f"; sudo rm -f "$f"; done
           sudo apt-get update -qq > /dev/null
           sudo apt-get install -y -qq poppler-utils unzip lsof > /dev/null
       # email-audit renders every template in Chromium, as it does in the
@@ -261,6 +266,11 @@ jobs:
         # build the Ubuntu mirror no longer served (404), and every Linux shard stopped here
         # before the suite ran. Installing from a stale index fails whenever Ubuntu moves on.
         run: |
+          # Robert's answer 5 of 7099393468: the image's packages.microsoft.com
+          # source answered 403 on 2026-11-23 and board 45125739596 measured no
+          # writers. Nothing installed here comes from it, so it is removed first
+          # and the step says which files it removed.
+          for f in $(sudo grep -rl packages.microsoft.com /etc/apt/sources.list.d/ 2>/dev/null); do echo "removing apt source $f"; sudo rm -f "$f"; done
           sudo apt-get update -qq > /dev/null
           sudo apt-get install -y -qq poppler-utils unzip lsof > /dev/null
       - name: The PDF extractor this shard will use

@@ -19,7 +19,7 @@
  *   the italic one serves 400 to 700 italic and carries preload: false;
  *   both variables are on <html>;
  *   and globals.css points italic text at the italic declaration, so the
- *   portal's absent data chip keeps a real italic, not a synthesised oblique.
+ *   portal's italic text keeps a real italic, not a synthesised oblique.
  */
 import { readFileSync } from "node:fs";
 

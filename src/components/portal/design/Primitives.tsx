@@ -199,10 +199,17 @@ export function SystemAlert({
  * to match the design would be a copy change across surfaces this workstream is
  * not touching, so the design's TREATMENT is adopted, the platform's WORD is
  * kept, and the difference is reported rather than resolved quietly.
+ *
+ * UPRIGHT, NOT ITALIC
+ * -------------------
+ * Robert's answer 2 of 7099393468 (2026-11-23). The chip was italic, which made
+ * every screen that showed one load the 51,636 byte Inter italic face: it was
+ * the whole of /partner's excess over its byte budget. The secondary text
+ * colour alone marks it as absent; token-audit pins that it stays upright.
  */
 export function AbsentChip({ children = "not set" }: { children?: ReactNode }) {
   return (
-    <span className="inline-block text-[13px] italic text-[var(--secondary)]">
+    <span className="inline-block text-[13px] text-[var(--secondary)]">
       {children}
     </span>
   );
