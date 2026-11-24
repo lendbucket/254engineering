@@ -229,20 +229,37 @@ export async function accountRows(
    * the screen's 1.6 seconds, over development's 5,000 accounts. Still every
    * row (readEvery stops only on a short page); half the round trips.
    */
+  /*
+   * EACH PAGE OF THE ROSTER IS TIMED. Robert's answer 1 of 7099393468: the
+   * screen read 2127 ms at 1280 on nightly 45149206320, and the roster is
+   * most of every load. Its cost is pages times a round trip to the database,
+   * so the line says how many pages it took and how long each one was: a slow
+   * load with ordinary pages is the database answering slowly, and a slow load
+   * with one long page is something else.
+   */
+  const rosterPages: number[] = [];
   const accountRead = await readEvery<Record<string, unknown>>(
-    (from, to) =>
-      db
+    (from, to) => {
+      const pageAt = Date.now();
+      return db
         .from("eng_customer_accounts")
         .select("id, client_id, status, billing_mode, credit_limit_cents, net_days, created_at, superseded_at")
         .order("created_at", { ascending: true })
         .order("id", { ascending: true })
-        .range(from, to),
+        .range(from, to)
+        .then((r) => {
+          rosterPages.push(since(pageAt));
+          return r;
+        });
+    },
     { pageSize: READ_CAP },
   );
   phases.push({
     name: "roster",
     ms: since(rosterAt),
-    note: accountRead.ok ? `${accountRead.rows.length} accounts` : "failed",
+    note: accountRead.ok
+      ? `${accountRead.rows.length} accounts; pages=${rosterPages.join("/")}ms`
+      : "failed",
   });
 
   /*
