@@ -1,7 +1,7 @@
 import "server-only";
 import { DB_NOW } from "./db-now";
 import { todayInFirmCalendar } from "./firm-calendar";
-import { readEvery, readEveryIn } from "./bounded-read";
+import { IN_FILTER_CHUNK, readEvery, readEveryIn } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { orderForFileRead } from "./order-for-file";
 import { writeAudit } from "./ops-audit";
@@ -884,13 +884,36 @@ export async function closePartnerPeriod(
    * customer side. An entry with a statement is never gathered again, so two
    * closes running at once cannot put one commission on two statements.
    */
+  /*
+   * IN CHUNKS, BECAUSE ONE `.in()` OVER EVERY PAYABLE ENTRY FALLS OFF THE
+   * 150-ID CLIFF (bounded-read.ts). The claim was one request over all of
+   * them, so a partner with more than about 150 payable entries in a period
+   * was refused at every close, and that period could never be paid
+   * (master undone list, the `.in()` survey, 2026-11-24).
+   *
+   * A chunk that fails after earlier chunks went through leaves those attached
+   * to this open statement and the rest unclaimed. Closing again finishes it:
+   * the open statement is found above, only entries with no statement are
+   * gathered, and the total below is recomputed from what is attached.
+   */
   const ids = payable.map((e) => e.id as string);
-  const { error: claimError } = await db
-    .from("eng_partner_entries")
-    .update({ statement_id: statementId })
-    .in("id", ids)
-    .is("statement_id", null);
-  if (claimError) return { ok: false, error: `The entries could not be attached: ${claimError.message}` };
+  for (let i = 0; i < ids.length; i += IN_FILTER_CHUNK) {
+    const chunk = ids.slice(i, i + IN_FILTER_CHUNK);
+    const { error: claimError } = await db
+      .from("eng_partner_entries")
+      .update({ statement_id: statementId })
+      .in("id", chunk)
+      .is("statement_id", null);
+    if (claimError) {
+      return {
+        ok: false,
+        error:
+          i === 0
+            ? `The entries could not be attached: ${claimError.message}`
+            : `${i} of ${ids.length} entries were attached to ${reference}, and the rest could not be: ${claimError.message} Close the period again to finish it.`,
+      };
+    }
+  }
 
   /*
    * The total is recomputed from what is actually attached rather than from

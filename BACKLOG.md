@@ -1475,6 +1475,37 @@ job two; `docs/master-undone-2026-11-19.md` rows N4, N5, N15):
   (200), the partner portal's referrals (`REFERRAL_PAGE`). **Still owed:** the
   rest of the 69, chiefly the partner statement close's claim write, the
   partner attribution reads by visitor key, `timeLog` and `listTasks`.
+- **Worked on `fix/batch-1124-money-reads`, 2026-11-24** (Robert's all-day
+  add-on of that day, item 3, on main `99103d0`):
+  - **The partner statement close's claim write: fixed.** `closePartnerPeriod`
+    claimed every payable entry with one `.in()`, so a partner with more than
+    about 150 payable entries in a period was refused at every close and could
+    not be paid. It claims in chunks of `IN_FILTER_CHUNK`; a chunk refused
+    after earlier ones says how many were attached and that closing again
+    finishes it, which it does, onto the same open statement.
+  - **The partner roster's referrals, people and ledger reads: fixed.** The
+    referrals and people reads were one request each, so past 1,000 referred
+    orders the counts after the cut were short with no error, and past about
+    150 partners all three reads were refused. All three go through
+    `readEveryIn`.
+  - **`revisionFor`: fixed.** It read the oldest 500 revision events, so the
+    newest round, which decides whether a package may be submitted, was the
+    part left out on a longer file. It reads every matching event.
+  - **`timeLog`: fixed.** It dropped its error, so `/portal/charge-log` said
+    "Nothing logged by hand yet" over a failed read. It returns a read result
+    and the screen says the failure. Its cap of 300 stays: the screen shows the
+    newest twelve and sums nothing from it.
+  - **Read and left, bounded by construction:** the partner attribution reads by
+    visitor key (`attributeOrder` and the dispute screen, at most two keys and
+    then 50 touches), the dispute screen's partner names (at most 50), and
+    `accountCandidatesFor`'s client names (at most two). `listTasks` was
+    already done on main (`a693a83`).
+  - Proof `a-long-claim-and-three-reads-reach-every-row.mjs`, 31 checks against
+    a stub with the 150-id cliff and the 1,000-row cap. Main's version of each
+    of the five changed files, put back one at a time, turned exactly its own
+    section red.
+  - **Still owed:** the rest of the 69 outside money and customer paths, which
+    were not each read today.
 
 ## APPLIED: 0075, A PAYMENT EVENT IS APPLIED ONCE
 

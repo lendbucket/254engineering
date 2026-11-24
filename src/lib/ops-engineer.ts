@@ -1525,19 +1525,32 @@ export type TimeRow = {
   entered_manually: boolean;
 };
 
-export async function timeLog(actor: Actor | null, profileId?: string): Promise<TimeRow[]> {
+/*
+ * A FAILED READ IS SAID, NOT SHOWN AS AN EMPTY LOG (the capped-read survey,
+ * 2026-11-24). This returned `data ?? []` and dropped the error, so a failed
+ * read rendered "Nothing logged by hand yet" over hours somebody had logged.
+ * The read stays bounded to the newest 300: its one screen shows the newest
+ * twelve, and no figure is summed from it.
+ */
+export type TimeLogRead = { ok: true; rows: TimeRow[] } | { ok: false; error: string };
+
+export async function timeLog(actor: Actor | null, profileId?: string): Promise<TimeLogRead> {
   const db = supabaseAdmin();
-  if (!db || !actor) return [];
-  if (!can(actor, "time.log_own")) return [];
+  if (!db) return { ok: false, error: "The time log could not be read: the database is not configured." };
+  if (!actor || !can(actor, "time.log_own")) return { ok: true, rows: [] };
   const subjectId = actor.role === "admin" && profileId ? profileId : actor.id;
 
-  const { data } = await db
+  const { data, error } = await db
     .from("eng_time_log")
     .select("id, created_at, file_id, kind, started_at, ended_at, minutes, note, entered_manually")
     .eq("profile_id", subjectId)
     .order("started_at", { ascending: false, nullsFirst: false })
     .limit(300);
-  return (data ?? []) as TimeRow[];
+  if (error || !data) {
+    console.error(`[time] the time log could not be read: ${error?.message ?? "no data"}`);
+    return { ok: false, error: "The time log could not be read." };
+  }
+  return { ok: true, rows: data as TimeRow[] };
 }
 
 /**
