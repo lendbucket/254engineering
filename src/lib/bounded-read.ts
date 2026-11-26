@@ -127,6 +127,72 @@ export async function readEvery<T>(
 }
 
 /**
+ * `readEvery`, with the pages asked for AT ONCE rather than one after another.
+ *
+ * Built on Robert's overnight list of 2026-11-25, item 3, for question 5 of
+ * 7137015658: the `/portal/accounts` roster read 5,366 accounts in six pages,
+ * each waiting for the one before, so the screen paid six round trips to the
+ * database where one would do (profile 7131172223: every page 165 to 281 ms,
+ * and the six adding up exactly to the roster's time).
+ *
+ * It asks for `width` pages together, puts them back in order, and stops at the
+ * first short page exactly as `readEvery` does. Only when every page of a batch
+ * came back full does it ask for the next batch, so a set of up to
+ * `width * pageSize` rows costs one round trip, and a larger one a round trip
+ * per batch.
+ *
+ * TWO THINGS IT REFUSES, so it is never a weaker read than the one it replaces:
+ * any page's error fails the whole read, as `readEvery` does; and a page AFTER
+ * the first short one that carries rows fails it too, because that means the
+ * set moved while it was being read, and a sequential read would have stopped
+ * early without noticing. Saying so is better than a short roster that reads
+ * as complete.
+ *
+ * The cost is up to `width - 1` requests that come back empty past the end of
+ * the set. That is the trade for not waiting, and it is bounded by `width`.
+ */
+export async function readEveryAtOnce<T>(
+  build: (from: number, to: number) => PromiseLike<Result<T>>,
+  options: { pageSize?: number; width?: number; maxPages?: number } = {},
+): Promise<BoundedRead<T>> {
+  const pageSize = Math.min(options.pageSize ?? READ_PAGE, READ_CAP);
+  const width = Math.max(1, options.width ?? 8);
+  const maxPages = options.maxPages ?? 200;
+
+  const rows: T[] = [];
+  for (let first = 0; first < maxPages; first += width) {
+    const indexes = Array.from({ length: Math.min(width, maxPages - first) }, (_, i) => first + i);
+    const answers = await Promise.all(indexes.map((page) => build(page * pageSize, page * pageSize + pageSize - 1)));
+    for (const answer of answers) {
+      if (answer.error) return { ok: false, error: answer.error.message };
+    }
+    const short = answers.findIndex((a) => (a.data ?? []).length < pageSize);
+    const kept = short === -1 ? answers : answers.slice(0, short + 1);
+    for (const answer of kept) rows.push(...(answer.data ?? []));
+    if (short !== -1) {
+      const moved = answers.slice(short + 1).some((a) => (a.data ?? []).length > 0);
+      if (moved) {
+        return {
+          ok: false,
+          error:
+            "This set changed while it was being read: a page past the end came back with rows. " +
+            "Reading it again gives a whole answer; a partial one here would read as complete.",
+        };
+      }
+      return { ok: true, rows, total: rows.length, complete: true };
+    }
+  }
+
+  return {
+    ok: false,
+    error:
+      `Reading this set did not finish inside ${maxPages} pages of ${pageSize}, which is ` +
+      `${(maxPages * pageSize).toLocaleString("en-US")} rows. Something is wrong with the query ` +
+      `rather than with the data, and a partial answer here would be the defect this exists to stop.`,
+  };
+}
+
+/**
  * =============================================================================
  * HOW MANY IDS MAY GO INTO ONE `.in()` FILTER, AND IT IS A CLIFF.
  * =============================================================================

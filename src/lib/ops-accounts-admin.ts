@@ -1,5 +1,5 @@
 import "server-only";
-import { READ_CAP, readEvery, readEveryIn } from "./bounded-read";
+import { READ_CAP, readEvery, readEveryAtOnce, readEveryIn } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { openBalancesForEveryAccount } from "./ops-bulk";
 import { accountListQuery, pageOfAccounts, type AccountListQuery, type RosterEntry } from "./account-list";
@@ -237,8 +237,19 @@ export async function accountRows(
    * load with ordinary pages is the database answering slowly, and a slow load
    * with one long page is something else.
    */
+  /*
+   * AND THE PAGES ARE ASKED FOR AT ONCE. Robert's overnight list of 2026-11-25,
+   * item 3, for question 5 of 7137015658: the profile (7131172223) showed
+   * six ordinary pages, 165 to 281 ms each, adding up exactly to the roster's
+   * 1.35 to 1.44 s, so the cost was the waiting between them. readEveryAtOnce
+   * asks for eight pages together and stops at the first short one, so the
+   * roster costs about one round trip. What is read, its order and the
+   * screen's sorting, filters and paging are unchanged. Each page is still
+   * timed; the times now overlap, so the roster reads near the longest page
+   * rather than near their sum, and the line says "at once".
+   */
   const rosterPages: number[] = [];
-  const accountRead = await readEvery<Record<string, unknown>>(
+  const accountRead = await readEveryAtOnce<Record<string, unknown>>(
     (from, to) => {
       const pageAt = Date.now();
       return db
@@ -258,7 +269,7 @@ export async function accountRows(
     name: "roster",
     ms: since(rosterAt),
     note: accountRead.ok
-      ? `${accountRead.rows.length} accounts; pages=${rosterPages.join("/")}ms`
+      ? `${accountRead.rows.length} accounts; pages at once=${rosterPages.join("/")}ms`
       : "failed",
   });
 
