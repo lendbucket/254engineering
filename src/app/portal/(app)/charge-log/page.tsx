@@ -299,14 +299,18 @@ export default async function ChargeLogPage({
             description="Review time is measured between opening a package and deciding it. Anything else you want on the record, you add here, and it is marked as entered by hand so the two can be told apart."
           >
             <TimeForm />
-            {time.length === 0 ? (
+            {!time.ok ? (
+              <p role="alert" className="mt-4 text-[14px] leading-[1.55] text-[var(--ink)]">
+                {time.error} Nothing in it has changed; this is a failed read, not an empty time log. Reload the page in a moment.
+              </p>
+            ) : time.rows.length === 0 ? (
               <p className="mt-4 text-[14px] leading-[1.55] text-[var(--secondary)]">
                 Nothing logged by hand yet. Review time is recorded automatically and appears on the
                 left.
               </p>
             ) : (
               <ul className="mt-4 divide-y divide-limestone-line">
-                {time.slice(0, 12).map((t) => (
+                {time.rows.slice(0, 12).map((t) => (
                   <li key={t.id} className="py-2.5">
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-[14px] font-semibold text-[var(--ink)]">

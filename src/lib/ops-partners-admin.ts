@@ -1,5 +1,5 @@
 import "server-only";
-import { readEvery } from "./bounded-read";
+import { readEvery, readEveryIn } from "./bounded-read";
 import { supabaseAdmin } from "./supabase";
 import { exactEmailPattern } from "./email-match";
 import { writeAudit } from "./ops-audit";
@@ -83,10 +83,25 @@ export async function partnerRoster(actor: Actor): Promise<PartnerRosterRead> {
   const ids = partners.map((p) => p.id as string);
   if (ids.length === 0) return { ok: true, rows: [], failed: [] };
 
-  const { data: orders, error: ordersError } = await db
-    .from("eng_service_orders")
-    .select("partner_id")
-    .in("partner_id", ids);
+  /*
+   * ALL THREE READS BELOW GO THROUGH readEveryIn (the `.in()` survey,
+   * 2026-11-24). The referrals and people reads were one request each: past
+   * 1,000 referred orders the transport stopped, so every partner after the
+   * cut read fewer referrals than they have, with nothing saying so; past
+   * about 150 partners the id list fell off the cliff and all three reads were
+   * refused. Each read is now chunked by id and paged to the end, or it fails
+   * whole and its figure is null.
+   */
+  const orderRead = await readEveryIn<{ partner_id: string }>(ids, (chunk, from, to) =>
+    db
+      .from("eng_service_orders")
+      .select("partner_id")
+      .in("partner_id", chunk)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  const orders = orderRead.ok ? orderRead.rows : null;
+  const ordersError = orderRead.ok ? null : { message: orderRead.error };
 
   /*
    * PAGED, AND THIS IS THE ONE THAT BREAKS EARLIEST OF ALL THE MONEY READS.
@@ -97,22 +112,29 @@ export async function partnerRoster(actor: Actor): Promise<PartnerRosterRead> {
    * partner's own ledger does, and every partner below the cut then shows
    * nothing payable on the administrator's screen.
    */
-  const entryRead = await readEvery<{
+  const entryRead = await readEveryIn<{
     partner_id: string; amount_cents: number | null; status: string; statement_id: string | null; payable_at: string;
-  }>((from, to) =>
+  }>(ids, (chunk, from, to) =>
     db
       .from("eng_partner_entries")
       .select("partner_id, amount_cents, status, statement_id, payable_at")
-      .in("partner_id", ids)
+      .in("partner_id", chunk)
       .order("occurred_at", { ascending: true })
+      .order("id", { ascending: true })
       .range(from, to),
   );
   const entries = entryRead.ok ? entryRead.rows : null;
 
-  const { data: users, error: usersError } = await db
-    .from("eng_partner_users")
-    .select("partner_id, status")
-    .in("partner_id", ids);
+  const userRead = await readEveryIn<{ partner_id: string; status: string }>(ids, (chunk, from, to) =>
+    db
+      .from("eng_partner_users")
+      .select("partner_id, status")
+      .in("partner_id", chunk)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  const users = userRead.ok ? userRead.rows : null;
+  const usersError = userRead.ok ? null : { message: userRead.error };
 
   const failed = [
     ...(entries === null ? ["The partner ledger could not be read, so no payable figure is shown: none of them is zero."] : []),

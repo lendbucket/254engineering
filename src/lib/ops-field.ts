@@ -3827,15 +3827,28 @@ export async function revisionFor(
 ): Promise<{ round: RevisionRound | null; newEvidenceSinceRequest: boolean } | null> {
   const db = supabaseAdmin();
   if (!db) return null;
-  const { data: events, error } = await db
-    .from("eng_file_events")
-    .select("kind, to_status, body, created_at")
-    .eq("file_id", fileId)
-    /* Quoted, because "revision.reply" carries a dot and PostgREST splits a filter on dots. */
-    .or(`kind.eq."${REVISION_REPLY}",to_status.eq.${REVISIONS_REQUESTED}`)
-    .order("created_at", { ascending: true })
-    .limit(500);
-  if (error || !events) return null;
+  /*
+   * EVERY MATCHING EVENT, PAGED (the `.in()` and capped-read survey,
+   * 2026-11-24). This read was the OLDEST 500 in ascending order, so on a file
+   * with more than 500 revision requests and replies the newest round was the
+   * part left out: the screen read an older round, or none, and that answer
+   * decides whether a package may be submitted. Ordered by id as well, so a
+   * page boundary between two events of the same instant drops nothing.
+   */
+  const read = await readEvery<{ kind: string; to_status: string | null; body: string | null; created_at: string }>(
+    (from, to) =>
+      db
+        .from("eng_file_events")
+        .select("kind, to_status, body, created_at")
+        .eq("file_id", fileId)
+        /* Quoted, because "revision.reply" carries a dot and PostgREST splits a filter on dots. */
+        .or(`kind.eq."${REVISION_REPLY}",to_status.eq.${REVISIONS_REQUESTED}`)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+  );
+  if (!read.ok) return null;
+  const events = read.rows;
   const round = latestRevision(
     events.map((e) => ({
       kind: e.kind as string,
