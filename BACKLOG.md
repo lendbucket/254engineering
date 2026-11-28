@@ -3665,9 +3665,18 @@ And **running five proofs that have never run on a board is its own event**.
 They may not pass. That is worth finding out deliberately, with a prediction
 stated first, rather than as a rider on a commit that was about something else.
 
-## THE BUILD GUARD'S PORT RANGE IS TYPED AND COVERS A FRACTION OF THE PORTS AUDITS CLAIM
+## THE BUILD GUARD'S PORT RANGE WAS TYPED AND COVERED A FRACTION OF THE PORTS AUDITS CLAIM: BUILT AS `664948a9`, 2026-10-02
 
-Operator ruling, 2026-09-22. **Recorded, not built.** The detection half of this
+**Built, confirmed on main `99103d0` on 2026-11-24** (master undone list N11,
+which still said "Recorded, not built"). The harnesses declare their ports in
+`scripts/lib/ports.mjs`, the honest shape this entry names below, and
+`AUDIT_PORT_RANGE` in `scripts/lib/build-guard.mjs` is
+`[PORT_RANGE.from, PORT_RANGE.to]`, derived from that declaration rather than
+typed. `scripts/proofs/every-port-comes-from-one-declaration.mjs` asserts that
+every declared port is distinct and inside the range, and that no script writes
+a port literal. The account below is the entry as recorded on 2026-09-22.
+
+Operator ruling, 2026-09-22. **Recorded, not built** (as of that date). The detection half of this
 was fixed the same night and is not this entry; this is the half that was left.
 
 **What produced it.** A board on `feat/rulings-2026-09-22` printed
