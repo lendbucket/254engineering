@@ -30,7 +30,8 @@
  * with who and when; activation refuses an engineer with no license number and
  * then succeeds; the profile exists with the role, the license number for the
  * engineer, the coverage for the technician, and the accepted documents as
- * verified credentials.
+ * verified credentials. And the stepper the invite opens, in a browser at 360
+ * and 390, does not scroll sideways (L9077; see stepperAtPhoneWidths).
  *
  * TEARDOWN, PER RUN AND SWEPT BY MARK. The onboardings (their items cascade),
  * the applications and the uploaded objects go first, then destroyProbes,
@@ -81,6 +82,7 @@ const made = { onboardings: [], applications: [], objects: [] };
 
 async function teardown() {
   const notes = [];
+  if (browser) await browser.close().catch((e) => notes.push(`browser: ${e.message}`));
   if (made.objects.length) {
     const { error } = await db.storage.from(BUCKET).remove(made.objects);
     if (error) notes.push(`objects: ${error.message}`);
@@ -157,6 +159,89 @@ async function upload(token, itemKey) {
   return item.body?.ok ? null : `the item was not recorded: ${item.body?.error ?? item.status}`;
 }
 
+/*
+ * THE STEPPER AT PHONE WIDTHS. BACKLOG, "The onboarding stepper is still
+ * outside two audits" (L9077), built in the night run of 2026-11-25 on
+ * Robert's overnight list. `/onboarding/[token]` is not in the sitemap, by
+ * design, so mobile-overflow-audit, which reads the sitemap and the surface
+ * inventory, never opened it at 360 or 390. The entry named forms-audit as the
+ * honest place, because the stepper renders only for a valid token and
+ * forms-audit seeds rows. This audit was written later and already mints a real
+ * invite through the product, so the pass sits here, on the link the person is
+ * actually sent, rather than on a second fixture built beside it.
+ *
+ * The measurement is mobile-overflow-audit's: the document and the body may be
+ * at most one pixel wider than the document's client width, at the top and
+ * again after scrolling to the bottom. Two guards keep it from passing over
+ * nothing: the page must show the flow's own heading ("Welcome,"), so a
+ * "this link is not active" page cannot stand in for the stepper, and the
+ * client width must be the width asked for, so an emulation change cannot
+ * quietly turn the check off.
+ */
+const STEPPER_WIDTHS = [360, 390];
+const SLACK = 1;
+let browser = null;
+
+/*
+ * The browser opens the link the person is sent, `/onboarding/<token>`, and
+ * the product's own proxy exchanges it for the httpOnly cookie and redirects,
+ * as it does for the person. The exchange is stateless (src/lib/link-cookie.ts),
+ * so opening it again here costs the walk nothing. The first version set the
+ * cookie by hand and Chromium refused a `__Host-` cookie over plain http, which
+ * the standalone run of 2026-11-26 found before anything was committed.
+ */
+async function stepperAtPhoneWidths(word, token) {
+  if (!browser) {
+    const { chromium } = await import("playwright");
+    browser = await chromium.launch();
+  }
+  for (const width of STEPPER_WIDTHS) {
+    const context = await browser.newContext({ viewport: { width, height: 800 } });
+    try {
+      const page = await context.newPage();
+      const res = await page.goto(new URL(`/onboarding/${encodeURIComponent(token)}`, BASE).toString(), { waitUntil: "load", timeout: 45000 });
+      const landed = new URL(page.url()).pathname;
+      const shown = await page.locator("body").innerText();
+      if (!rec(`${word}: the stepper renders in a browser at ${width}`, res?.status() === 200 && landed === "/onboarding/invite" && /Welcome,/.test(shown), `HTTP ${res?.status() ?? "no answer"} at ${landed}${/Welcome,/.test(shown) ? "" : ", and the flow's heading is not on the page"}`)) continue;
+      const measure = () =>
+        page.evaluate(() => {
+          const inner = document.documentElement.clientWidth;
+          const wide = [...document.querySelectorAll("body *")]
+            .map((el) => ({ el, right: el.getBoundingClientRect().right }))
+            .filter((x) => x.right > inner + 1)
+            .sort((a, b) => b.right - a.right)
+            .slice(0, 3)
+            .map((x) => `${x.el.tagName.toLowerCase()}${x.el.className && typeof x.el.className === "string" ? "." + x.el.className.split(" ").slice(0, 2).join(".") : ""} to ${Math.round(x.right)}px`);
+          return { doc: document.documentElement.scrollWidth, body: document.body.scrollWidth, inner, wide };
+        });
+      const top = await measure();
+      await page.evaluate(async () => {
+        for (let y = 0; y < document.body.scrollHeight; y += window.innerHeight) {
+          window.scrollTo(0, y);
+          await new Promise((r) => setTimeout(r, 80));
+        }
+        window.scrollTo(0, document.body.scrollHeight);
+        await new Promise((r) => setTimeout(r, 200));
+      });
+      const bottom = await measure();
+      const widest = Math.max(top.doc, top.body, bottom.doc, bottom.body);
+      rec(
+        `${word}: the stepper does not scroll sideways at ${width}`,
+        top.inner === width && widest <= top.inner + SLACK,
+        top.inner !== width
+          ? `the client width read ${top.inner}px where ${width} was asked for, so the measurement would not mean anything`
+          : widest <= top.inner + SLACK
+            ? `widest ${widest}px in ${top.inner}px`
+            : `widest ${widest}px in ${top.inner}px: ${[...top.wide, ...bottom.wide].slice(0, 3).join("; ")}`,
+      );
+    } catch (e) {
+      rec(`${word}: the stepper is measured at ${width}`, false, `the browser could not measure it: ${e.message}`);
+    } finally {
+      await context.close();
+    }
+  }
+}
+
 async function walk(role) {
   const word = role === "engineer" ? "engineer" : "technician";
   const email = `onboarding-walk-${role.replace("_", "-")}-${STAMP}@${PROBE_DOMAIN}`;
@@ -193,6 +278,7 @@ async function walk(role) {
   const page = await fetch(new URL(inviteAt || "/onboarding/invite", BASE), { redirect: "manual", headers: { cookie: inviteCookie } });
   const pageText = page.status === 200 ? await page.text() : "";
   rec(`${word}: the invite link opens the flow`, page.status === 200 && /Welcome,/.test(pageText), `HTTP ${page.status}`);
+  await stepperAtPhoneWidths(word, token);
 
   const checklist = checklistFor(role);
   const personItems = checklist.filter((i) => i.actor === "person");

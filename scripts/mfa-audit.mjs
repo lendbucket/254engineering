@@ -95,6 +95,84 @@ async function recordRoleCleanup(db, name, roleKey, deleteError) {
 }
 
 /*
+ * THE TEARDOWN SWEEPS THIS AUDIT'S WHOLE DOMAIN, NOT ONLY THE KEYS THIS RUN
+ * MADE. BACKLOG, "PHASE 14: mfa-audit's TEARDOWN DELETES ONE KEY WHERE
+ * destroyProbes SWEEPS A DOMAIN" (L4260), built in the night run of
+ * 2026-11-25 on Robert's overnight list. Until then the teardown removed
+ * REQUIRED_ROLE and OPTIONAL_ROLE, the two keys minted by THIS run, so a run
+ * whose teardown faulted stranded a role for ever and every later run passed
+ * its own cleanup check beside it. That was proven on 2026-09-21: a standalone
+ * re-run created and removed its own role and left the earlier one untouched.
+ *
+ * So, after this run's own cleanup, every role this audit has ever minted is
+ * found by its prefix and removed, with its probe profiles and grants first
+ * (eng_profiles.role and eng_role_grants both reference eng_roles). The
+ * subject is derived from the ROLES table and from auth.users as well as from
+ * profiles, because a sweep that derives its subject from profiles alone
+ * cannot see an auth user whose profile is already gone (CLAUDE.md, "A SWEEP
+ * VERIFIED IN ONE PLACE IS A SWEEP OF ONE PLACE").
+ *
+ * The verdict reads the roles back. None left is a pass naming how many
+ * earlier runs' roles it removed; any left is the finding, by key; a read
+ * back that cannot be made is COULD NOT TELL. Sweeping the whole prefix is
+ * safe because the writers shard takes its turn on development across every
+ * run (scripts/ci/dev-db-turn.mjs), so no other mfa-audit is mid-run.
+ */
+const MFA_ROLE_PREFIXES = ["mfa_probe_required_", "mfa_probe_optional_"];
+const MFA_PROBE_EMAIL = /^mfaprobe-.*@mobile-audit\.invalid$/;
+const isMfaRole = (key) => MFA_ROLE_PREFIXES.some((p) => typeof key === "string" && key.startsWith(p));
+
+async function mfaRolesOnDevelopment(db) {
+  /* "_" is a LIKE wildcard, so the pattern is a superset and the prefix test is the filter. */
+  const { data, error } = await db.from("eng_roles").select("key").like("key", "mfa_probe_%");
+  if (error) return { keys: null, error };
+  return { keys: (data ?? []).map((r) => r.key).filter(isMfaRole), error: null };
+}
+
+async function sweepMfaDomain(db, ownKeys) {
+  const name = "every throwaway role this audit has minted, on any run, is gone";
+  const before = await mfaRolesOnDevelopment(db);
+  if (before.error) return cnt(name, `the roles could not be listed before the sweep: ${before.error.message}`);
+  const stranded = before.keys.filter((k) => !ownKeys.includes(k));
+
+  /* Probe users on this audit's prefix, from auth.users AND from profiles. */
+  const userIds = new Set();
+  for (let page = 1; page <= 100; page += 1) {
+    const { data, error } = await db.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) return cnt(name, `auth users could not be listed for the sweep: ${error.message}`);
+    const users = data?.users ?? [];
+    for (const u of users) if (MFA_PROBE_EMAIL.test(u.email ?? "")) userIds.add(u.id);
+    if (users.length < 200) break;
+  }
+  const profiles = await db.from("eng_profiles").select("id, email").like("email", "mfaprobe-%");
+  if (profiles.error) return cnt(name, `probe profiles could not be listed for the sweep: ${profiles.error.message}`);
+  for (const p of profiles.data ?? []) if (MFA_PROBE_EMAIL.test(p.email ?? "")) userIds.add(p.id);
+
+  for (const id of userIds) {
+    await db.from("eng_profiles").delete().eq("id", id);
+    const gone = await db.auth.admin.deleteUser(id);
+    if (gone.error && !/not found/i.test(gone.error.message ?? "")) {
+      rec("a probe account this audit made was removed", false, `${id}: ${gone.error.message}`);
+    }
+  }
+  for (const key of before.keys) {
+    await db.from("eng_role_grants").delete().eq("role_key", key);
+    await db.from("eng_roles").delete().eq("key", key);
+  }
+
+  const after = await mfaRolesOnDevelopment(db);
+  if (after.error) return cnt(name, `the sweep ran and reading the roles back failed: ${after.error.message}`);
+  if (after.keys.length) return rec(name, false, `still on development: ${after.keys.join(", ")}`);
+  return rec(
+    name,
+    true,
+    stranded.length
+      ? `${stranded.length} left by earlier runs removed: ${stranded.join(", ")}`
+      : "none left by earlier runs",
+  );
+}
+
+/*
  * HOW LONG THE ENROLMENT SCREEN TOOK, PRINTED ON EVERY RUN. Operator ruling,
  * 2026-10-13: the 15 second wait below is a diagnostic, not a looser pass.
  * The QR or the form's error is timed from the click, and anything over
@@ -1416,6 +1494,8 @@ else process.env.OPS_SESSION_SECRET = HAD;
               const removedOptional = await db.from("eng_roles").delete().eq("key", OPTIONAL_ROLE);
               await recordRoleCleanup(db, "the throwaway optional role was cleaned up", OPTIONAL_ROLE, removedOptional.error);
             }
+            /* Then the whole domain, so a role an earlier run stranded is found and removed (L4260). */
+            await sweepMfaDomain(db, [REQUIRED_ROLE, OPTIONAL_ROLE]);
           }
         }
       }
