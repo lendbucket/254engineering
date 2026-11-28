@@ -6751,6 +6751,16 @@ FAIL when nothing is answering on BASE_URL:
   link-map, messaging-audit, placeholder-audit, preflight-audit,
   preflight-harness, registry-audit, seo-audit, shots, voice-audit
 
+**Re-read 2026-11-27 against main `99103d0`: ten of the fourteen now say COULD
+NOT TELL**, each through `scripts/lib/reachable.mjs` or its own verdict:
+asset-audit, coverage-audit, cta-audit, link-map, messaging-audit,
+placeholder-audit, registry-audit, seo-audit, voice-audit, and forms-audit, the
+last of them on `fix/forms-audit-could-not-tell`, which asks before its browser
+starts and before anything is submitted. **Four still do not:**
+bucket-roundtrip, preflight-audit, preflight-harness and shots. The two
+preflights exist to say whether a server is up, so whether they should is a
+question rather than a gap.
+
 The reason this is recorded rather than urgent: inside `npm run audit` it does
 not arise. The runner starts its own server, re-checks it between phases, and
 prints THE SUITE DID NOT RUN TO COMPLETION rather than a list of content

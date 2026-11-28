@@ -33,6 +33,7 @@ import { careersChecks } from "./lib/careers-audit.mjs";
 import { guardedSurfaces } from "./lib/surfaces.mjs";
 import { intakeAnswer } from "../src/lib/intake.ts";
 import { AUDIT_BASE_URL } from "./lib/ports.mjs";
+import { orCouldNotTell } from "./lib/reachable.mjs";
 
 /*
  * The audit reads the same env file the server does, and this is not a
@@ -59,6 +60,19 @@ try {
 }
 
 const BASE = process.env.BASE_URL || AUDIT_BASE_URL;
+
+/*
+ * UNREACHABLE IS NOT FAILED, AND THIS AUDIT WAS THE LAST WRITER THAT SAID IT WAS.
+ *
+ * Run standalone with nothing on BASE_URL, every form check below failed on a
+ * navigation that never happened, and the run read as a page of findings about
+ * forms nobody had opened (BACKLOG.md, "Audits that still fail red when run
+ * standalone with no server"). Asked here, before the browser starts and before
+ * anything is submitted, so no row can be written by a run that then measures
+ * nothing. Any other error is rethrown, so a server that answers and refuses
+ * stays loud.
+ */
+await orCouldNotTell(() => fetch(`${BASE}/`), `the site at ${BASE}`);
 
 const out = [];
 const rec = (name, ok, note = "") => out.push({ name, ok, note });
